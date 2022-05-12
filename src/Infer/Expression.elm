@@ -1,4 +1,4 @@
-module Infer.Expression exposing (..)
+module Infer.Expression exposing (Expression(..))
 
 {-|
 

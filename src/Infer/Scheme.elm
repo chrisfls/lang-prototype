@@ -1,4 +1,8 @@
-module Infer.Scheme exposing (..)
+module Infer.Scheme exposing
+    ( Scheme, substitute, freeVariables
+    , Environment
+    , freshInt, freshTypevar, instantiate, generalize
+    )
 
 {-|
 
