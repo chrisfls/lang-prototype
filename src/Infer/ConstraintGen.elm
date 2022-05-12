@@ -1,10 +1,10 @@
 module Infer.ConstraintGen exposing (..)
 
-import Infer.Type as Type exposing (Type(..), app)
-import Infer.Scheme exposing (Environment, Scheme, generalize, instantiate, freshTypevar)
+import Dict
 import Infer.Expression exposing (Expression(..))
-import Dict exposing (Dict)
 import Infer.Monad exposing (..)
+import Infer.Scheme exposing (Environment, freshTypevar, generalize, instantiate)
+import Infer.Type exposing (Type(..))
 
 
 type alias Constraint =
@@ -25,7 +25,7 @@ generateConstraints environment exp =
             map3
                 (\this ( f, fc ) ( a, ac ) ->
                     ( this
-                    , fc ++ ac ++ [ ( f, (TArrow a this) ) ]
+                    , fc ++ ac ++ [ ( f, TArrow a this ) ]
                     )
                 )
                 freshTypevar

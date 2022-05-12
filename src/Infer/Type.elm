@@ -1,19 +1,12 @@
-module Infer.Type
-    exposing
-        ( Type(..)
-        , string
-        , char
-        , bool
-        , int
-        , float
-        , toString
-        , variables
-        , unify
-        , union
-        , substitute
-        , Substitution
-        , app
-        )
+module Infer.Type exposing
+    ( Type(..)
+    , string, char, bool, int, float
+    , toString
+    , Substitution, substitute
+    , unify, union
+    , variables
+    , app
+    )
 
 {-|
 
@@ -107,7 +100,7 @@ toString t =
             Dict.toList d
                 |> List.map (\( n, t_ ) -> n ++ " : " ++ toString t_)
                 |> String.join ", "
-                |> \x -> "{" ++ x ++ "}"
+                |> (\x -> "{" ++ x ++ "}")
 
         TTuple types ->
             List.map toString types
@@ -158,6 +151,7 @@ unify context content =
         ( TOpaque a at, TOpaque b bt ) ->
             if a == b then
                 unifyMany at bt
+
             else
                 mismatch a b
 
@@ -197,8 +191,10 @@ bind : Int -> Type -> Result String (Dict Int Type)
 bind id x =
     if x == TAny id then
         Ok Dict.empty
+
     else if Set.member id (variables x) then
         Err ("recursive type " ++ String.fromInt id ++ " " ++ toString x)
+
     else
         Ok <| Dict.singleton id x
 

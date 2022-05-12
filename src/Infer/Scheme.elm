@@ -11,11 +11,11 @@ module Infer.Scheme exposing (..)
 
 -}
 
-import Infer.Type as Type exposing (Type(..))
-import Infer.Monad as Infer
-import State
 import Dict exposing (Dict)
+import Infer.Monad as Infer
+import Infer.Type as Type exposing (Type(..))
 import Set exposing (Set)
+import State
 
 
 {-| Generates an int one greater than the last.
@@ -81,7 +81,7 @@ generalize env t =
         generic =
             Set.diff inType inEnv
     in
-        ( Set.toList generic, t )
+    ( Set.toList generic, t )
 
 
 {-| Variables that are not bound by the type scheme.

@@ -1,15 +1,17 @@
 module Infer exposing (typeOf)
 
 {-| This is the module implementing type inference. You'll also need at least `Infer.Expression`.
+
 @docs typeOf
+
 -}
 
-import Infer.Expression exposing (Expression)
-import Infer.ConstraintGen exposing (Constraint, generateConstraints)
-import Infer.Scheme exposing (Environment)
-import Infer.Type as Type exposing (Substitution, app, Type)
-import Infer.Monad as Infer
 import Dict
+import Infer.ConstraintGen exposing (Constraint, generateConstraints)
+import Infer.Expression exposing (Expression)
+import Infer.Monad as Infer
+import Infer.Scheme exposing (Environment)
+import Infer.Type as Type exposing (Substitution, Type, app)
 
 
 types : Environment -> Expression -> Int -> Bool
@@ -56,4 +58,4 @@ substituteConstraint substitution ( l, r ) =
         f =
             Type.substitute substitution
     in
-        ( f l, f r )
+    ( f l, f r )
