@@ -4,14 +4,14 @@ import Browser
 import Dict
 import Html exposing (text)
 import Lang
-import Lang.Expression as Expr
+import Lang.Syntax.Expr as Expr
 import Lang.Monad as Monad
 
 
 main =
     let
         _ =
-            Expr.Lambda "s" (\s -> Expr.Lambda "z" (\z -> (Expr.Call s (Expr.Call s z))))
+            Expr.Lam "s" (\s -> Expr.Lam "z" (\z -> (Expr.App s (Expr.App s z))))
                 |> Lang.typeOf Dict.empty
                 |> Monad.finalValue 0
                 |> Debug.log "Lang"

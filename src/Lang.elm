@@ -8,13 +8,14 @@ module Lang exposing (typeOf)
 
 import Dict
 import Lang.ConstraintGen exposing (Constraint, generateConstraints)
-import Lang.Expression exposing (Expression)
+import Lang.Syntax.Expr exposing (Expr)
 import Lang.Monad as Lang
 import Lang.Scheme exposing (Environment)
-import Lang.Type as Type exposing (Substitution, Type, app)
+import Lang.Syntax.Type as Type exposing (Substitution, Type, app)
+import Lang.Scheme exposing (Environment)
 
 
-types : Environment -> Expression -> Int -> Bool
+types : Environment -> Expr -> Int -> Bool
 types env exp s =
     typeOf env exp
         |> Lang.finalValue s
@@ -25,7 +26,7 @@ types env exp s =
 {-| Returns a computation that yields the type of the input expression
 with the specified environment.
 -}
-typeOf : Environment -> Expression -> Lang.Monad ( Type, Type -> Type )
+typeOf : Environment -> Expr -> Lang.Monad ( Type, Type -> Type )
 typeOf env exp =
     generateConstraints exp env
         |> Lang.andThen

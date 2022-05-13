@@ -1,4 +1,4 @@
-module Lang.Type exposing
+module Lang.Syntax.Type exposing
     ( Type(..)
     , string, char, bool, int, float
     , toString
@@ -34,49 +34,56 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 
 
+
 {-| Represents Elm types. TAny is for type variables.
 -}
 type Type
-    = TArrow Type Type
+    = TArr Type Type
+    | TCon String (List Type)
+    | TVar Int
     | TRecord (Dict String Type)
     | TTuple (List Type)
-    | TOpaque String (List Type)
-    | TAny Int
+
+
+-- TODO:
+-- * rework record
+-- * rework tuple
+-- * rework TCon
 
 
 {-| String
 -}
 string : Type
 string =
-    TOpaque ".String" []
+    TCon ".String" []
 
 
 {-| Char
 -}
 char : Type
 char =
-    TOpaque ".Char" []
+    TCon ".Char" []
 
 
 {-| Bool
 -}
 bool : Type
 bool =
-    TOpaque ".Bool" []
+    TCon ".Bool" []
 
 
 {-| Int
 -}
 int : Type
 int =
-    TOpaque ".Int" []
+    TCon ".Int" []
 
 
 {-| Float
 -}
 float : Type
 float =
-    TOpaque ".Float" []
+    TCon ".Float" []
 
 
 {-| Textual representation of a type
@@ -84,16 +91,16 @@ float =
 toString : Type -> String
 toString t =
     case t of
-        TOpaque name args ->
+        TCon name args ->
             name
                 :: List.map toString args
                 |> String.join " "
                 |> brace
 
-        TArrow l r ->
+        TArr l r ->
             toString l ++ " -> " ++ toString r
 
-        TAny x ->
+        TVar x ->
             String.fromInt x
 
         TRecord d ->
@@ -118,10 +125,10 @@ brace x =
 variables : Type -> Set Int
 variables t =
     case t of
-        TAny x ->
+        TVar x ->
             Set.singleton x
 
-        TArrow l r ->
+        TArr l r ->
             Set.union (variables l) (variables r)
 
         TRecord d ->
@@ -131,7 +138,7 @@ variables t =
         TTuple types ->
             variablesFromList types
 
-        TOpaque _ args ->
+        TCon _ args ->
             variablesFromList args
 
 
@@ -148,14 +155,14 @@ Returns an error if not possible.
 unify : Type -> Type -> Result String Substitution
 unify context content =
     case ( context, content ) of
-        ( TOpaque a at, TOpaque b bt ) ->
+        ( TCon a at, TCon b bt ) ->
             if a == b then
                 unifyMany at bt
 
             else
                 mismatch a b
 
-        ( TArrow head1 tail1, TArrow head2 tail2 ) ->
+        ( TArr head1 tail1, TArr head2 tail2 ) ->
             unify head1 head2
                 |> Result.andThen
                     (\sub1 ->
@@ -163,10 +170,10 @@ unify context content =
                             |> Result.map (\sub2 -> app sub2 sub1)
                     )
 
-        ( TAny id, x ) ->
+        ( TVar id, x ) ->
             bind id x
 
-        ( x, TAny id ) ->
+        ( x, TVar id ) ->
             bind id x
 
         ( x, y ) ->
@@ -189,7 +196,7 @@ unifyMany context content =
 
 bind : Int -> Type -> Result String (Dict Int Type)
 bind id x =
-    if x == TAny id then
+    if x == TVar id then
         Ok Dict.empty
 
     else if Set.member id (variables x) then
@@ -230,15 +237,15 @@ type alias Substitution =
 substitute : Substitution -> Type -> Type
 substitute substitution t =
     case t of
-        TAny x ->
+        TVar x ->
             Dict.get x substitution
-                |> Maybe.withDefault (TAny x)
+                |> Maybe.withDefault (TVar x)
 
-        TArrow h t_ ->
-            TArrow (substitute substitution h) (substitute substitution t_)
+        TArr h t_ ->
+            TArr (substitute substitution h) (substitute substitution t_)
 
-        TOpaque name types ->
-            TOpaque name <| List.map (substitute substitution) types
+        TCon name types ->
+            TCon name <| List.map (substitute substitution) types
 
         TTuple types ->
             TTuple <| List.map (substitute substitution) types

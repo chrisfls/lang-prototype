@@ -17,7 +17,7 @@ module Lang.Scheme exposing
 
 import Dict exposing (Dict)
 import Lang.Monad as Lang
-import Lang.Type as Type exposing (Type(..))
+import Lang.Syntax.Type as Type exposing (Type(..))
 import Set exposing (Set)
 
 
@@ -32,13 +32,15 @@ freshInt =
 -}
 freshTypevar : Lang.Monad Type
 freshTypevar =
-    Lang.map TAny freshInt
+    Lang.map TVar freshInt
 
 
-{-| A type scheme represents a variable definition, for example a named function.
-When the variable is used, the scheme must be converted into a concrete type.
-The listed type variables are the ones that the type is generic over. It may
-contain others that represent for example types of things defined higher up.
+{-| A scheme represents a type that is safe to instantiate, though
+the type might not actually have any variables to replace.
+
+Type schemes model polymorphic types, they indicate that the type
+variables bound in quantifier are polymorphic across the enclosed type
+and can be instantiated with any type consistent with the signature.
 -}
 type alias Scheme =
     ( List Int, Type )

@@ -1,45 +1,45 @@
 module Lang.ConstraintGen exposing (..)
 
 import Dict
-import Lang.Expression exposing (Expression(..))
+import Lang.Syntax.Expr exposing (Expr(..))
 import Lang.Monad exposing (..)
 import Lang.Scheme exposing (Environment, freshTypevar, generalize, instantiate)
-import Lang.Type exposing (Type(..))
+import Lang.Syntax.Type exposing (Type(..))
 
 
 type alias Constraint =
     ( Type, Type )
 
 
-generateConstraints : Expression -> Environment -> Monad ( Type, List Constraint )
+generateConstraints : Expr -> Environment -> Monad ( Type, List Constraint )
 generateConstraints exp environment =
     case exp of
-        Name name ->
+        Var name ->
             variable name environment
                 |> map (\x -> ( x, [] ))
 
-        Literal t ->
+        Lit t ->
             pure ( t, [] )
 
-        Call function argument ->
+        App function argument ->
             map3
                 (\this ( f, fc ) ( a, ac ) ->
                     ( this
-                    , fc ++ ac ++ [ ( f, TArrow a this ) ]
+                    , fc ++ ac ++ [ ( f, TArr a this ) ]
                     )
                 )
                 freshTypevar
                 (generateConstraints function environment)
                 (generateConstraints argument environment)
 
-        Lambda argument body ->
+        Lam argument body ->
             freshTypevar
                 |> andThen
                     (\argType ->
-                        generateConstraints  (body (Name argument)) (extend argument argType environment)
+                        generateConstraints  (body (Var argument)) (extend argument argType environment)
                             |> map
                                 (\( bodyType, bodyCons ) ->
-                                    ( TArrow argType bodyType, bodyCons )
+                                    ( TArr argType bodyType, bodyCons )
                                 )
                     )
 
@@ -61,7 +61,7 @@ generateConstraints exp environment =
             generateConstraints exp_ environment
                 |> map
                     (\( typ, constraints ) ->
-                        ( typ, constraints ++ [ ( TAny tag, typ ) ] )
+                        ( typ, constraints ++ [ ( TVar tag, typ ) ] )
                     )
 
 
