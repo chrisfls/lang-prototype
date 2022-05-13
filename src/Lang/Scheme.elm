@@ -49,7 +49,8 @@ variables for fresh ones.
 -}
 instantiate : Scheme -> Lang.Monad Type
 instantiate ( vars, t ) =
-    List.map (\v -> Lang.map (Tuple.pair v) freshTypevar) vars
+    vars
+        |> List.map (\v -> Lang.map (Tuple.pair v) freshTypevar)
         |> Lang.combine
         |> Lang.map Dict.fromList
         |> Lang.map (\s -> Type.substitute s t)
@@ -72,19 +73,13 @@ substitute s ( vars, t ) =
 in the type not coming from the environment.
 -}
 generalize : Type -> Environment -> Scheme
-generalize t env =
-    let
-        inEnv =
-            List.map freeVariables (Dict.values env)
-                |> List.foldl Set.union Set.empty
-
-        inType =
-            Type.variables t
-
-        generic =
-            Set.diff inType inEnv
-    in
-    ( Set.toList generic, t )
+generalize t =
+    Dict.values 
+        >> List.map freeVariables
+        >> List.foldl Set.union Set.empty
+        >> Set.diff (Type.variables t)
+        >> Set.toList
+        >> (\generic -> (generic, t))
 
 
 {-| Variables that are not bound by the type scheme.
