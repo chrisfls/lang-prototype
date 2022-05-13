@@ -41,6 +41,7 @@ the type might not actually have any variables to replace.
 Type schemes model polymorphic types, they indicate that the type
 variables bound in quantifier are polymorphic across the enclosed type
 and can be instantiated with any type consistent with the signature.
+
 -}
 type alias Scheme =
     ( List Int, Type )
@@ -76,12 +77,12 @@ in the type not coming from the environment.
 -}
 generalize : Type -> Environment -> Scheme
 generalize t =
-    Dict.values 
+    Dict.values
         >> List.map freeVariables
         >> List.foldl Set.union Set.empty
         >> Set.diff (Type.variables t)
         >> Set.toList
-        >> (\generic -> (generic, t))
+        >> (\generic -> ( generic, t ))
 
 
 {-| Variables that are not bound by the type scheme.
