@@ -1,17 +1,11 @@
 module Lang.Syntax.Expr exposing (Expr(..))
 
-{-|
-
-
-#
-
-@docs Expression
-
--}
-
 import Lang.Syntax.Type exposing (Type)
 
-type alias Name = String
+
+type alias Name =
+    String
+
 
 type Expr
     = Var Name
@@ -20,6 +14,8 @@ type Expr
     | App Expr Expr
     | Let Name Expr Expr
     | Spy Expr Int
+
+
 
 -- TODO
 -- * add Lit

@@ -1,9 +1,9 @@
 module Lang.ConstraintGen exposing (..)
 
 import Dict
-import Lang.Syntax.Expr exposing (Expr(..))
 import Lang.Monad exposing (..)
 import Lang.Scheme exposing (Environment, freshTypevar, generalize, instantiate)
+import Lang.Syntax.Expr exposing (Expr(..))
 import Lang.Syntax.Type exposing (Type(..))
 
 
@@ -36,7 +36,7 @@ generateConstraints exp environment =
             freshTypevar
                 |> andThen
                     (\argType ->
-                        generateConstraints  (body (Var argument)) (extend argument argType environment)
+                        generateConstraints (body (Var argument)) (extend argument argType environment)
                             |> map
                                 (\( bodyType, bodyCons ) ->
                                     ( TArr argType bodyType, bodyCons )
@@ -79,5 +79,5 @@ extendGeneralized name t environment =
 
 
 extend : String -> Type -> Environment -> Environment
-extend name t environment  =
+extend name t environment =
     Dict.insert name ( [], t ) environment

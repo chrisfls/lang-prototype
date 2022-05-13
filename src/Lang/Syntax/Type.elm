@@ -34,7 +34,6 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 
 
-
 {-| Represents Elm types. TAny is for type variables.
 -}
 type Type
@@ -43,6 +42,7 @@ type Type
     | TVar Int
     | TRecord (Dict String Type)
     | TTuple (List Type)
+
 
 
 -- TODO:
