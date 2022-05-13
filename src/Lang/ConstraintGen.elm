@@ -11,11 +11,11 @@ type alias Constraint =
     ( Type, Type )
 
 
-generateConstraints : Environment -> Expression -> Monad ( Type, List Constraint )
-generateConstraints environment exp =
+generateConstraints : Expression -> Environment -> Monad ( Type, List Constraint )
+generateConstraints exp environment =
     case exp of
         Name name ->
-            variable environment name
+            variable name environment
                 |> map (\x -> ( x, [] ))
 
         Literal t ->
@@ -29,14 +29,14 @@ generateConstraints environment exp =
                     )
                 )
                 freshTypevar
-                (generateConstraints environment function)
-                (generateConstraints environment argument)
+                (generateConstraints function environment)
+                (generateConstraints argument environment)
 
         Lambda argument body ->
             freshTypevar
                 |> andThen
                     (\argType ->
-                        generateConstraints (extend environment argument argType) body
+                        generateConstraints  (body (Name argument)) (extend argument argType environment)
                             |> map
                                 (\( bodyType, bodyCons ) ->
                                     ( TArrow argType bodyType, bodyCons )
@@ -44,7 +44,7 @@ generateConstraints environment exp =
                     )
 
         Let name value body ->
-            generateConstraints environment value
+            generateConstraints value environment
                 |> andThen
                     (\( valueT, valueC ) ->
                         map2
@@ -54,30 +54,30 @@ generateConstraints environment exp =
                                 )
                             )
                             freshTypevar
-                            (generateConstraints (extend environment name valueT) body)
+                            (generateConstraints body (extend name valueT environment))
                     )
 
         Spy exp_ tag ->
-            generateConstraints environment exp_
+            generateConstraints exp_ environment
                 |> map
                     (\( typ, constraints ) ->
                         ( typ, constraints ++ [ ( TAny tag, typ ) ] )
                     )
 
 
-variable : Environment -> String -> Monad Type
-variable env name =
+variable : String -> Environment -> Monad Type
+variable name env =
     Dict.get name env
         |> Result.fromMaybe ("variable " ++ name ++ " not found")
         |> fromResult
         |> andThen instantiate
 
 
-extendGeneralized : Environment -> String -> Type -> Environment
-extendGeneralized environment name t =
-    Dict.insert name (generalize environment t) environment
+extendGeneralized : String -> Type -> Environment -> Environment
+extendGeneralized name t environment =
+    Dict.insert name (generalize t environment) environment
 
 
-extend : Environment -> String -> Type -> Environment
-extend environment name t =
+extend : String -> Type -> Environment -> Environment
+extend name t environment  =
     Dict.insert name ( [], t ) environment

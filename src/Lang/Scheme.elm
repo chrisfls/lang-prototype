@@ -71,8 +71,8 @@ substitute s ( vars, t ) =
 {-| Converts a type into a type scheme that is generic over all the type variables
 in the type not coming from the environment.
 -}
-generalize : Environment -> Type -> Scheme
-generalize env t =
+generalize : Type -> Environment -> Scheme
+generalize t env =
     let
         inEnv =
             List.map freeVariables (Dict.values env)

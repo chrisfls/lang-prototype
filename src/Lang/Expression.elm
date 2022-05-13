@@ -17,7 +17,7 @@ The Spy variant has no effect on type inference, but can be used to find the typ
 -}
 type Expression
     = Literal Type
-    | Lambda String Expression
+    | Lambda String (Expression -> Expression)
     | Call Expression Expression
     | Let String Expression Expression
     | Name String

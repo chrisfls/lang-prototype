@@ -27,7 +27,7 @@ with the specified environment.
 -}
 typeOf : Environment -> Expression -> Lang.Monad ( Type, Type -> Type )
 typeOf env exp =
-    generateConstraints env exp
+    generateConstraints exp env
         |> Lang.andThen
             (\( t, cs ) ->
                 solve Dict.empty cs
