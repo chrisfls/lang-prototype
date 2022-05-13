@@ -19,55 +19,66 @@ module Infer.Monad exposing (..)
 
 -}
 
-import State exposing (State)
-
 
 {-| Represents a stateful computation that can fail.
 -}
 type alias Monad a =
-    State Int (Result String a)
+    Int -> ( Result String a, Int )
 
 
 {-| Put a value into the monad. Will not advance the fresh name supply nor cause an error.
 -}
-pure : a -> Monad a
+pure : a -> (Int -> ( Result String a, Int ))
 pure x =
-    State.state (Ok x)
+    (\value s -> ( value, s )) (Ok x)
 
 
 {-| Represents a failed computation.
 -}
-err : String -> Monad a
+err : String -> (Int -> ( Result String a, Int ))
 err e =
-    State.state (Err e)
+    (\value s -> ( value, s )) (Err e)
 
 
 {-| Un-specialize a Result.
 -}
-fromResult : Result String a -> Monad a
+fromResult : Result String a -> (Int -> ( Result String a, Int ))
 fromResult res =
-    State.state res
+    (\value s -> ( value, s )) res
 
 
 {-| `map` for this particular monad.
 -}
-map : (a -> value) -> Monad a -> Monad value
+map : (a -> value) -> (Int -> ( Result String a, Int )) -> Monad value
 map f =
-    State.map (Result.map f)
+    (\f_ step currentState ->
+        let
+            ( value, newState ) =
+                step currentState
+        in
+        ( f_ value, newState )
+    )
+        (Result.map f)
 
 
 {-| `andThen` for this particular monad.
 -}
-andThen : (a -> Monad b) -> Monad a -> Monad b
+andThen : (a -> Monad b) -> (Int -> ( Result String a, Int )) -> Monad b
 andThen f =
-    State.andThen
+    (\f_ h s ->
+        let
+            ( a, newState ) =
+                h s
+        in
+        f_ a newState
+    )
         (\r ->
             case r of
                 Ok v ->
                     f v
 
                 Err e ->
-                    State.state <| Err e
+                    (\value s -> ( value, s )) <| Err e
         )
 
 
@@ -81,7 +92,7 @@ andMap y =
 
 {-| `map2` for this particular monad.
 -}
-map2 : (a -> b -> c) -> Monad a -> Monad b -> Monad c
+map2 : (a -> b -> c) -> (Int -> ( Result String a, Int )) -> Monad b -> Monad c
 map2 f x y =
     map f x
         |> andMap y
@@ -89,7 +100,7 @@ map2 f x y =
 
 {-| `map3` for this particular monad.
 -}
-map3 : (a -> b -> c -> d) -> Monad a -> Monad b -> Monad c -> Monad d
+map3 : (a -> b -> c -> d) -> (Int -> ( Result String a, Int )) -> Monad b -> Monad c -> Monad d
 map3 f a b c =
     map2 f a b
         |> andMap c
@@ -97,7 +108,7 @@ map3 f a b c =
 
 {-| `map4` for this particular monad.
 -}
-map4 : (a -> b -> c -> d -> e) -> Monad a -> Monad b -> Monad c -> Monad d -> Monad e
+map4 : (a -> b -> c -> d -> e) -> (Int -> ( Result String a, Int )) -> Monad b -> Monad c -> Monad d -> Monad e
 map4 f a b c d =
     map3 f a b c
         |> andMap d
@@ -105,13 +116,23 @@ map4 f a b c d =
 
 {-| Lifts the monads out of a list.
 -}
-combine : List (Monad a) -> Monad (List a)
+combine : List (Int -> ( Result String a, Int )) -> Int -> ( Result String (List a), Int )
 combine =
     List.foldr (map2 (::)) (pure [])
 
 
 {-| Computes the value of a computation.
 -}
-finalValue : Int -> Monad a -> Result String a
-finalValue =
-    State.finalValue
+finalValue : Int -> (Int -> ( Result String a, Int )) -> Result String a
+finalValue initialState =
+    Tuple.first << run initialState
+
+
+run : Int -> (Int -> ( Result String a, Int )) -> ( Result String a, Int )
+run initialState s =
+    s initialState
+
+
+advance : (Int -> ( Result String a, Int )) -> (Int -> ( Result String a, Int ))
+advance f =
+    f

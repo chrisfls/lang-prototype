@@ -19,14 +19,13 @@ import Dict exposing (Dict)
 import Infer.Monad as Infer
 import Infer.Type as Type exposing (Type(..))
 import Set exposing (Set)
-import State
 
 
 {-| Generates an int one greater than the last.
 -}
 freshInt : Infer.Monad Int
 freshInt =
-    State.advance (\state -> ( Ok state, state + 1 ))
+    Infer.advance (\state -> ( Ok state, state + 1 ))
 
 
 {-| freshInt wrapped in TAny
