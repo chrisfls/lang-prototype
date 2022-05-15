@@ -16,23 +16,23 @@ module Lang.Scheme exposing
 -}
 
 import Dict exposing (Dict)
-import Lang.Monad as Lang
+import Lang.Monad as Monad
 import Lang.Syntax.Type as Type exposing (Type(..))
 import Set exposing (Set)
 
 
 {-| Generates an int one greater than the last.
 -}
-freshInt : Lang.Monad Int
+freshInt : Int -> ( Result String Int, Int )
 freshInt =
-    Lang.advance (\state -> ( Ok state, state + 1 ))
+    Monad.advance (\state -> ( Ok state, state + 1 ))
 
 
 {-| freshInt wrapped in TAny
 -}
-freshTypevar : Lang.Monad Type
+freshTypevar : Int -> ( Result String Type, Int )
 freshTypevar =
-    Lang.map TVar freshInt
+    Monad.map TVar freshInt
 
 
 {-| A scheme represents a type that is safe to instantiate, though
@@ -50,13 +50,13 @@ type alias Scheme =
 {-| Converts a scheme into a concrete type by swapping the generic type
 variables for fresh ones.
 -}
-instantiate : Scheme -> Lang.Monad Type
+instantiate : Scheme -> (Int -> ( Result String Type, Int ))
 instantiate ( vars, t ) =
     vars
-        |> List.map (\v -> Lang.map (Tuple.pair v) freshTypevar)
-        |> Lang.combine
-        |> Lang.map Dict.fromList
-        |> Lang.map (\s -> Type.substitute s t)
+        |> List.map (\v -> Monad.map (Tuple.pair v) freshTypevar)
+        |> Monad.combine
+        |> Monad.map Dict.fromList
+        |> Monad.map (\s -> Type.substitute s t)
 
 
 {-| Holds all names defined in outer scopes.

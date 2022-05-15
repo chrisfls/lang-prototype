@@ -11,7 +11,7 @@ type alias Constraint =
     ( Type, Type )
 
 
-generateConstraints : Expr -> Environment -> Monad ( Type, List Constraint )
+generateConstraints : Expr -> Environment -> (Int -> ( Result String ( Type, List Constraint ), Int ))
 generateConstraints exp environment =
     case exp of
         Var name ->
@@ -65,7 +65,7 @@ generateConstraints exp environment =
                     )
 
 
-variable : String -> Environment -> Monad Type
+variable : String -> Environment -> (Int -> ( Result String Type, Int ))
 variable name env =
     Dict.get name env
         |> Result.fromMaybe ("variable " ++ name ++ " not found")
