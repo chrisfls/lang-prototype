@@ -1,7 +1,7 @@
 module Lang.ConstraintGen exposing (..)
 
 import Dict
-import Lang.Monad exposing (..)
+import Lang.Monad as Monad
 import Lang.Scheme exposing (Environment, freshTypevar, generalize, instantiate)
 import Lang.Syntax.Expr exposing (Expr(..))
 import Lang.Syntax.Type exposing (Type(..))
@@ -16,13 +16,13 @@ generateConstraints exp environment =
     case exp of
         Var name ->
             variable name environment
-                |> map (\x -> ( x, [] ))
+                |> Monad.map (\x -> ( x, [] ))
 
         Lit t ->
-            pure ( t, [] )
+            Monad.pure ( t, [] )
 
         App function argument ->
-            map3
+            Monad.map3
                 (\this ( f, fc ) ( a, ac ) ->
                     ( this
                     , fc ++ ac ++ [ ( f, TArr a this ) ]
@@ -34,10 +34,10 @@ generateConstraints exp environment =
 
         Lam argument body ->
             freshTypevar
-                |> andThen
+                |> Monad.andThen
                     (\argType ->
                         generateConstraints (body (Var argument)) (extend argument argType environment)
-                            |> map
+                            |> Monad.map
                                 (\( bodyType, bodyCons ) ->
                                     ( TArr argType bodyType, bodyCons )
                                 )
@@ -45,9 +45,9 @@ generateConstraints exp environment =
 
         Let name value body ->
             generateConstraints value environment
-                |> andThen
+                |> Monad.andThen
                     (\( valueT, valueC ) ->
-                        map2
+                        Monad.map2
                             (\this ( bodyT, bodyC ) ->
                                 ( this
                                 , valueC ++ bodyC ++ [ ( this, bodyT ) ]
@@ -59,7 +59,7 @@ generateConstraints exp environment =
 
         Spy exp_ tag ->
             generateConstraints exp_ environment
-                |> map
+                |> Monad.map
                     (\( typ, constraints ) ->
                         ( typ, constraints ++ [ ( TVar tag, typ ) ] )
                     )
@@ -69,8 +69,8 @@ variable : String -> Environment -> (Int -> ( Result String Type, Int ))
 variable name env =
     Dict.get name env
         |> Result.fromMaybe ("variable " ++ name ++ " not found")
-        |> fromResult
-        |> andThen instantiate
+        |> Monad.fromResult
+        |> Monad.andThen instantiate
 
 
 extendGeneralized : String -> Type -> Environment -> Environment
