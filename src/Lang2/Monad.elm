@@ -1,4 +1,4 @@
-module Lang.Monad exposing (..)
+module Lang2.Monad exposing (..)
 
 {-|
 

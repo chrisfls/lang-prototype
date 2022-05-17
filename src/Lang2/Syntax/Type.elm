@@ -1,4 +1,4 @@
-module Lang.Syntax.Type exposing
+module Lang2.Syntax.Type exposing
     ( Type(..)
     , string, char, bool, int, float
     , toString

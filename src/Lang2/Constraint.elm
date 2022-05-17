@@ -1,7 +1,7 @@
-module Lang.Constraint exposing (..)
+module Lang2.Constraint exposing (..)
 
-import Lang.Syntax.Type exposing (Type)
-import Lang.Scheme exposing (Environment)
+import Lang2.Syntax.Type exposing (Type)
+import Lang2.Scheme exposing (Environment)
 import State.Result exposing (StateResult)
 
 type alias Constraint

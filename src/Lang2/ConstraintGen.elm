@@ -1,10 +1,10 @@
-module Lang.ConstraintGen exposing (..)
+module Lang2.ConstraintGen exposing (..)
 
 import Dict
-import Lang.Monad as Monad
-import Lang.Scheme exposing (Environment, generalize, instantiate)
-import Lang.Syntax.Expr exposing (Expr(..))
-import Lang.Syntax.Type exposing (Type(..))
+import Lang2.Monad as Monad
+import Lang2.Scheme exposing (Environment, generalize, instantiate)
+import Lang2.Syntax.Expr exposing (Expr(..))
+import Lang2.Syntax.Type exposing (Type(..))
 import State.Result as StateResult exposing (StateResult)
 
 

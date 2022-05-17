@@ -1,4 +1,4 @@
-module Lang.Scheme exposing
+module Lang2.Scheme exposing
     ( Scheme, substitute, freeVariables
     , Environment
     , freshInt, freshTypevar, instantiate, generalize
@@ -16,8 +16,8 @@ module Lang.Scheme exposing
 -}
 
 import Dict exposing (Dict)
-import Lang.Monad as Monad
-import Lang.Syntax.Type as Type exposing (Type(..))
+import Lang2.Monad as Monad
+import Lang2.Syntax.Type as Type exposing (Type(..))
 import Set exposing (Set)
 
 

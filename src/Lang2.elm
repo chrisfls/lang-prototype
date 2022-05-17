@@ -1,4 +1,4 @@
-module Lang exposing (typeOf)
+module Lang2 exposing (typeOf)
 
 {-| This is the module implementing type inference. You'll also need at least `Lang.Expression`.
 
@@ -7,11 +7,11 @@ module Lang exposing (typeOf)
 -}
 
 import Dict
-import Lang.ConstraintGen exposing (Constraint, generateConstraints)
-import Lang.Monad as Monad
-import Lang.Scheme exposing (Environment)
-import Lang.Syntax.Expr exposing (Expr)
-import Lang.Syntax.Type as Type exposing (Substitution, Type, app)
+import Lang2.ConstraintGen exposing (Constraint, generateConstraints)
+import Lang2.Monad as Monad
+import Lang2.Scheme exposing (Environment)
+import Lang2.Syntax.Expr exposing (Expr)
+import Lang2.Syntax.Type as Type exposing (Substitution, Type, app)
 
 
 types : Environment -> Expr -> Int -> Bool

@@ -1,6 +1,6 @@
-module Lang.Syntax.Expr exposing (Expr(..))
+module Lang2.Syntax.Expr exposing (Expr(..))
 
-import Lang.Syntax.Type exposing (Type)
+import Lang2.Syntax.Type exposing (Type)
 
 
 type alias Name =
