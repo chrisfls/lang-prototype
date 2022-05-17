@@ -123,5 +123,5 @@ run s step =
 
 
 advance : (Int -> ( Result String a, Int )) -> (Int -> ( Result String a, Int ))
-advance f =
-    f
+advance =
+    identity

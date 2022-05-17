@@ -24,8 +24,8 @@ import Set exposing (Set)
 {-| Generates an int one greater than the last.
 -}
 freshInt : Int -> ( Result String Int, Int )
-freshInt =
-    Monad.advance (\state -> ( Ok state, state + 1 ))
+freshInt state =
+    ( Ok state, state + 1 )
 
 
 {-| freshInt wrapped in TAny

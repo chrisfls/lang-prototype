@@ -6,6 +6,17 @@ import Html exposing (text)
 import Lang
 import Lang.Monad as Monad
 import Lang.Syntax.Expr as Expr
+import State
+
+type alias Person = { a: Bool, b: Int, c: String }
+
+a : number -> Person
+a s =
+    always (Person, 1)
+        |> State.andMap (always (False, 2))
+        |> State.andMap (always (12, 2))
+        |> State.andMap (always ("12", 2))
+        |> State.unwrap s
 
 
 main =
