@@ -1,5 +1,6 @@
 module Result.State exposing (..)
 
+import Basics.Extra exposing (flip)
 import State
 
 
@@ -41,28 +42,8 @@ andThen f g s =
 
 
 andMap : State error a state -> State error (a -> value) state -> State error value state
-andMap f g s0 =
-    -- andMap f =
-    --     andThen (\g -> map g f)
-    let
-        ( fr, s1 ) =
-            f s0
-    in
-    case fr of
-        Ok a ->
-            let
-                ( gr, s2 ) =
-                    g s1
-            in
-            case gr of
-                Ok b ->
-                    ( Ok (b a), s2 )
-
-                Err e ->
-                    ( Err e, s2 )
-
-        Err e ->
-            ( Err e, s1 )
+andMap =
+    flip map >> andThen
 
 
 map2 : (a -> b -> value) -> State error a state -> State error b state -> State error value state
