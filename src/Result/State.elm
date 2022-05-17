@@ -1,4 +1,13 @@
-module Result.State exposing (..)
+module Result.State exposing
+    ( andMap
+    , andThen
+    , empty
+    , map
+    , map2
+    , run
+    , sequence
+    , unwrap
+    )
 
 import Basics.Extra exposing (flip)
 import State
@@ -19,26 +28,18 @@ map =
 
 
 andThen : (a -> State error value state) -> State error a state -> State error value state
-andThen f g s =
-    -- andThen f =
-    --     State.andThen
-    --         (\r ->
-    --             case r of
-    --                 Ok v ->
-    --                     f v
-    --                 Err e ->
-    --                     State.empty <| Err e
-    --         )
-    let
-        ( r, s_ ) =
-            g s
-    in
+andThen =
+    andThenHelp >> State.andThen
+
+
+andThenHelp : (a -> State error value state) -> Result error a -> State error value state
+andThenHelp f r =
     case r of
         Ok a ->
-            f a s_
+            f a
 
         Err e ->
-            ( Err e, s_ )
+            State.empty (Err e)
 
 
 andMap : State error a state -> State error (a -> value) state -> State error value state
