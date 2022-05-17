@@ -5,6 +5,7 @@ module State.Result exposing
     , empty
     , map
     , map2
+    , map3
     , run
     , sequence
     , unwrap
@@ -50,6 +51,10 @@ andMap =
 map2 : (a -> b -> value) -> StateResult error a state -> StateResult error b state -> StateResult error value state
 map2 f a b =
     andMap b (map f a)
+
+map3 : (a -> b -> c -> value) -> (StateResult error a state) -> (StateResult error b state) -> (StateResult error c state) -> StateResult error value state
+map3 f a b c =
+    andMap c (map2 f a b)
 
 
 run : state -> StateResult error value state -> ( Result error value, state )
