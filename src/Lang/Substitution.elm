@@ -2,6 +2,7 @@ module Lang.Substitution exposing (..)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Type as Type exposing (Type(..))
+import Lang.Inference.Error as Error exposing (Error)
 import Set
 
 
@@ -79,7 +80,7 @@ brace x =
     "(" ++ x ++ ")"
 
 
-unify : Type -> Type -> Result String Substitution
+unify : Type -> Type -> Result Error Substitution
 unify context content =
     case ( context, content ) of
         ( TCon a at, TCon b bt ) ->
@@ -87,7 +88,7 @@ unify context content =
                 unifyMany at bt
 
             else
-                mismatch a b
+                Err <| Error.Mismatch context content
 
         ( TArr head1 tail1, TArr head2 tail2 ) ->
             unify head1 head2
@@ -104,10 +105,10 @@ unify context content =
             bind id x
 
         ( x, y ) ->
-            mismatch (toString x) (toString y)
+            Err <| Error.Mismatch x y
 
 
-unifyMany : List Type -> List Type -> Result String Substitution
+unifyMany : List Type -> List Type -> Result Error Substitution
 unifyMany context content =
     List.map2 Tuple.pair context content
         |> List.foldl
@@ -121,18 +122,13 @@ unifyMany context content =
             (Ok empty)
 
 
-bind : Int -> Type -> Result String Substitution
+bind : Int -> Type -> Result Error Substitution
 bind id x =
     if x == TVar id then
         Ok empty
 
     else if Set.member id (Type.variables x) then
-        Err ("recursive type " ++ String.fromInt id ++ " " ++ toString x)
+        Err (Error.Recursion id x)
 
     else
         Ok <| Substitution <| Dict.singleton id x
-
-
-mismatch : String -> String -> Result String a
-mismatch a b =
-    Err <| "Mismatch: " ++ a ++ " and " ++ b

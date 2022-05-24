@@ -3,6 +3,7 @@ module Lang.TypeEnv exposing (Scheme, TypeEnv, empty, extend, freeVariables, gen
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
 import Lang.Canonical.Type as Type exposing (Type(..))
+import Lang.Inference.Error as Error exposing (Error)
 import Lang.Substitution as Substitution
 import Set exposing (Set)
 import State exposing (State)
@@ -22,7 +23,7 @@ empty =
     TypeEnv Dict.empty
 
 
-variable : String -> TypeEnv -> StateResult String Type Int
+variable : String -> TypeEnv -> StateResult Error Type Int
 variable name (TypeEnv env) =
     case Dict.get name env of
         Just t ->
@@ -31,7 +32,7 @@ variable name (TypeEnv env) =
                 |> StateResult.fromState
 
         Nothing ->
-            StateResult.error ("variable " ++ name ++ " not found")
+            StateResult.error (Error.NotFound name)
 
 
 instantiate : Scheme -> State Type Int

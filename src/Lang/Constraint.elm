@@ -3,6 +3,7 @@ module Lang.Constraint exposing (..)
 import Basics.Extra exposing (flip)
 import Lang.Canonical.Expr exposing (Expr(..))
 import Lang.Canonical.Type as Type exposing (Type(..))
+import Lang.Inference.Error exposing (Error)
 import Lang.TypeEnv as TypeEnv exposing (TypeEnv)
 import StateResult as StateResult exposing (StateResult)
 
@@ -16,7 +17,7 @@ type alias Constraints =
 
 
 type alias GeneratorState =
-    StateResult String ( Type, Constraints ) Int
+    StateResult Error ( Type, Constraints ) Int
 
 
 mergeAppConstraints : Type -> ( Type, Constraints ) -> ( Type, Constraints ) -> ( Type, Constraints )

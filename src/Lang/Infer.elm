@@ -3,6 +3,7 @@ module Lang.Infer exposing (..)
 import Lang.Canonical.Expr exposing (Expr)
 import Lang.Canonical.Type exposing (Type)
 import Lang.Constraint as Constraint exposing (Constraint)
+import Lang.Inference.Error exposing (Error)
 import Lang.Substitution as Substitution exposing (Substitution)
 import Lang.TypeEnv exposing (TypeEnv)
 import StateResult exposing (StateResult)
@@ -16,7 +17,7 @@ types exp s env =
         |> Result.withDefault False
 
 
-typeOf : Expr -> TypeEnv -> StateResult String ( Type, Type -> Type ) Int
+typeOf : Expr -> TypeEnv -> StateResult Error ( Type, Type -> Type ) Int
 typeOf exp env =
     Constraint.generate exp env
         |> StateResult.andThen
@@ -27,7 +28,7 @@ typeOf exp env =
             )
 
 
-solve : Substitution -> List Constraint -> Result String Substitution
+solve : Substitution -> List Constraint -> Result Error Substitution
 solve substitution constraints =
     case constraints of
         [] ->
