@@ -1,7 +1,5 @@
 module State exposing (..)
 
-import Basics.Extra exposing (uncurry)
-
 
 type alias State value state =
     state -> ( value, state )
@@ -19,7 +17,11 @@ map f g s =
 
 andThen : (a -> State value state) -> State a state -> State value state
 andThen f g s =
-    uncurry f (g s)
+    let
+        ( a, b ) =
+            g s
+    in
+    f a b
 
 
 andMap : State a state -> State (a -> value) state -> State value state
@@ -33,20 +35,27 @@ andMap f g s0 =
     in
     ( b a, s2 )
 
-map2 : (a -> b -> value) -> (State a state) -> (State b state) -> State value state
+
+map2 : (a -> b -> value) -> State a state -> State b state -> State value state
 map2 f a b =
     andMap b (map f a)
+
+
+map3 : (a -> b -> c -> value) -> State a state -> State b state -> State c state -> State value state
+map3 f a b c =
+    andMap c (map2 f a b)
 
 
 run : state -> State value state -> ( value, state )
 run =
     (|>)
 
+
 unwrap : state -> State value state -> value
 unwrap s f =
     Tuple.first (f s)
 
+
 sequence : List (State value state) -> State (List value) state
 sequence =
     List.foldr (map2 (::)) (empty [])
-

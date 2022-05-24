@@ -5,7 +5,7 @@ import Lang2.Monad as Monad
 import Lang2.Scheme exposing (Environment, generalize, instantiate)
 import Lang2.Syntax.Expr exposing (Expr(..))
 import Lang2.Syntax.Type exposing (Type(..))
-import State.Result as StateResult exposing (StateResult)
+import StateResult as StateResult exposing (StateResult)
 
 
 type alias Constraint =

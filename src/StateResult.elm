@@ -1,8 +1,10 @@
-module State.Result exposing
+module StateResult exposing
     ( StateResult
     , andMap
     , andThen
     , empty
+    , error
+    , fromState
     , map
     , map2
     , map3
@@ -22,6 +24,19 @@ type alias StateResult error value state =
 empty : value -> StateResult error value state
 empty =
     Ok >> State.empty
+
+
+fromState : State value state -> StateResult error value state
+fromState f s =
+    let
+        ( a, s_ ) =
+            f s
+    in
+    ( Ok a, s_ )
+
+error : error -> StateResult error value state
+error =
+    Err >> State.empty
 
 
 map : (a -> value) -> StateResult error a state -> StateResult error value state
@@ -48,11 +63,13 @@ andMap : StateResult error a state -> StateResult error (a -> value) state -> St
 andMap =
     flip map >> andThen
 
+
 map2 : (a -> b -> value) -> StateResult error a state -> StateResult error b state -> StateResult error value state
 map2 f a b =
     andMap b (map f a)
 
-map3 : (a -> b -> c -> value) -> (StateResult error a state) -> (StateResult error b state) -> (StateResult error c state) -> StateResult error value state
+
+map3 : (a -> b -> c -> value) -> StateResult error a state -> StateResult error b state -> StateResult error c state -> StateResult error value state
 map3 f a b c =
     andMap c (map2 f a b)
 
