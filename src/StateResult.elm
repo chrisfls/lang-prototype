@@ -4,6 +4,7 @@ module StateResult exposing
     , andThen
     , empty
     , error
+    , fromResult
     , fromState
     , map
     , map2
@@ -33,6 +34,12 @@ fromState f s =
             f s
     in
     ( Ok a, s_ )
+
+
+fromResult : Result error value -> StateResult error value state
+fromResult =
+    Tuple.pair
+
 
 error : error -> StateResult error value state
 error =

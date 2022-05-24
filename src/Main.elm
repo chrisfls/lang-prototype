@@ -1,21 +1,24 @@
 module Main exposing (..)
 
 import Browser
-import Dict
 import Html exposing (text)
-import Lang2
-import Lang2.Monad as Monad
-import Lang2.Syntax.Expr as Expr
-import State
+import Lang.Canonical.Expr as Expr
+import Lang.Infer as Infer
+import Lang.TypeEnv as TypeEnv
 
-type alias Person = { a: Bool, b: Int, c: String }
+
+type alias Person =
+    { a : Bool, b : Int, c : String }
+
 
 main =
     let
-        _ =
+        expr =
             Expr.Lam "s" (\s -> Expr.Lam "z" (\z -> Expr.App s (Expr.App s z)))
-                |> Lang2.typeOf Dict.empty
-                |> Monad.finalValue 0
+
+        _ =
+            Infer.typeOf expr TypeEnv.empty 0
+                |> Tuple.first
                 |> Debug.log "Lang"
     in
     Browser.sandbox { init = (), update = update, view = view }
