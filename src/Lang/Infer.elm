@@ -1,11 +1,11 @@
 module Lang.Infer exposing (..)
 
 import Lang.Canonical.Expr exposing (Expr)
-import Lang.Canonical.Type.Internal exposing (Type)
+import Lang.Canonical.Type exposing (Type)
+import Lang.Infer.Error exposing (Error)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
-import Lang.Infer.Error.Internal exposing (Error)
-import Lang.Canonical.Type.Subst as Substitution exposing (Subst)
-import Lang.Canonical.Type.Env exposing (TypeEnv)
+import Lang.Infer.Subst as Subst exposing (Subst)
+import Lang.Infer.Env exposing (TypeEnv)
 import StateResult exposing (StateResult)
 
 
@@ -22,8 +22,8 @@ typeOf exp env =
     Constraint.generate exp env
         |> StateResult.andThen
             (\( t, cs ) ->
-                solve Substitution.empty cs
-                    |> Result.map (\s -> ( Substitution.substitute s t, Substitution.substitute s ))
+                solve Subst.empty cs
+                    |> Result.map (\s -> ( Subst.substitute s t, Subst.substitute s ))
                     |> StateResult.fromResult
             )
 
@@ -35,11 +35,11 @@ solve substitution constraints =
             Ok substitution
 
         ( t1, t2 ) :: tail ->
-            Substitution.unify t1 t2
+            Subst.unify t1 t2
                 |> Result.andThen
                     (\new ->
                         solve
-                            (Substitution.app new substitution)
+                            (Subst.app new substitution)
                             (List.map (substituteConstraint new) tail)
                     )
 
@@ -48,6 +48,6 @@ substituteConstraint : Subst -> Constraint -> Constraint
 substituteConstraint substitution ( l, r ) =
     let
         f =
-            Substitution.substitute substitution
+            Subst.substitute substitution
     in
     ( f l, f r )

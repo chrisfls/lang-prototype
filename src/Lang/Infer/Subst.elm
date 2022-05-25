@@ -1,4 +1,4 @@
-module Lang.Canonical.Type.Subst exposing (..)
+module Lang.Infer.Subst exposing (..)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))

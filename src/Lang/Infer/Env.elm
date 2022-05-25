@@ -1,11 +1,11 @@
-module Lang.Canonical.Type.Env exposing (..)
+module Lang.Infer.Env exposing (..)
 
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
 import Lang.Canonical.Expr exposing (Name)
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Infer.Error.Internal as Error exposing (Error)
-import Lang.Canonical.Type.Subst as Substitution
+import Lang.Infer.Subst as Substitution
 import Set exposing (Set)
 import StateResult exposing (StateResult)
 
