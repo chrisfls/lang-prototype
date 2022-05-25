@@ -7,7 +7,7 @@ import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Infer.Error.Internal as Error exposing (Error)
 import Lang.Infer.Subst as Substitution
 import Set exposing (Set)
-import StateResult exposing (StateResult)
+import Lang.Infer.StateResult exposing (StateResult)
 
 
 type TypeEnv
@@ -27,24 +27,24 @@ variable : Name -> TypeEnv -> StateResult Error Type Int
 variable name (TypeEnv env) =
     case Dict.get name env of
         Just t ->
-            StateResult.empty t
-                |> StateResult.andThen instantiate
+            Lang.Infer.StateResult.empty t
+                |> Lang.Infer.StateResult.andThen instantiate
 
         Nothing ->
-            StateResult.error (Error.NotFound name)
+            Lang.Infer.StateResult.error (Error.NotFound name)
 
 
 instantiate : Scheme -> StateResult error Type Int
 instantiate (Scheme vars t) =
     vars
         |> List.map instantiateHelp1
-        |> StateResult.sequence
-        |> StateResult.map (\a -> Substitution.substitute (Substitution.fromList a) t)
+        |> Lang.Infer.StateResult.sequence
+        |> Lang.Infer.StateResult.map (\a -> Substitution.substitute (Substitution.fromList a) t)
 
 
 instantiateHelp1 : comparable -> StateResult error ( comparable, Type ) Int
 instantiateHelp1 =
-    Tuple.pair >> flip StateResult.map Type.freshTVar
+    Tuple.pair >> flip Lang.Infer.StateResult.map Type.freshTVar
 
 
 extend : Name -> Type -> TypeEnv -> TypeEnv

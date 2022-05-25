@@ -6,7 +6,7 @@ import Lang.Infer.Error exposing (Error)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
 import Lang.Infer.Subst as Subst exposing (Subst)
 import Lang.Infer.Env exposing (TypeEnv)
-import StateResult exposing (StateResult)
+import Lang.Infer.StateResult exposing (StateResult)
 
 
 types : Expr -> Int -> TypeEnv -> Bool
@@ -20,11 +20,11 @@ types exp s env =
 typeOf : Expr -> TypeEnv -> StateResult Error ( Type, Type -> Type ) Int
 typeOf exp env =
     Constraint.generate exp env
-        |> StateResult.andThen
+        |> Lang.Infer.StateResult.andThen
             (\( t, cs ) ->
                 solve Subst.empty cs
                     |> Result.map (\s -> ( Subst.substitute s t, Subst.substitute s ))
-                    |> StateResult.fromResult
+                    |> Lang.Infer.StateResult.fromResult
             )
 
 

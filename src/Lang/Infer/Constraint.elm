@@ -5,7 +5,7 @@ import Lang.Canonical.Expr exposing (Expr(..))
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Infer.Error.Internal exposing (Error)
 import Lang.Infer.Env as TypeEnv exposing (TypeEnv)
-import StateResult as StateResult exposing (StateResult)
+import Lang.Infer.StateResult as StateResult exposing (StateResult)
 
 
 type alias Constraint =

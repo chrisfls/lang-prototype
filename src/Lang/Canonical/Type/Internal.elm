@@ -2,7 +2,7 @@ module Lang.Canonical.Type.Internal exposing (..)
 
 import Set exposing (Set)
 import Dict exposing (Dict)
-import StateResult exposing (StateResult)
+import Lang.Infer.StateResult exposing (StateResult)
 
 
 type Type

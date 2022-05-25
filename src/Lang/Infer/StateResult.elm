@@ -1,4 +1,4 @@
-module StateResult exposing
+module Lang.Infer.StateResult exposing
     ( StateResult
     , andMap
     , andThen
