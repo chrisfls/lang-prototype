@@ -1,8 +1,8 @@
 module Lang.Substitution exposing (..)
 
 import Dict exposing (Dict)
-import Lang.Canonical.Type as Type exposing (Type(..))
-import Lang.Inference.Error as Error exposing (Error)
+import Lang.Internal.Canonical.Type as Type exposing (Type(..))
+import Lang.Internal.Error as Error exposing (Error)
 import Set
 
 

@@ -1,9 +1,9 @@
 module Lang.Infer exposing (..)
 
-import Lang.Canonical.Expr exposing (Expr)
-import Lang.Canonical.Type exposing (Type)
+import Lang.Internal.Canonical.Expr exposing (Expr)
+import Lang.Internal.Canonical.Type exposing (Type)
 import Lang.Constraint as Constraint exposing (Constraint)
-import Lang.Inference.Error exposing (Error)
+import Lang.Internal.Error exposing (Error)
 import Lang.Substitution as Substitution exposing (Substitution)
 import Lang.TypeEnv exposing (TypeEnv)
 import StateResult exposing (StateResult)

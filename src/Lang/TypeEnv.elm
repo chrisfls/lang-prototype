@@ -2,9 +2,9 @@ module Lang.TypeEnv exposing (..)
 
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
-import Lang.Canonical.Type as Type exposing (Type(..))
-import Lang.Canonical.Expr exposing (Name)
-import Lang.Inference.Error as Error exposing (Error)
+import Lang.Internal.Canonical.Type as Type exposing (Type(..))
+import Lang.Internal.Canonical.Expr exposing (Name)
+import Lang.Internal.Error as Error exposing (Error)
 import Lang.Substitution as Substitution
 import Set exposing (Set)
 import StateResult exposing (StateResult)

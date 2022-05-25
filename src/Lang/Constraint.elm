@@ -1,9 +1,9 @@
 module Lang.Constraint exposing (..)
 
 import Basics.Extra exposing (flip)
-import Lang.Canonical.Expr exposing (Expr(..))
-import Lang.Canonical.Type as Type exposing (Type(..))
-import Lang.Inference.Error exposing (Error)
+import Lang.Internal.Canonical.Expr exposing (Expr(..))
+import Lang.Internal.Canonical.Type as Type exposing (Type(..))
+import Lang.Internal.Error exposing (Error)
 import Lang.TypeEnv as TypeEnv exposing (TypeEnv)
 import StateResult as StateResult exposing (StateResult)
 
