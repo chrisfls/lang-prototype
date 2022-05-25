@@ -1,4 +1,4 @@
-module Lang.Internal.Canonical.Type exposing (..)
+module Lang.Canonical.Type.Internal exposing (..)
 
 import Set exposing (Set)
 import Dict exposing (Dict)

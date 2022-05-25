@@ -1,6 +1,6 @@
-module Lang.Internal.Canonical.Expr exposing (..)
+module Lang.Canonical.Expr.Internal exposing (..)
 
-import Lang.Internal.Canonical.Type exposing (Type)
+import Lang.Canonical.Type.Internal exposing (Type)
 
 
 type alias Name = String

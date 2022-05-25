@@ -1,6 +1,6 @@
-module Lang.Internal.Error exposing (..)
+module Lang.Error.Internal exposing (..)
 
-import Lang.Internal.Canonical.Type exposing (Type)
+import Lang.Canonical.Type.Internal exposing (Type)
 
 
 type Error

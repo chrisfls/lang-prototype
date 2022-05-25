@@ -6,7 +6,7 @@ module Lang.Error exposing (..)
 
 -}
 
-import Lang.Internal.Error as Internal
+import Lang.Error.Internal as Internal
 
 
 type alias Error =
