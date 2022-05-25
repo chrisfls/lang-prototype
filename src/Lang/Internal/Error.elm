@@ -7,3 +7,6 @@ type Error
     = NotFound String
     | Recursion Int Type
     | Mismatch Type Type
+
+
+-- TODO: stringify
