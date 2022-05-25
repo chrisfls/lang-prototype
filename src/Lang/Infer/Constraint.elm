@@ -4,7 +4,7 @@ import Basics.Extra exposing (flip)
 import Lang.Canonical.Expr.Internal exposing (Expr(..))
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Infer.Error.Internal exposing (Error)
-import Lang.Canonical.Type.Env.Internal as TypeEnv exposing (TypeEnv)
+import Lang.Canonical.Type.Env as TypeEnv exposing (TypeEnv)
 import StateResult as StateResult exposing (StateResult)
 
 

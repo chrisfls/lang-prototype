@@ -4,8 +4,8 @@ import Lang.Canonical.Expr.Internal exposing (Expr)
 import Lang.Canonical.Type.Internal exposing (Type)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
 import Lang.Infer.Error.Internal exposing (Error)
-import Lang.Canonical.Type.Subst.Internal as Substitution exposing (Subst)
-import Lang.Canonical.Type.Env.Internal exposing (TypeEnv)
+import Lang.Canonical.Type.Subst as Substitution exposing (Subst)
+import Lang.Canonical.Type.Env exposing (TypeEnv)
 import StateResult exposing (StateResult)
 
 
