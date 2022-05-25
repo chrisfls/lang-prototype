@@ -1,4 +1,4 @@
-module Lang.Canonical.Expr exposing (Expr(..), Name)
+module Lang.Canonical.Expr exposing (..)
 
 import Lang.Canonical.Type exposing (Type)
 

@@ -1,4 +1,4 @@
-module Lang.TypeEnv exposing (Scheme, TypeEnv, empty, extend, freeVariables, generalize, variable)
+module Lang.TypeEnv exposing (..)
 
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)

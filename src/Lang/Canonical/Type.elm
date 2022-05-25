@@ -1,4 +1,4 @@
-module Lang.Canonical.Type exposing (Type(..), freshTVar, variables)
+module Lang.Canonical.Type exposing (..)
 
 import Set exposing (Set)
 import Dict exposing (Dict)
