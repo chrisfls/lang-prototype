@@ -2,13 +2,9 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (text)
-import Lang.Canonical.Expr as Expr
+import Lang.Canonical.Expr as Expr exposing (Name)
 import Lang.Infer as Infer
 import Lang.TypeEnv as TypeEnv
-
-
-type alias Person =
-    { a : Bool, b : Int, c : String }
 
 
 main =

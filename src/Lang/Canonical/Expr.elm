@@ -3,8 +3,7 @@ module Lang.Canonical.Expr exposing (..)
 import Lang.Canonical.Type exposing (Type)
 
 
-type alias Name =
-    String
+type alias Name = String
 
 
 type Expr

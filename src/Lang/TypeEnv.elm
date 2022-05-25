@@ -3,6 +3,7 @@ module Lang.TypeEnv exposing (..)
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
 import Lang.Canonical.Type as Type exposing (Type(..))
+import Lang.Canonical.Expr exposing (Name)
 import Lang.Inference.Error as Error exposing (Error)
 import Lang.Substitution as Substitution
 import Set exposing (Set)
@@ -22,7 +23,7 @@ empty =
     TypeEnv Dict.empty
 
 
-variable : String -> TypeEnv -> StateResult Error Type Int
+variable : Name -> TypeEnv -> StateResult Error Type Int
 variable name (TypeEnv env) =
     case Dict.get name env of
         Just t ->
@@ -46,7 +47,7 @@ instantiateHelp1 =
     Tuple.pair >> flip StateResult.map Type.freshTVar
 
 
-extend : String -> Type -> TypeEnv -> TypeEnv
+extend : Name -> Type -> TypeEnv -> TypeEnv
 extend name t (TypeEnv env) =
     TypeEnv (Dict.insert name (Scheme [] t) env)
 
