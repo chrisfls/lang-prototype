@@ -2,20 +2,20 @@ module Lang.TypeEnv exposing (..)
 
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
-import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Canonical.Expr.Internal exposing (Name)
+import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Error.Internal as Error exposing (Error)
-import Lang.Substitution as Substitution
+import Lang.Subst as Substitution
 import Set exposing (Set)
 import StateResult exposing (StateResult)
 
 
+type TypeEnv
+    = TypeEnv (Dict Name Scheme)
+
+
 type Scheme
     = Scheme (List Int) Type
-
-
-type TypeEnv
-    = TypeEnv (Dict String Scheme)
 
 
 empty : TypeEnv

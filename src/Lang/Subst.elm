@@ -1,4 +1,4 @@
-module Lang.Substitution exposing (..)
+module Lang.Subst exposing (..)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
@@ -6,30 +6,31 @@ import Lang.Error.Internal as Error exposing (Error)
 import Set
 
 
-type Substitution
-    = Substitution (Dict Int Type)
+type Subst
+    = Subst (Dict Int Type)
 
 
+empty : Subst
 empty =
-    Substitution Dict.empty
+    Subst Dict.empty
 
 
-fromList : List ( Int, Type ) -> Substitution
+fromList : List ( Int, Type ) -> Subst
 fromList =
-    Dict.fromList >> Substitution
+    Dict.fromList >> Subst
 
 
-insert : Int -> Type -> Substitution -> Substitution
-insert a b (Substitution c) =
-    Substitution (Dict.insert a b c)
+insert : Int -> Type -> Subst -> Subst
+insert a b (Subst c) =
+    Subst (Dict.insert a b c)
 
 
-substitute : Substitution -> Type -> Type
+substitute : Subst -> Type -> Type
 substitute substitution t =
     case t of
         TVar x ->
             let
-                (Substitution s) =
+                (Subst s) =
                     substitution
             in
             Dict.get x s
@@ -48,13 +49,13 @@ substitute substitution t =
             TRecord <| Dict.map (always <| substitute substitution) fields
 
 
-app : Substitution -> Substitution -> Substitution
-app a (Substitution b) =
+app : Subst -> Subst -> Subst
+app a (Subst b) =
     let
-        (Substitution a_) =
+        (Subst a_) =
             a
     in
-    Substitution (Dict.union (Dict.map (always <| substitute a) b) a_)
+    Subst (Dict.union (Dict.map (always <| substitute a) b) a_)
 
 
 toString : Type -> String
@@ -83,12 +84,13 @@ toString t =
                 |> String.join ", "
                 |> (\x -> "{" ++ x ++ "}")
 
+
 brace : String -> String
 brace x =
     "(" ++ x ++ ")"
 
 
-unify : Type -> Type -> Result Error Substitution
+unify : Type -> Type -> Result Error Subst
 unify context content =
     case ( context, content ) of
         ( TCon a at, TCon b bt ) ->
@@ -116,7 +118,7 @@ unify context content =
             Err <| Error.Mismatch x y
 
 
-unifyMany : List Type -> List Type -> Result Error Substitution
+unifyMany : List Type -> List Type -> Result Error Subst
 unifyMany context content =
     List.map2 Tuple.pair context content
         |> List.foldl
@@ -130,7 +132,7 @@ unifyMany context content =
             (Ok empty)
 
 
-bind : Int -> Type -> Result Error Substitution
+bind : Int -> Type -> Result Error Subst
 bind id x =
     if x == TVar id then
         Ok empty
@@ -139,4 +141,4 @@ bind id x =
         Err (Error.Recursion id x)
 
     else
-        Ok <| Substitution <| Dict.singleton id x
+        Ok <| Subst <| Dict.singleton id x

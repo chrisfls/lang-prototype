@@ -4,7 +4,7 @@ import Lang.Canonical.Expr.Internal exposing (Expr)
 import Lang.Canonical.Type.Internal exposing (Type)
 import Lang.Constraint as Constraint exposing (Constraint)
 import Lang.Error.Internal exposing (Error)
-import Lang.Substitution as Substitution exposing (Substitution)
+import Lang.Subst as Substitution exposing (Subst)
 import Lang.TypeEnv exposing (TypeEnv)
 import StateResult exposing (StateResult)
 
@@ -28,7 +28,7 @@ typeOf exp env =
             )
 
 
-solve : Substitution -> List Constraint -> Result Error Substitution
+solve : Subst -> List Constraint -> Result Error Subst
 solve substitution constraints =
     case constraints of
         [] ->
@@ -44,7 +44,7 @@ solve substitution constraints =
                     )
 
 
-substituteConstraint : Substitution -> Constraint -> Constraint
+substituteConstraint : Subst -> Constraint -> Constraint
 substituteConstraint substitution ( l, r ) =
     let
         f =

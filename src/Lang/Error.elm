@@ -11,3 +11,6 @@ import Lang.Error.Internal as Internal
 
 type alias Error =
     Internal.Error
+
+
+-- TODO: toString
