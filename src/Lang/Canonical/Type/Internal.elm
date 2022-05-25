@@ -1,7 +1,9 @@
 module Lang.Canonical.Type.Internal exposing (..)
 
-import Set exposing (Set)
+-- TODO: review
+
 import Dict exposing (Dict)
+import Set exposing (Set)
 
 
 type Type
@@ -10,7 +12,6 @@ type Type
     | TVar Int
     | TTuple (List Type)
     | TRecord (Dict String Type)
-
 
 
 variables : Type -> Set Int
@@ -31,6 +32,7 @@ variables t =
         TRecord d ->
             Dict.values d
                 |> variablesFromList
+
 
 variablesFromList : List Type -> Set Int
 variablesFromList =

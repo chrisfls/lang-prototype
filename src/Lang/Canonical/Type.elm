@@ -6,6 +6,8 @@ module Lang.Canonical.Type exposing (Type)
 
 -}
 
+-- TODO: review
+
 import Lang.Canonical.Type.Internal as Internal
 
 

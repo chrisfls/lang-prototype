@@ -1,12 +1,14 @@
 module Lang.Infer exposing (..)
 
+-- TODO: review
+
 import Lang.Canonical.Expr exposing (Expr)
 import Lang.Canonical.Type exposing (Type)
-import Lang.Infer.Error exposing (Error)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
-import Lang.Infer.Subst as Subst exposing (Subst)
 import Lang.Infer.Env exposing (Env)
+import Lang.Infer.Error exposing (Error)
 import Lang.Infer.State exposing (State)
+import Lang.Infer.Subst as Subst exposing (Subst)
 
 
 types : Expr -> Int -> Env -> Bool

@@ -1,5 +1,7 @@
 module Lang.Infer.Env exposing (..)
 
+-- TODO: review
+
 import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
 import Lang.Canonical.Expr exposing (Name)
