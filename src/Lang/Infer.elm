@@ -1,6 +1,6 @@
 module Lang.Infer exposing (..)
 
-import Lang.Canonical.Expr.Internal exposing (Expr)
+import Lang.Canonical.Expr exposing (Expr)
 import Lang.Canonical.Type.Internal exposing (Type)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
 import Lang.Infer.Error.Internal exposing (Error)
