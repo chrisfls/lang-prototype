@@ -44,6 +44,9 @@ substitute substitution t =
         TTuple types ->
             TTuple <| List.map (substitute substitution) types
 
+        TRecord fields ->
+            TRecord <| Dict.map (always <| substitute substitution) fields
+
 
 app : Substitution -> Substitution -> Substitution
 app a (Substitution b) =
@@ -74,6 +77,11 @@ toString t =
                 |> String.join ","
                 |> brace
 
+        TRecord d ->
+            Dict.toList d
+                |> List.map (\( n, t_ ) -> n ++ " : " ++ toString t_)
+                |> String.join ", "
+                |> (\x -> "{" ++ x ++ "}")
 
 brace : String -> String
 brace x =

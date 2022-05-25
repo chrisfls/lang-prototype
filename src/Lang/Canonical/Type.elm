@@ -1,6 +1,7 @@
 module Lang.Canonical.Type exposing (Type(..), freshTVar, variables)
 
 import Set exposing (Set)
+import Dict exposing (Dict)
 import State exposing (State)
 
 
@@ -9,6 +10,7 @@ type Type
     | TCon String (List Type)
     | TVar Int
     | TTuple (List Type)
+    | TRecord (Dict String Type)
 
 
 freshTVar : State Type Int
@@ -31,6 +33,9 @@ variables t =
         TTuple types ->
             variablesFromList types
 
+        TRecord d ->
+            Dict.values d
+                |> variablesFromList
 
 variablesFromList : List Type -> Set Int
 variablesFromList =
