@@ -27,11 +27,6 @@ mergeAppConstraints typ ( func, funcConstraint ) ( argm, argConstraint ) =
     )
 
 
-freshTVar : StateResult error Type Int
-freshTVar =
-    StateResult.fromState Type.freshTVar
-
-
 aaa : a -> ( a, List b )
 aaa x =
     ( x, [] )
@@ -53,7 +48,7 @@ generate expr env =
 
         App func argm ->
             StateResult.map3 mergeAppConstraints
-                freshTVar
+                Type.freshTVar
                 (generate func env)
                 (generate argm env)
 
@@ -64,7 +59,7 @@ generate expr env =
                         |> generate (body (Var argm))
                         |> StateResult.map (Tuple.mapFirst (bbb argmT))
                 )
-                freshTVar
+                Type.freshTVar
 
         Let name value body ->
             StateResult.andThen
@@ -75,7 +70,7 @@ generate expr env =
                             , valueC ++ bodyC ++ [ ( this, bodyT ) ]
                             )
                         )
-                        freshTVar
+                        Type.freshTVar
                         (generate body (TypeEnv.extend name valueT env))
                 )
                 (generate value env)

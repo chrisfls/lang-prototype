@@ -6,7 +6,6 @@ import Lang.Canonical.Type as Type exposing (Type(..))
 import Lang.Inference.Error as Error exposing (Error)
 import Lang.Substitution as Substitution
 import Set exposing (Set)
-import State exposing (State)
 import StateResult exposing (StateResult)
 
 
@@ -27,25 +26,24 @@ variable : String -> TypeEnv -> StateResult Error Type Int
 variable name (TypeEnv env) =
     case Dict.get name env of
         Just t ->
-            State.empty t
-                |> State.andThen instantiate
-                |> StateResult.fromState
+            StateResult.empty t
+                |> StateResult.andThen instantiate
 
         Nothing ->
             StateResult.error (Error.NotFound name)
 
 
-instantiate : Scheme -> State Type Int
+instantiate : Scheme -> StateResult error Type Int
 instantiate (Scheme vars t) =
     vars
         |> List.map instantiateHelp1
-        |> State.sequence
-        |> State.map (\a -> Substitution.substitute (Substitution.fromList a) t)
+        |> StateResult.sequence
+        |> StateResult.map (\a -> Substitution.substitute (Substitution.fromList a) t)
 
 
-instantiateHelp1 : comparable -> State ( comparable, Type ) Int
+instantiateHelp1 : comparable -> StateResult error ( comparable, Type ) Int
 instantiateHelp1 =
-    Tuple.pair >> flip State.map Type.freshTVar
+    Tuple.pair >> flip StateResult.map Type.freshTVar
 
 
 extend : String -> Type -> TypeEnv -> TypeEnv

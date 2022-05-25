@@ -2,7 +2,7 @@ module Lang.Canonical.Type exposing (Type(..), freshTVar, variables)
 
 import Set exposing (Set)
 import Dict exposing (Dict)
-import State exposing (State)
+import StateResult exposing (StateResult)
 
 
 type Type
@@ -13,9 +13,9 @@ type Type
     | TRecord (Dict String Type)
 
 
-freshTVar : State Type Int
+freshTVar : StateResult error Type Int
 freshTVar state =
-    ( TVar state, state + 1 )
+    ( Ok (TVar state), state + 1 )
 
 
 variables : Type -> Set Int
