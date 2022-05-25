@@ -2,7 +2,6 @@ module Lang.Canonical.Type.Internal exposing (..)
 
 import Set exposing (Set)
 import Dict exposing (Dict)
-import Lang.Infer.StateResult exposing (StateResult)
 
 
 type Type
@@ -12,10 +11,6 @@ type Type
     | TTuple (List Type)
     | TRecord (Dict String Type)
 
-
-freshTVar : StateResult error Type Int
-freshTVar state =
-    ( Ok (TVar state), state + 1 )
 
 
 variables : Type -> Set Int

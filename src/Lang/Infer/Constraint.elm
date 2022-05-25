@@ -2,10 +2,10 @@ module Lang.Infer.Constraint exposing (..)
 
 import Basics.Extra exposing (flip)
 import Lang.Canonical.Expr exposing (Expr(..))
-import Lang.Canonical.Type.Internal as Type exposing (Type(..))
+import Lang.Canonical.Type.Internal exposing (Type(..))
 import Lang.Infer.Error.Internal exposing (Error)
-import Lang.Infer.Env as TypeEnv exposing (TypeEnv)
-import Lang.Infer.StateResult as StateResult exposing (StateResult)
+import Lang.Infer.Env as Env exposing (Env)
+import Lang.Infer.State as State exposing (State)
 
 
 type alias Constraint =
@@ -17,7 +17,7 @@ type alias Constraints =
 
 
 type alias GeneratorState =
-    StateResult Error ( Type, Constraints ) Int
+    State Error ( Type, Constraints ) Int
 
 
 mergeAppConstraints : Type -> ( Type, Constraints ) -> ( Type, Constraints ) -> ( Type, Constraints )
@@ -37,45 +37,45 @@ bbb =
     flip TArr
 
 
-generate : Expr -> TypeEnv -> GeneratorState
+generate : Expr -> Env -> GeneratorState
 generate expr env =
     case expr of
         Var name ->
-            StateResult.map aaa (TypeEnv.variable name env)
+            State.map aaa (Env.variable name env)
 
         Lit t ->
-            StateResult.empty ( t, [] )
+            State.empty ( t, [] )
 
         App func argm ->
-            StateResult.map3 mergeAppConstraints
-                Type.freshTVar
+            State.map3 mergeAppConstraints
+                Env.freshTVar
                 (generate func env)
                 (generate argm env)
 
         Lam argm body ->
-            StateResult.andThen
+            State.andThen
                 (\argmT ->
-                    TypeEnv.extend argm argmT env
+                    Env.extend argm argmT env
                         |> generate (body (Var argm))
-                        |> StateResult.map (Tuple.mapFirst (bbb argmT))
+                        |> State.map (Tuple.mapFirst (bbb argmT))
                 )
-                Type.freshTVar
+                Env.freshTVar
 
         Let name value body ->
-            StateResult.andThen
+            State.andThen
                 (\( valueT, valueC ) ->
-                    StateResult.map2
+                    State.map2
                         (\this ( bodyT, bodyC ) ->
                             ( this
                             , valueC ++ bodyC ++ [ ( this, bodyT ) ]
                             )
                         )
-                        Type.freshTVar
-                        (generate body (TypeEnv.extend name valueT env))
+                        Env.freshTVar
+                        (generate body (Env.extend name valueT env))
                 )
                 (generate value env)
 
         Spy exp_ tag ->
-            StateResult.map
+            State.map
                 (\( typ, cons ) -> ( typ, cons ++ [ ( TVar tag, typ ) ] ))
                 (generate exp_ env)

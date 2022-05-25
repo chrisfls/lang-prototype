@@ -5,11 +5,11 @@ import Lang.Canonical.Type exposing (Type)
 import Lang.Infer.Error exposing (Error)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
 import Lang.Infer.Subst as Subst exposing (Subst)
-import Lang.Infer.Env exposing (TypeEnv)
-import Lang.Infer.StateResult exposing (StateResult)
+import Lang.Infer.Env exposing (Env)
+import Lang.Infer.State exposing (State)
 
 
-types : Expr -> Int -> TypeEnv -> Bool
+types : Expr -> Int -> Env -> Bool
 types exp s env =
     typeOf exp env s
         |> Tuple.first
@@ -17,14 +17,14 @@ types exp s env =
         |> Result.withDefault False
 
 
-typeOf : Expr -> TypeEnv -> StateResult Error ( Type, Type -> Type ) Int
+typeOf : Expr -> Env -> State Error ( Type, Type -> Type ) Int
 typeOf exp env =
     Constraint.generate exp env
-        |> Lang.Infer.StateResult.andThen
+        |> Lang.Infer.State.andThen
             (\( t, cs ) ->
                 solve Subst.empty cs
                     |> Result.map (\s -> ( Subst.substitute s t, Subst.substitute s ))
-                    |> Lang.Infer.StateResult.fromResult
+                    |> Lang.Infer.State.fromResult
             )
 
 
