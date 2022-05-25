@@ -4,7 +4,7 @@ import Browser
 import Html exposing (text)
 import Lang.Canonical.Expr.Internal as Expr exposing (Name)
 import Lang.Infer as Infer
-import Lang.TypeEnv as TypeEnv
+import Lang.Canonical.Type.Env.Internal as TypeEnv
 
 
 main =

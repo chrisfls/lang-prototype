@@ -1,8 +1,8 @@
-module Lang.Subst exposing (..)
+module Lang.Canonical.Type.Subst.Internal exposing (..)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
-import Lang.Error.Internal as Error exposing (Error)
+import Lang.Infer.Error.Internal as Error exposing (Error)
 import Set
 
 
