@@ -1,8 +1,7 @@
 module Lang.Infer.Constraint exposing (..)
 
-import Basics.Extra exposing (flip)
 import Lang.Canonical.Expr exposing (Expr(..))
-import Lang.Canonical.Type.Internal exposing (Type(..))
+import Lang.Canonical.Type.Internal as Type exposing (Type)
 import Lang.Infer.Error.Internal exposing (Error)
 import Lang.Infer.Env as Env exposing (Env)
 import Lang.Infer.State as State exposing (State)
@@ -23,18 +22,13 @@ type alias GeneratorState =
 mergeAppConstraints : Type -> ( Type, Constraints ) -> ( Type, Constraints ) -> ( Type, Constraints )
 mergeAppConstraints typ ( func, funcConstraint ) ( argm, argConstraint ) =
     ( typ
-    , funcConstraint ++ argConstraint ++ [ ( func, TArr argm typ ) ]
+    , funcConstraint ++ argConstraint ++ [ ( func, Type.TArr argm typ ) ]
     )
 
 
 aaa : a -> ( a, List b )
 aaa x =
     ( x, [] )
-
-
-bbb : Type -> Type -> Type
-bbb =
-    flip TArr
 
 
 generate : Expr -> Env -> GeneratorState
@@ -57,7 +51,7 @@ generate expr env =
                 (\argmT ->
                     Env.extend argm argmT env
                         |> generate (body (Var argm))
-                        |> State.map (Tuple.mapFirst (bbb argmT))
+                        |> State.map (Tuple.mapFirst (\a -> Type.TArr a argmT))
                 )
                 Env.freshTVar
 
@@ -77,5 +71,5 @@ generate expr env =
 
         Spy exp_ tag ->
             State.map
-                (\( typ, cons ) -> ( typ, cons ++ [ ( TVar tag, typ ) ] ))
+                (\( typ, cons ) -> ( typ, cons ++ [ ( Type.TVar tag, typ ) ] ))
                 (generate exp_ env)
