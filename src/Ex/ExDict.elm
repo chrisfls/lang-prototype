@@ -14,6 +14,10 @@ lists of k types.
 Insert, remove, and query operations all take _O(log n)_ time.
 
 
+# Module
+
+@docs Deps
+
 # Dictionaries
 
 @docs ExDict
@@ -50,8 +54,8 @@ import List exposing (..)
 import Maybe exposing (..)
 
 
-type alias Deps a =
-    { compare : a -> a -> Order }
+type alias Deps ex a =
+    { ex | compare : a -> a -> Order }
 
 
 
@@ -108,7 +112,7 @@ dictionary.
     get "Spike" animals == Nothing
 
 -}
-get : Deps k -> k -> ExDict k v -> Maybe v
+get : Deps ex k -> k -> ExDict k v -> Maybe v
 get deps targetKey dict =
     case dict of
         RBEmpty_elm_builtin ->
@@ -128,7 +132,7 @@ get deps targetKey dict =
 
 {-| Determine if a key is in a dictionary.
 -}
-member : Deps k -> k -> ExDict k v -> Bool
+member : Deps ex k -> k -> ExDict k v -> Bool
 member deps key dict =
     case get deps key dict of
         Just _ ->
@@ -173,7 +177,7 @@ isEmpty dict =
 {-| Insert a key-value pair into a dictionary. Replaces value when there is
 a collision.
 -}
-insert : Deps k -> k -> v -> ExDict k v -> ExDict k v
+insert : Deps ex k -> k -> v -> ExDict k v -> ExDict k v
 insert deps key value dict =
     -- Root node is always Black
     case insertHelp deps key value dict of
@@ -184,7 +188,7 @@ insert deps key value dict =
             x
 
 
-insertHelp : Deps k -> k -> v -> ExDict k v -> ExDict k v
+insertHelp : Deps ex k -> k -> v -> ExDict k v -> ExDict k v
 insertHelp deps key value dict =
     case dict of
         RBEmpty_elm_builtin ->
@@ -237,7 +241,7 @@ balance color key value left right =
 {-| Remove a key-value pair from a dictionary. If the key is not found,
 no changes are made.
 -}
-remove : Deps k -> k -> ExDict k v -> ExDict k v
+remove : Deps ex k -> k -> ExDict k v -> ExDict k v
 remove deps key dict =
     -- Root node is always Black
     case removeHelp deps key dict of
@@ -254,7 +258,7 @@ makes sure that the bottom node is red by moving red colors down the tree throug
 and color flips. Any violations this will cause, can easily be fixed by balancing on the way
 up again.
 -}
-removeHelp : Deps k -> k -> ExDict k v -> ExDict k v
+removeHelp : Deps ex k -> k -> ExDict k v -> ExDict k v
 removeHelp deps targetKey dict =
     case dict of
         RBEmpty_elm_builtin ->
@@ -285,7 +289,7 @@ removeHelp deps targetKey dict =
 
 
 removeHelpPrepEQGT : k -> ExDict k v -> NColor -> k -> v -> ExDict k v -> ExDict k v -> ExDict k v
-removeHelpPrepEQGT targetKey dict color key value left right =
+removeHelpPrepEQGT _ dict color key value left right =
     case left of
         RBNode_elm_builtin Red lK lV lLeft lRight ->
             RBNode_elm_builtin
@@ -310,7 +314,7 @@ removeHelpPrepEQGT targetKey dict color key value left right =
 {-| When we find the node we are looking for, we can remove by replacing the key-value
 pair with the key-value pair of the left-most node on the right side (the closest pair).
 -}
-removeHelpEQGT : Deps k -> k -> ExDict k v -> ExDict k v
+removeHelpEQGT : Deps ex k -> k -> ExDict k v -> ExDict k v
 removeHelpEQGT deps targetKey dict =
     case dict of
         RBNode_elm_builtin color key value left right ->
@@ -367,7 +371,7 @@ removeMin dict =
 moveRedLeft : ExDict k v -> ExDict k v
 moveRedLeft dict =
     case dict of
-        RBNode_elm_builtin clr k v (RBNode_elm_builtin lClr lK lV lLeft lRight) (RBNode_elm_builtin rClr rK rV ((RBNode_elm_builtin Red rlK rlV rlL rlR) as rLeft) rRight) ->
+        RBNode_elm_builtin _ k v (RBNode_elm_builtin _ lK lV lLeft lRight) (RBNode_elm_builtin _ rK rV (RBNode_elm_builtin Red rlK rlV rlL rlR) rRight) ->
             RBNode_elm_builtin
                 Red
                 rlK
@@ -375,7 +379,7 @@ moveRedLeft dict =
                 (RBNode_elm_builtin Black k v (RBNode_elm_builtin Red lK lV lLeft lRight) rlL)
                 (RBNode_elm_builtin Black rK rV rlR rRight)
 
-        RBNode_elm_builtin clr k v (RBNode_elm_builtin lClr lK lV lLeft lRight) (RBNode_elm_builtin rClr rK rV rLeft rRight) ->
+        RBNode_elm_builtin clr k v (RBNode_elm_builtin _ lK lV lLeft lRight) (RBNode_elm_builtin _ rK rV rLeft rRight) ->
             case clr of
                 Black ->
                     RBNode_elm_builtin
@@ -400,7 +404,7 @@ moveRedLeft dict =
 moveRedRight : ExDict k v -> ExDict k v
 moveRedRight dict =
     case dict of
-        RBNode_elm_builtin clr k v (RBNode_elm_builtin lClr lK lV (RBNode_elm_builtin Red llK llV llLeft llRight) lRight) (RBNode_elm_builtin rClr rK rV rLeft rRight) ->
+        RBNode_elm_builtin _ k v (RBNode_elm_builtin _ lK lV (RBNode_elm_builtin Red llK llV llLeft llRight) lRight) (RBNode_elm_builtin _ rK rV rLeft rRight) ->
             RBNode_elm_builtin
                 Red
                 lK
@@ -408,7 +412,7 @@ moveRedRight dict =
                 (RBNode_elm_builtin Black llK llV llLeft llRight)
                 (RBNode_elm_builtin Black k v lRight (RBNode_elm_builtin Red rK rV rLeft rRight))
 
-        RBNode_elm_builtin clr k v (RBNode_elm_builtin lClr lK lV lLeft lRight) (RBNode_elm_builtin rClr rK rV rLeft rRight) ->
+        RBNode_elm_builtin clr k v (RBNode_elm_builtin _ lK lV lLeft lRight) (RBNode_elm_builtin _ rK rV rLeft rRight) ->
             case clr of
                 Black ->
                     RBNode_elm_builtin
@@ -432,7 +436,7 @@ moveRedRight dict =
 
 {-| Update the value of a dictionary for a specific key with a given function.
 -}
-update : Deps k -> k -> (Maybe v -> Maybe v) -> ExDict k v -> ExDict k v
+update : Deps ex k -> k -> (Maybe v -> Maybe v) -> ExDict k v -> ExDict k v
 update deps targetKey alter dictionary =
     case alter (get deps targetKey dictionary) of
         Just value ->
@@ -457,7 +461,7 @@ singleton key value =
 {-| Combine two dictionaries. If there is a collision, preference is given
 to the first dictionary.
 -}
-union : Deps k -> ExDict k v -> ExDict k v -> ExDict k v
+union : Deps ex k -> ExDict k v -> ExDict k v -> ExDict k v
 union deps t1 t2 =
     foldl (insert deps) t2 t1
 
@@ -465,16 +469,16 @@ union deps t1 t2 =
 {-| Keep a key-value pair when its key appears in the second dictionary.
 Preference is given to values in the first dictionary.
 -}
-intersect : Deps k -> ExDict k v -> ExDict k v -> ExDict k v
+intersect : Deps ex k -> ExDict k v -> ExDict k v -> ExDict k v
 intersect deps t1 t2 =
     filter deps (\k _ -> member deps k t2) t1
 
 
 {-| Keep a key-value pair when its key does not appear in the second dictionary.
 -}
-diff : Deps k -> ExDict k a -> ExDict k b -> ExDict k a
+diff : Deps ex k -> ExDict k a -> ExDict k b -> ExDict k a
 diff deps t1 t2 =
-    foldl (\k v t -> remove deps k t) t1 t2
+    foldl (\k _ t -> remove deps k t) t1 t2
 
 
 {-| The most general way of combining two dictionaries. You provide three
@@ -489,7 +493,7 @@ you want.
 
 -}
 merge :
-    Deps k
+    Deps ex k
     -> (k -> a -> result -> result)
     -> (k -> a -> b -> result -> result)
     -> (k -> b -> result -> result)
@@ -589,7 +593,7 @@ foldr func acc t =
 
 {-| Keep only the key-value pairs that pass the given test.
 -}
-filter : Deps k -> (k -> v -> Bool) -> ExDict k v -> ExDict k v
+filter : Deps ex k -> (k -> v -> Bool) -> ExDict k v -> ExDict k v
 filter deps isGood dict =
     foldl
         (\k v d ->
@@ -607,7 +611,7 @@ filter deps isGood dict =
 contains all key-value pairs which passed the test, and the second contains
 the pairs that did not.
 -}
-partition : Deps k -> (k -> v -> Bool) -> ExDict k v -> ( ExDict k v, ExDict k v )
+partition : Deps ex k -> (k -> v -> Bool) -> ExDict k v -> ( ExDict k v, ExDict k v )
 partition deps isGood dict =
     let
         add key value ( t1, t2 ) =
@@ -631,7 +635,7 @@ partition deps isGood dict =
 -}
 keys : ExDict k v -> List k
 keys dict =
-    foldr (\key value keyList -> key :: keyList) [] dict
+    foldr (\key _ keyList -> key :: keyList) [] dict
 
 
 {-| Get all of the values in a dictionary, in the order of their keys.
@@ -641,7 +645,7 @@ keys dict =
 -}
 values : ExDict k v -> List v
 values dict =
-    foldr (\key value valueList -> value :: valueList) [] dict
+    foldr (\_ value valueList -> value :: valueList) [] dict
 
 
 {-| Convert a dictionary into an association list of key-value pairs, sorted by keys.
@@ -653,6 +657,6 @@ toList dict =
 
 {-| Convert an association list into a dictionary.
 -}
-fromList : Deps k -> List ( k, v ) -> ExDict k v
+fromList : Deps ex k -> List ( k, v ) -> ExDict k v
 fromList deps assocs =
     List.foldl (\( key, value ) dict -> insert deps key value dict) empty assocs
