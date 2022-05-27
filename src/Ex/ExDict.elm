@@ -7,14 +7,14 @@ module Ex.ExDict exposing
   , union, intersect, diff, merge
   )
 
-{-| A dictionary mapping unique keys to values. The keys can be any comparable
+{-| A dictionary mapping unique keys to values. The keys can be any k
 type. This includes `Int`, `Float`, `Time`, `Char`, `String`, and tuples or
-lists of comparable types.
+lists of k types.
 
 Insert, remove, and query operations all take *O(log n)* time.
 
 # Dictionaries
-@docs ExDict
+@docs Dict
 
 # Build
 @docs empty, singleton, insert, update, remove
@@ -38,7 +38,8 @@ import Basics exposing (..)
 import Maybe exposing (..)
 import List exposing (..)
 
-
+type alias Deps a =
+    { compare : a -> a -> Order }
 
 -- DICTIONARIES
 
@@ -91,28 +92,28 @@ dictionary.
     get "Spike" animals == Nothing
 
 -}
-get : comparable -> ExDict comparable v -> Maybe v
-get targetKey dict =
+get : Deps k -> k -> ExDict k v -> Maybe v
+get deps targetKey dict =
   case dict of
     RBEmpty_elm_builtin ->
       Nothing
 
     RBNode_elm_builtin _ key value left right ->
-      case compare targetKey key of
+      case deps.compare targetKey key of
         LT ->
-          get targetKey left
+          get deps targetKey left
 
         EQ ->
           Just value
 
         GT ->
-          get targetKey right
+          get deps targetKey right
 
 
 {-| Determine if a key is in a dictionary. -}
-member : comparable -> ExDict comparable v -> Bool
-member key dict =
-  case get key dict of
+member : Deps k -> k -> ExDict k v -> Bool
+member deps key dict =
+  case get deps key dict of
     Just _ ->
       True
 
@@ -152,10 +153,10 @@ isEmpty dict =
 
 {-| Insert a key-value pair into a dictionary. Replaces value when there is
 a collision. -}
-insert : comparable -> v -> ExDict comparable v -> ExDict comparable v
-insert key value dict =
+insert : Deps k -> k -> v -> ExDict k v -> ExDict k v
+insert deps key value dict =
   -- Root node is always Black
-  case insertHelp key value dict of
+  case insertHelp deps key value dict of
     RBNode_elm_builtin Red k v l r ->
       RBNode_elm_builtin Black k v l r
 
@@ -163,8 +164,8 @@ insert key value dict =
       x
 
 
-insertHelp : comparable -> v -> ExDict comparable v -> ExDict comparable v
-insertHelp key value dict =
+insertHelp : Deps k -> k -> v -> ExDict k v -> ExDict k v
+insertHelp deps key value dict =
   case dict of
     RBEmpty_elm_builtin ->
       -- New nodes are always red. If it violates the rules, it will be fixed
@@ -172,15 +173,15 @@ insertHelp key value dict =
       RBNode_elm_builtin Red key value RBEmpty_elm_builtin RBEmpty_elm_builtin
 
     RBNode_elm_builtin nColor nKey nValue nLeft nRight ->
-      case compare key nKey of
+      case deps.compare key nKey of
         LT ->
-          balance nColor nKey nValue (insertHelp key value nLeft) nRight
+          balance nColor nKey nValue (insertHelp deps key value nLeft) nRight
 
         EQ ->
           RBNode_elm_builtin nColor nKey value nLeft nRight
 
         GT ->
-          balance nColor nKey nValue nLeft (insertHelp key value nRight)
+          balance nColor nKey nValue nLeft (insertHelp deps key value nRight)
 
 
 balance : NColor -> k -> v -> ExDict k v -> ExDict k v -> ExDict k v
@@ -215,10 +216,10 @@ balance color key value left right =
 
 {-| Remove a key-value pair from a dictionary. If the key is not found,
 no changes are made. -}
-remove : comparable -> ExDict comparable v -> ExDict comparable v
-remove key dict =
+remove : Deps k -> k -> ExDict k v -> ExDict k v
+remove deps key dict =
   -- Root node is always Black
-  case removeHelp key dict of
+  case removeHelp deps key dict of
     RBNode_elm_builtin Red k v l r ->
       RBNode_elm_builtin Black k v l r
 
@@ -232,35 +233,36 @@ makes sure that the bottom node is red by moving red colors down the tree throug
 and color flips. Any violations this will cause, can easily be fixed by balancing on the way
 up again.
 -}
-removeHelp : comparable -> ExDict comparable v -> ExDict comparable v
-removeHelp targetKey dict =
+removeHelp : Deps k -> k -> ExDict k v -> ExDict k v
+removeHelp deps targetKey dict =
   case dict of
     RBEmpty_elm_builtin ->
       RBEmpty_elm_builtin
 
     RBNode_elm_builtin color key value left right ->
-      if targetKey < key then
-        case left of
-          RBNode_elm_builtin Black _ _ lLeft _ ->
-            case lLeft of
-              RBNode_elm_builtin Red _ _ _ _ ->
-                RBNode_elm_builtin color key value (removeHelp targetKey left) right
+      case deps.compare targetKey key of
+        LT -> 
+            case left of
+            RBNode_elm_builtin Black _ _ lLeft _ ->
+                case lLeft of
+                RBNode_elm_builtin Red _ _ _ _ ->
+                    RBNode_elm_builtin color key value (removeHelp deps targetKey left) right
 
-              _ ->
-                case moveRedLeft dict of
-                  RBNode_elm_builtin nColor nKey nValue nLeft nRight ->
-                    balance nColor nKey nValue (removeHelp targetKey nLeft) nRight
+                _ ->
+                    case moveRedLeft dict of
+                    RBNode_elm_builtin nColor nKey nValue nLeft nRight ->
+                        balance nColor nKey nValue (removeHelp deps targetKey nLeft) nRight
 
-                  RBEmpty_elm_builtin ->
-                    RBEmpty_elm_builtin
+                    RBEmpty_elm_builtin ->
+                        RBEmpty_elm_builtin
 
-          _ ->
-            RBNode_elm_builtin color key value (removeHelp targetKey left) right
-      else
-        removeHelpEQGT targetKey (removeHelpPrepEQGT targetKey dict color key value left right)
+            _ ->
+                RBNode_elm_builtin color key value (removeHelp deps targetKey left) right
+        _ ->
+            removeHelpEQGT deps targetKey (removeHelpPrepEQGT targetKey dict color key value left right)
 
 
-removeHelpPrepEQGT : comparable -> ExDict comparable v -> NColor -> comparable -> v -> ExDict comparable v -> ExDict comparable v -> ExDict comparable v
+removeHelpPrepEQGT : k -> ExDict k v -> NColor -> k -> v -> ExDict k v -> ExDict k v -> ExDict k v
 removeHelpPrepEQGT targetKey dict color key value left right =
   case left of
     RBNode_elm_builtin Red lK lV lLeft lRight ->
@@ -286,8 +288,8 @@ removeHelpPrepEQGT targetKey dict color key value left right =
 {-| When we find the node we are looking for, we can remove by replacing the key-value
 pair with the key-value pair of the left-most node on the right side (the closest pair).
 -}
-removeHelpEQGT : comparable -> ExDict comparable v -> ExDict comparable v
-removeHelpEQGT targetKey dict =
+removeHelpEQGT : Deps k -> k -> ExDict k v -> ExDict k v
+removeHelpEQGT deps targetKey dict =
   case dict of
     RBNode_elm_builtin color key value left right ->
       if targetKey == key then
@@ -298,7 +300,7 @@ removeHelpEQGT targetKey dict =
           RBEmpty_elm_builtin ->
             RBEmpty_elm_builtin
       else
-        balance color key value left (removeHelp targetKey right)
+        balance color key value left (removeHelp deps targetKey right)
 
     RBEmpty_elm_builtin ->
       RBEmpty_elm_builtin
@@ -406,18 +408,18 @@ moveRedRight dict =
 
 
 {-| Update the value of a dictionary for a specific key with a given function. -}
-update : comparable -> (Maybe v -> Maybe v) -> ExDict comparable v -> ExDict comparable v
-update targetKey alter dictionary =
-  case alter (get targetKey dictionary) of
+update : Deps k -> k -> (Maybe v -> Maybe v) -> ExDict k v -> ExDict k v
+update deps targetKey alter dictionary =
+  case alter (get deps targetKey dictionary) of
     Just value ->
-      insert targetKey value dictionary
+      insert deps targetKey value dictionary
 
     Nothing ->
-      remove targetKey dictionary
+      remove deps targetKey dictionary
 
 
 {-| Create a dictionary with one key-value pair. -}
-singleton : comparable -> v -> ExDict comparable v
+singleton : k -> v -> ExDict k v
 singleton key value =
   -- Root node is always Black
   RBNode_elm_builtin Black key value RBEmpty_elm_builtin RBEmpty_elm_builtin
@@ -429,24 +431,24 @@ singleton key value =
 {-| Combine two dictionaries. If there is a collision, preference is given
 to the first dictionary.
 -}
-union : ExDict comparable v -> ExDict comparable v -> ExDict comparable v
-union t1 t2 =
-  foldl insert t2 t1
+union : Deps k -> ExDict k v -> ExDict k v -> ExDict k v
+union deps t1 t2 =
+  foldl (insert deps) t2 t1
 
 
 {-| Keep a key-value pair when its key appears in the second dictionary.
 Preference is given to values in the first dictionary.
 -}
-intersect : ExDict comparable v -> ExDict comparable v -> ExDict comparable v
-intersect t1 t2 =
-  filter (\k _ -> member k t2) t1
+intersect : Deps k -> ExDict k v -> ExDict k v -> ExDict k v
+intersect deps t1 t2 =
+  filter deps (\k _ -> member deps k t2) t1
 
 
 {-| Keep a key-value pair when its key does not appear in the second dictionary.
 -}
-diff : ExDict comparable a -> ExDict comparable b -> ExDict comparable a
-diff t1 t2 =
-  foldl (\k v t -> remove k t) t1 t2
+diff : Deps k -> ExDict k a -> ExDict k b -> ExDict k a
+diff deps t1 t2 =
+  foldl (\k v t -> remove deps k t) t1 t2
 
 
 {-| The most general way of combining two dictionaries. You provide three
@@ -460,14 +462,15 @@ You then traverse all the keys from lowest to highest, building up whatever
 you want.
 -}
 merge
-  :  (comparable -> a -> result -> result)
-  -> (comparable -> a -> b -> result -> result)
-  -> (comparable -> b -> result -> result)
-  -> ExDict comparable a
-  -> ExDict comparable b
+  :  Deps k
+  -> (k -> a -> result -> result)
+  -> (k -> a -> b -> result -> result)
+  -> (k -> b -> result -> result)
+  -> ExDict k a
+  -> ExDict k b
   -> result
   -> result
-merge leftStep bothStep rightStep leftDict rightDict initialResult =
+merge deps leftStep bothStep rightStep leftDict rightDict initialResult =
   let
     stepState rKey rValue (list, result) =
       case list of
@@ -475,14 +478,15 @@ merge leftStep bothStep rightStep leftDict rightDict initialResult =
           (list, rightStep rKey rValue result)
 
         (lKey, lValue) :: rest ->
-          if lKey < rKey then
-            stepState rKey rValue (rest, leftStep lKey lValue result)
+          case deps.compare lKey rKey of
+            LT ->
+                stepState rKey rValue (rest, leftStep lKey lValue result)
 
-          else if lKey > rKey then
-            (list, rightStep rKey rValue result)
+            GT ->
+                (list, rightStep rKey rValue result)
 
-          else
-            (rest, bothStep lKey lValue rValue result)
+            EQ ->
+                (rest, bothStep lKey lValue rValue result)
 
     (leftovers, intermediateResult) =
       foldl stepState (toList leftDict, initialResult) rightDict
@@ -555,24 +559,24 @@ foldr func acc t =
 
 
 {-| Keep only the key-value pairs that pass the given test. -}
-filter : (comparable -> v -> Bool) -> ExDict comparable v -> ExDict comparable v
-filter isGood dict =
-  foldl (\k v d -> if isGood k v then insert k v d else d) empty dict
+filter : Deps k -> (k -> v -> Bool) -> ExDict k v -> ExDict k v
+filter deps isGood dict =
+  foldl (\k v d -> if isGood k v then insert deps k v d else d) empty dict
 
 
 {-| Partition a dictionary according to some test. The first dictionary
 contains all key-value pairs which passed the test, and the second contains
 the pairs that did not.
 -}
-partition : (comparable -> v -> Bool) -> ExDict comparable v -> (ExDict comparable v, ExDict comparable v)
-partition isGood dict =
+partition : Deps k -> (k -> v -> Bool) -> ExDict k v -> (ExDict k v, ExDict k v)
+partition deps isGood dict =
   let
     add key value (t1, t2) =
       if isGood key value then
-        (insert key value t1, t2)
+        (insert deps key value t1, t2)
 
       else
-        (t1, insert key value t2)
+        (t1, insert deps key value t2)
   in
     foldl add (empty, empty) dict
 
@@ -605,6 +609,6 @@ toList dict =
 
 
 {-| Convert an association list into a dictionary. -}
-fromList : List (comparable,v) -> ExDict comparable v
-fromList assocs =
-  List.foldl (\(key,value) dict -> insert key value dict) empty assocs
+fromList : Deps k -> List (k,v) -> ExDict k v
+fromList deps assocs =
+  List.foldl (\(key,value) dict -> insert deps key value dict) empty assocs
