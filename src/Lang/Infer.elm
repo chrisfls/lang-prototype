@@ -1,7 +1,5 @@
 module Lang.Infer exposing (..)
 
--- TODO: review
-
 import Lang.Canonical.Expr exposing (Expr)
 import Lang.Canonical.Type exposing (Type)
 import Lang.Infer.Constraint as Constraint exposing (Constraint)
@@ -21,13 +19,13 @@ types exp s env =
 
 typeOf : Expr -> Env -> State Error ( Type, Type -> Type ) Int
 typeOf exp env =
-    Constraint.generate exp env
-        |> Lang.Infer.State.andThen
-            (\( t, cs ) ->
-                solve Subst.empty cs
-                    |> Result.map (\s -> ( Subst.substitute s t, Subst.substitute s ))
-                    |> Lang.Infer.State.fromResult
-            )
+    Lang.Infer.State.andThen
+        (\( t, cs ) ->
+            solve Subst.empty cs
+                |> Result.map (\s -> ( Subst.substitute s t, Subst.substitute s ))
+                |> Lang.Infer.State.fromResult
+        )
+        (Constraint.generate exp env)
 
 
 solve : Subst -> List Constraint -> Result Error Subst
@@ -37,13 +35,13 @@ solve substitution constraints =
             Ok substitution
 
         ( t1, t2 ) :: tail ->
-            Subst.unify t1 t2
-                |> Result.andThen
-                    (\new ->
-                        solve
-                            (Subst.app new substitution)
-                            (List.map (substituteConstraint new) tail)
-                    )
+            Result.andThen
+                (\new ->
+                    solve
+                        (Subst.app new substitution)
+                        (List.map (substituteConstraint new) tail)
+                )
+                (Subst.unify t1 t2)
 
 
 substituteConstraint : Subst -> Constraint -> Constraint

@@ -1,7 +1,5 @@
 module Lang.Infer.Constraint exposing (..)
 
--- TODO: review
-
 import Lang.Canonical.Expr exposing (Expr(..))
 import Lang.Canonical.Type.Internal as Type exposing (Type)
 import Lang.Infer.Env as Env exposing (Env)
@@ -17,27 +15,27 @@ type alias Constraints =
     List Constraint
 
 
-type alias GeneratorState =
-    State Error ( Type, Constraints ) Int
+type alias GenerateState =
+    ( Type, Constraints )
 
 
-mergeAppConstraints : Type -> ( Type, Constraints ) -> ( Type, Constraints ) -> ( Type, Constraints )
+singleton : Type -> GenerateState
+singleton x =
+    ( x, [] )
+
+
+mergeAppConstraints : Type -> GenerateState -> GenerateState -> GenerateState
 mergeAppConstraints typ ( func, funcConstraint ) ( argm, argConstraint ) =
     ( typ
     , funcConstraint ++ argConstraint ++ [ ( func, Type.TArr argm typ ) ]
     )
 
 
-aaa : a -> ( a, List b )
-aaa x =
-    ( x, [] )
-
-
-generate : Expr -> Env -> GeneratorState
+generate : Expr -> Env -> State Error GenerateState Int
 generate expr env =
     case expr of
         Var name ->
-            State.map aaa (Env.variable name env)
+            State.map singleton (Env.variable name env)
 
         Lit t ->
             State.empty ( t, [] )

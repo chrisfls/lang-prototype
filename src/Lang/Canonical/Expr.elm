@@ -1,7 +1,5 @@
 module Lang.Canonical.Expr exposing (..)
 
--- TODO: review
-
 import Lang.Canonical.Name exposing (Name)
 import Lang.Canonical.Type.Internal exposing (Type)
 

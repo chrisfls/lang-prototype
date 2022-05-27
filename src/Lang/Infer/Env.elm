@@ -1,8 +1,6 @@
 module Lang.Infer.Env exposing (..)
 
--- TODO: review
 
-import Basics.Extra exposing (flip)
 import Dict exposing (Dict)
 import Lang.Canonical.Name as Name exposing (Name)
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
@@ -21,8 +19,8 @@ type Scheme
 
 
 freshTVar : State error Type Int
-freshTVar state =
-    ( Ok (TVar state), state + 1 )
+freshTVar count =
+    ( Ok (TVar count), count + 1 )
 
 
 empty : Env
@@ -44,14 +42,14 @@ variable name (TypeEnv env) =
 instantiate : Scheme -> State error Type Int
 instantiate (Scheme vars t) =
     vars
-        |> List.map instantiateHelp1
+        |> List.map instantiateHelp
         |> State.sequence
         |> State.map (\a -> Substitution.substitute (Substitution.fromList a) t)
 
 
-instantiateHelp1 : comparable -> State error ( comparable, Type ) Int
-instantiateHelp1 =
-    Tuple.pair >> flip State.map freshTVar
+instantiateHelp : Int -> State error ( Int, Type ) Int
+instantiateHelp index =
+    State.map (\count -> ( index, count )) freshTVar
 
 
 extend : Name -> Type -> Env -> Env
@@ -61,12 +59,15 @@ extend name t (TypeEnv env) =
 
 generalize : Type -> Env -> Scheme
 generalize t (TypeEnv env) =
-    Dict.values env
-        |> List.map freeVariables
-        |> List.foldl Set.union Set.empty
-        |> Set.diff (Type.variables t)
-        |> Set.toList
-        |> (\generic -> Scheme generic t)
+    let
+        generic =
+            Dict.values env
+                |> List.map freeVariables
+                |> List.foldl Set.union Set.empty
+                |> Set.diff (Type.variables t)
+                |> Set.toList
+    in
+    Scheme generic t
 
 
 freeVariables : Scheme -> Set Int

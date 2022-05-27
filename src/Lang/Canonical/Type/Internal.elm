@@ -1,7 +1,5 @@
 module Lang.Canonical.Type.Internal exposing (..)
 
--- TODO: review
-
 import Dict exposing (Dict)
 import Lang.Canonical.Name exposing (Name)
 import Set exposing (Set)
@@ -31,8 +29,7 @@ variables t =
             variablesFromList types
 
         TRecord d ->
-            Dict.values d
-                |> variablesFromList
+            variablesFromList (Dict.values d)
 
 
 variablesFromList : List Type -> Set Int
