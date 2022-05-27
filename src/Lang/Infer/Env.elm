@@ -3,8 +3,8 @@ module Lang.Infer.Env exposing (..)
 -- TODO: review
 
 import Basics.Extra exposing (flip)
-import Lang.Infer.NameDict as NameDict exposing (NameDict)
-import Lang.Canonical.Name exposing (Name)
+import Dict exposing (Dict)
+import Lang.Canonical.Name as Name exposing (Name)
 import Lang.Canonical.Type.Internal as Type exposing (Type(..))
 import Lang.Infer.Error.Internal as Error exposing (Error)
 import Lang.Infer.State as State exposing (State)
@@ -13,7 +13,7 @@ import Set exposing (Set)
 
 
 type Env
-    = TypeEnv (NameDict Scheme)
+    = TypeEnv (Dict String Scheme)
 
 
 type Scheme
@@ -27,12 +27,12 @@ freshTVar state =
 
 empty : Env
 empty =
-    TypeEnv NameDict.empty
+    TypeEnv Dict.empty
 
 
 variable : Name -> Env -> State Error Type Int
 variable name (TypeEnv env) =
-    case NameDict.get name env of
+    case Dict.get (Name.toString name) env of
         Just t ->
             State.empty t
                 |> State.andThen instantiate
@@ -56,12 +56,12 @@ instantiateHelp1 =
 
 extend : Name -> Type -> Env -> Env
 extend name t (TypeEnv env) =
-    TypeEnv (NameDict.insert name (Scheme [] t) env)
+    TypeEnv (Dict.insert (Name.toString name) (Scheme [] t) env)
 
 
 generalize : Type -> Env -> Scheme
 generalize t (TypeEnv env) =
-    NameDict.values env
+    Dict.values env
         |> List.map freeVariables
         |> List.foldl Set.union Set.empty
         |> Set.diff (Type.variables t)

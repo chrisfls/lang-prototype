@@ -1,4 +1,4 @@
-module Lang.Canonical.Name exposing (Name, fromString, compare)
+module Lang.Canonical.Name exposing (Name, fromString, toString)
 
 
 type Name =
@@ -8,7 +8,6 @@ fromString : String -> Name
 fromString =
     Name
 
-compare : Name -> Name -> Order
-compare (Name a) (Name b) =
-    Basics.compare a b
-
+toString : Name -> String
+toString (Name name) =
+    name
