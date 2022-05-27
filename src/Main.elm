@@ -2,8 +2,8 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (text)
-import Lang.Canonical.Name as Name
 import Lang.Canonical.Expr as Expr
+import Lang.Canonical.Name as Name
 import Lang.Infer as Infer
 import Lang.Infer.Env as TypeEnv
 
