@@ -2,7 +2,8 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (text)
-import Lang.Canonical.Expr as Expr exposing (Name)
+import Lang.Canonical.Name as Name
+import Lang.Canonical.Expr as Expr
 import Lang.Infer as Infer
 import Lang.Infer.Env as TypeEnv
 
@@ -10,7 +11,7 @@ import Lang.Infer.Env as TypeEnv
 main =
     let
         expr =
-            Expr.Lam "s" (\s -> Expr.Lam "z" (\z -> Expr.App s (Expr.App s z)))
+            Expr.Lam (Name.fromString "s") (\s -> Expr.Lam (Name.fromString "z") (\z -> Expr.App s (Expr.App s z)))
 
         _ =
             Infer.typeOf expr TypeEnv.empty 0

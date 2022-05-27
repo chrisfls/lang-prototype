@@ -3,15 +3,16 @@ module Lang.Canonical.Type.Internal exposing (..)
 -- TODO: review
 
 import Dict exposing (Dict)
+import Lang.Canonical.Name exposing (Name)
 import Set exposing (Set)
 
 
 type Type
     = TArr Type Type
-    | TCon String (List Type)
+    | TCon Name (List Type)
     | TVar Int
     | TTuple (List Type)
-    | TRecord (Dict String Type)
+    | TRecord (Dict Name Type)
 
 
 variables : Type -> Set Int

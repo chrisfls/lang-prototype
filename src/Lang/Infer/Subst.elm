@@ -60,38 +60,6 @@ app a (Subst b) =
     Subst (Dict.union (Dict.map (always <| substitute a) b) a_)
 
 
-toString : Type -> String
-toString t =
-    case t of
-        TCon name args ->
-            name
-                :: List.map toString args
-                |> String.join " "
-                |> brace
-
-        TArr l r ->
-            toString l ++ " -> " ++ toString r
-
-        TVar x ->
-            String.fromInt x
-
-        TTuple types ->
-            List.map toString types
-                |> String.join ","
-                |> brace
-
-        TRecord d ->
-            Dict.toList d
-                |> List.map (\( n, t_ ) -> n ++ " : " ++ toString t_)
-                |> String.join ", "
-                |> (\x -> "{" ++ x ++ "}")
-
-
-brace : String -> String
-brace x =
-    "(" ++ x ++ ")"
-
-
 unify : Type -> Type -> Result Error Subst
 unify context content =
     case ( context, content ) of
