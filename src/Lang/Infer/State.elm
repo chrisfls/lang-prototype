@@ -13,17 +13,14 @@ module Lang.Infer.State exposing
     , unwrap
     )
 
-import Basics.Extra exposing (flip)
-import State
-
 
 type alias State error value state =
-    State.State (Result error value) state
+    state -> ( Result error value, state )
 
 
 empty : value -> State error value state
-empty =
-    Ok >> State.empty
+empty a s =
+    ( Ok a, s )
 
 
 fromResult : Result error value -> State error value state
@@ -32,33 +29,59 @@ fromResult =
 
 
 error : error -> State error value state
-error =
-    Err >> State.empty
+error a s =
+    ( Err a, s )
 
 
 map : (a -> value) -> State error a state -> State error value state
-map =
-    Result.map >> State.map
+map f g s =
+    let
+        ( r, s_ ) =
+            g s
+    in
+    case r of
+        Ok a ->
+            ( Ok (f a), s_ )
+
+        Err e ->
+            ( Err e, s_ )
 
 
 andThen : (a -> State error value state) -> State error a state -> State error value state
-andThen =
-    andThenHelp >> State.andThen
-
-
-andThenHelp : (a -> State error value state) -> Result error a -> State error value state
-andThenHelp f r =
+andThen f g s =
+    let
+        ( r, s_ ) =
+            g s
+    in
     case r of
         Ok a ->
-            f a
+            f a s_
 
         Err e ->
-            State.empty (Err e)
+            ( Err e, s_ )
 
 
 andMap : State error a state -> State error (a -> value) state -> State error value state
-andMap =
-    flip map >> andThen
+andMap f g s0 =
+    let
+        ( r1, s1 ) =
+            f s0
+    in
+    case r1 of
+        Ok a ->
+            let
+                ( r2, s2 ) =
+                    g s1
+            in
+            case r2 of
+                Ok b ->
+                    ( Ok (b a), s2 )
+
+                Err e ->
+                    ( Err e, s2 )
+
+        Err e ->
+            ( Err e, s1 )
 
 
 map2 : (a -> b -> value) -> State error a state -> State error b state -> State error value state
@@ -73,12 +96,12 @@ map3 f a b c =
 
 run : state -> State error value state -> ( Result error value, state )
 run =
-    State.run
+    (|>)
 
 
 unwrap : state -> State error value state -> Result error value
-unwrap =
-    State.unwrap
+unwrap s f =
+    Tuple.first (f s)
 
 
 sequence : List (State error value state) -> State error (List value) state
