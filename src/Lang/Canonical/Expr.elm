@@ -1,7 +1,7 @@
 module Lang.Canonical.Expr exposing (..)
 
 import Lang.Canonical.Name exposing (Name)
-import Lang.Canonical.Type.Internal exposing (Type)
+import Lang.Canonical.Type exposing (Type)
 
 
 type Expr

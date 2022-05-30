@@ -1,12 +1,14 @@
 module Lang.Infer.Error exposing (..)
 
-
-import Lang.Infer.Error.Internal as Internal
-
-
-type alias Error =
-    Internal.Error
+import Lang.Canonical.Name exposing (Name)
+import Lang.Canonical.Type exposing (Type)
 
 
+type Error
+    = NotFound Name
+    | Recursion Int Type
+    | Mismatch Type Type
 
--- TODO: toString
+
+
+-- TODO: stringify

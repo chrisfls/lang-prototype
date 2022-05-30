@@ -1,9 +1,9 @@
 module Lang.Infer.Constraint exposing (..)
 
 import Lang.Canonical.Expr exposing (Expr(..))
-import Lang.Canonical.Type.Internal as Type exposing (Type)
+import Lang.Canonical.Type as Type exposing (Type)
 import Lang.Infer.Env as Env exposing (Env)
-import Lang.Infer.Error.Internal exposing (Error)
+import Lang.Infer.Error exposing (Error)
 import Lang.Infer.State as State exposing (State)
 
 

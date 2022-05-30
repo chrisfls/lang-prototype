@@ -3,8 +3,8 @@ module Lang.Infer.Env exposing (..)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Name as Name exposing (Name)
-import Lang.Canonical.Type.Internal as Type exposing (Type(..))
-import Lang.Infer.Error.Internal as Error exposing (Error)
+import Lang.Canonical.Type as Type exposing (Type(..))
+import Lang.Infer.Error as Error exposing (Error)
 import Lang.Infer.State as State exposing (State)
 import Lang.Infer.Subst as Substitution
 import Set exposing (Set)
