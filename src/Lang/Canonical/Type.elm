@@ -1,4 +1,4 @@
-module Lang.Canonical.Type exposing (..)
+module Lang.Canonical.Type exposing (Type(..), variables)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Name exposing (Name)

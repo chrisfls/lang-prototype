@@ -1,4 +1,4 @@
-module Lang.Infer.Constraint exposing (..)
+module Lang.Infer.Constraint exposing (Constraint(..), ConstraintState(..), generate)
 
 import Lang.Canonical.Expr exposing (Expr(..))
 import Lang.Canonical.Type as Type exposing (Type)
@@ -7,38 +7,42 @@ import Lang.Infer.Error exposing (Error)
 import Lang.Infer.State as State exposing (State)
 
 
-type alias Constraint =
-    ( Type, Type )
+type Constraint
+    = Constraint Type Type
 
 
 type alias Constraints =
     List Constraint
 
 
-type alias GenerateState =
-    ( Type, Constraints )
+type ConstraintState
+    = ConstraintState Type Constraints
 
 
-singleton : Type -> GenerateState
+singleton : Type -> ConstraintState
 singleton x =
-    ( x, [] )
+    ConstraintState x []
 
 
-mergeAppConstraints : Type -> GenerateState -> GenerateState -> GenerateState
-mergeAppConstraints typ ( func, funcConstraint ) ( argm, argConstraint ) =
-    ( typ
-    , funcConstraint ++ argConstraint ++ [ ( func, Type.TArr argm typ ) ]
-    )
+mapFirst : (Type -> Type) -> ConstraintState -> ConstraintState
+mapFirst f (ConstraintState a b) =
+    ConstraintState (f a) b
 
 
-generate : Expr -> Env -> State Error GenerateState Int
+mergeAppConstraints : Type -> ConstraintState -> ConstraintState -> ConstraintState
+mergeAppConstraints typ (ConstraintState func funcConstraint) (ConstraintState argm argConstraint) =
+    ConstraintState typ
+        (funcConstraint ++ argConstraint ++ [ Constraint func (Type.TArr argm typ) ])
+
+
+generate : Expr -> Env -> State Error ConstraintState Int
 generate expr env =
     case expr of
         Var name ->
             State.map singleton (Env.variable name env)
 
         Lit t ->
-            State.empty ( t, [] )
+            State.empty (singleton t)
 
         App func argm ->
             State.map3 mergeAppConstraints
@@ -51,18 +55,17 @@ generate expr env =
                 (\argmT ->
                     Env.extend argm argmT env
                         |> generate (body (Var argm))
-                        |> State.map (Tuple.mapFirst (\a -> Type.TArr a argmT))
+                        |> State.map (mapFirst (\a -> Type.TArr a argmT))
                 )
                 Env.freshTVar
 
         Let name value body ->
             State.andThen
-                (\( valueT, valueC ) ->
+                (\(ConstraintState valueT valueC) ->
                     State.map2
-                        (\this ( bodyT, bodyC ) ->
-                            ( this
-                            , valueC ++ bodyC ++ [ ( this, bodyT ) ]
-                            )
+                        (\this (ConstraintState bodyT bodyC) ->
+                            ConstraintState this
+                                (valueC ++ bodyC ++ [ Constraint this bodyT ])
                         )
                         Env.freshTVar
                         (generate body (Env.extend name valueT env))
@@ -71,5 +74,7 @@ generate expr env =
 
         Spy exp_ tag ->
             State.map
-                (\( typ, cons ) -> ( typ, cons ++ [ ( Type.TVar tag, typ ) ] ))
+                (\(ConstraintState typ cons) ->
+                    ConstraintState typ (cons ++ [ Constraint (Type.TVar tag) typ ])
+                )
                 (generate exp_ env)
