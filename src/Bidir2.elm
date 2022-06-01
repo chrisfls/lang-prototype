@@ -89,7 +89,7 @@ check : Exp -> State -> Result Error ( Type, State )
 check exp state =
     case infer exp state of
         Ok ( typ, finalState ) ->
-            Ok ( unify typ finalState, finalState )
+            Ok ( typ, finalState )
 
         err ->
             err
@@ -108,7 +108,7 @@ infer exp state =
             in
             case infer (body (Ann argmT (Var name))) newState of
                 Ok ( bodyT, finalState ) ->
-                    Ok ( TArr argmT bodyT, finalState )
+                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), finalState )
 
                 err ->
                     err
@@ -146,13 +146,14 @@ apply funcT argmT state =
             contraintWith withT argmT state
 
 
+
 constraint : Int -> Type -> State -> Result error ( Type, State )
 constraint i argmT state =
     let
-        ( tvar, finalState ) =
+        ( tvar, state_ ) =
             newFreeIndex state
     in
-    Ok ( tvar, insert i (TArr argmT tvar) finalState )
+    Ok ( tvar, insert i (TArr argmT tvar) state_ )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
@@ -161,13 +162,23 @@ contraintWith withT someT state =
         TArr funcT bodyT ->
             case someT of
                 TVar i ->
-                    Ok ( bodyT, insert i funcT state )
+                    Ok (unifyPair ( bodyT, insert i funcT state ))
 
                 _ ->
                     Err "Can't constrain someT to withT (TODO: try or elaborate)"
 
         _ ->
             Err "Can't constrain (TODO: try or elaborate)"
+
+
+unifyResult : Result x ( Type, State ) -> Result x ( Type, State )
+unifyResult =
+    Result.map unifyPair
+
+
+unifyPair : ( Type, State ) -> ( Type, State )
+unifyPair ( thisT, state ) =
+    ( unify thisT state, state )
 
 
 unify : Type -> State -> Type
