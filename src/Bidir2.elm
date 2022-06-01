@@ -99,8 +99,7 @@ infer : Exp -> State -> Result Error ( Type, State )
 infer exp state =
     case exp of
         Var _ ->
-            -- TODO: proper error message about unbound var
-            Debug.todo "unbound var error"
+            Debug.todo "TODO: unbound var error (proper error message)"
 
         Lam name body ->
             let
@@ -165,10 +164,10 @@ contraintWith withT someT state =
                     Ok ( bodyT, insert i funcT state )
 
                 _ ->
-                    Err "Can't constrain someT to withT"
+                    Err "Can't constrain someT to withT (TODO: try or elaborate)"
 
         _ ->
-            Err "Can't constrain"
+            Err "Can't constrain (TODO: try or elaborate)"
 
 
 unify : Type -> State -> Type
