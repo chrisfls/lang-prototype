@@ -1,4 +1,18 @@
-module Bidir exposing (..)
+module Bidir exposing
+    ( Exp, var, lam, app, ann, toString
+    , Type, toStringT
+    , State, empty
+    , check
+    )
+
+{-|
+
+@docs Exp, var, lam, app, ann, toString
+@docs Type, toStringT
+@docs State, empty
+@docs check
+
+-}
 
 import Dict exposing (Dict)
 
@@ -7,185 +21,230 @@ type alias Name =
     String
 
 
-type Typ
+type Type
     = TVar Int
-    | TArr Typ Typ
-
-
-
--- TODO: replace Maybe with Spec (where spec is Pending | Declared | Infered)
+    | TArr Type Type
 
 
 type Exp
-    = Var Spec Name
-    | Lam Spec Name (Exp -> Exp)
-    | App Spec Exp Exp
-
-
-type Spec
-    = Pending
-    | Provided Typ
-    | Assembled Typ
-    | Error
-
-
-type Env
-    = Env Int Context
-
-
-type alias Context =
-    Dict Int Typ
+    = Var Name
+    | Lam Name (Exp -> Exp)
+    | App Exp Exp
+    | Ann Type Exp
 
 
 var : Name -> Exp
 var =
-    Var Pending
+    Var
 
 
 lam : Name -> (Exp -> Exp) -> Exp
 lam =
-    Lam Pending
+    Lam
 
 
 app : Exp -> Exp -> Exp
 app =
-    App Pending
+    App
 
 
+ann : Type -> Exp -> Exp
+ann =
+    Ann
+
+
+type State
+    = State Int Env
+
+
+type alias Env =
+    Dict Int Type
+
+
+type alias Error =
+    String
+
+
+empty : State
 empty =
-    Env 0 Dict.empty
+    State 0 Dict.empty
 
 
-type alias Step =
-    ( Exp, Env )
+get : Int -> State -> Maybe Type
+get key (State _ env) =
+    Dict.get key env
 
 
-check : Exp -> Env -> Step
-check exp env =
+insert : Int -> Type -> State -> State
+insert key typ (State i env) =
+    State i (Dict.insert key typ env)
+
+
+newFreeIndex : State -> ( Type, State )
+newFreeIndex (State i env) =
+    ( TVar i, State (i + 1) env )
+
+
+check : Exp -> State -> Result Error ( Type, State )
+check exp state =
+    case infer exp state of
+        Ok ( typ, finalState ) ->
+            Ok ( unify typ finalState, finalState )
+
+        err ->
+            err
+
+
+infer : Exp -> State -> Result Error ( Type, State )
+infer exp state =
     case exp of
-        Var Pending _ ->
-            Debug.todo "Var"
+        Var _ ->
+            -- TODO: proper error message about unbound var
+            Debug.todo "unbound var error"
 
-        Lam Pending name body ->
-            checkPendingLam name body env
-
-        App Pending func argm ->
-            checkPendingApp func argm env
-
-        Var (Assembled _) _ ->
-            ( exp, env )
-
-        Lam (Assembled _) _ _ ->
-            ( exp, env )
-
-        App (Assembled _) _ _ ->
-            ( exp, env )
-
-        _ ->
+        Lam name body ->
             let
-                _ =
-                    Debug.log "check" exp
+                ( argmT, newState ) =
+                    newFreeIndex state
             in
-            Debug.todo "Fuck"
+            case infer (body (Ann argmT (Var name))) newState of
+                Ok ( bodyT, finalState ) ->
+                    Ok ( TArr argmT bodyT, finalState )
+
+                err ->
+                    err
+
+        App func argm ->
+            case infer argm state of
+                Ok ( argmT, newState ) ->
+                    case infer func newState of
+                        Ok ( funcT, finalState ) ->
+                            apply funcT argmT finalState
+
+                        err ->
+                            err
+
+                err ->
+                    err
+
+        Ann typ _ ->
+            -- TODO: check if typ and exp are really compatible
+            Ok ( typ, state )
 
 
-getFreeTVar : Env -> ( Typ, Env )
-getFreeTVar (Env count context) =
-    let
-        tvar =
-            TVar count
-    in
-    ( tvar, Env (count + 1) (Dict.insert count tvar context) )
-
-
-lookAhead : Env -> Env -> Maybe Typ
-lookAhead (Env key _) (Env _ context) =
-    Dict.get key context
-
-
-checkPendingLam : String -> (Exp -> Exp) -> Env -> Step
-checkPendingLam name body env =
-    let
-        ( tvar, env1 ) =
-            getFreeTVar env
-
-        ( body_, env2 ) =
-            check (body (Var (Assembled tvar) name)) env1
-    in
-    case lookAhead env env2 of
-        Just argT ->
-            case getTyp (getSpec body_)  of
-                Just retT ->
-                    ( Lam (Assembled (TArr argT retT)) name body
-                    , env
-                    )
+apply : Type -> Type -> State -> Result Error ( Type, State )
+apply funcT argmT state =
+    case funcT of
+        TVar i ->
+            case get i state of
+                Just withT ->
+                    contraintWith withT argmT state
 
                 Nothing ->
-                    Debug.todo "AAAAA"
+                    constraint i argmT state
 
-        Nothing ->
-            Debug.todo "BBBBB"
-
-checkPendingApp : Exp -> Exp -> Env -> Step
-checkPendingApp func argm env =
-    case func of
-        Var spec name ->
-            let
-                ( argm_, _ ) =
-                    check argm env
-
-                spec_ =
-                    case getTyp spec of
-                        Just (TVar key) ->
-                            case getTyp (getSpec argm_) of
-                                Just typ ->
-                                    Assembled (TArr (TVar key) typ)
-
-                                Nothing ->
-                                    Assembled (TVar key)
-
-                        _ ->
-                            Pending
-            in
-            (Var spec_ name, env)
-
-        Lam _ _ _ ->
-            Debug.todo "AppLam"
-        App _ _ _ -> 
-            Debug.todo "AppApp"
+        TArr _ _ ->
+            -- TODO: allow adding parameters to functions
+            Debug.todo "WIP Apply TArr"
 
 
-inc : (b -> b) -> b -> b
-inc s z =
-    s (s z)
-
-getSpec : Exp -> Spec
-getSpec exp =
-    case exp of
-        Var spec _ ->
-            spec
-
-        Lam spec _ _ ->
-            spec
-
-        App spec _ _ ->
-            spec
+constraint : Int -> Type -> State -> Result error ( Type, State )
+constraint i argmT state =
+    let
+        ( tvar, finalState ) =
+            newFreeIndex state
+    in
+    Ok ( tvar, insert i (TArr argmT tvar) finalState )
 
 
-getTyp : Spec -> Maybe Typ
-getTyp spec =
-    case spec of
-        Assembled t ->
-            Just t
+contraintWith : Type -> Type -> State -> Result String ( Type, State )
+contraintWith withT someT state =
+    case withT of
+        TArr funcT bodyT ->
+            case someT of
+                TVar i ->
+                    Ok ( bodyT, insert i funcT state )
 
-        Provided t ->
-            Just t
+                _ ->
+                    Err "Can't constrain someT to withT"
 
         _ ->
-            Nothing
+            Err "Can't constrain"
 
 
-extend : Int -> Typ -> Env -> Env
-extend key typ (Env count context) =
-    Env count (Dict.insert key typ context)
+unify : Type -> State -> Type
+unify thisT state =
+    case thisT of
+        TVar i ->
+            case get i state of
+                Just someT ->
+                    if thisT == someT then
+                        someT
 
+                    else
+                        unify someT state
+
+                Nothing ->
+                    thisT
+
+        TArr l r ->
+            TArr (unify l state) (unify r state)
+
+
+
+--- visualization stuff
+
+
+toString : Exp -> String
+toString exp =
+    case exp of
+        Var name ->
+            name
+
+        Lam name body ->
+            "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"
+
+        App func argm ->
+            "(" ++ toString func ++ " " ++ toString argm ++ ")"
+
+        Ann typ (Lam name body) ->
+            "(" ++ name ++ " [" ++ toStringT typ ++ "] -> " ++ toString (body (Var name)) ++ ")"
+
+        Ann typ exp_ ->
+            "[" ++ toStringT typ ++ "]" ++ toString exp_
+
+
+toStringT : Type -> String
+toStringT typ =
+    case typ of
+        TVar i ->
+            let
+                argm =
+                    max 0 (i - 12)
+            in
+            case List.head (List.drop (modBy length i) vars) of
+                Just a ->
+                    if argm > 0 then
+                        a ++ String.fromInt argm
+
+                    else
+                        a
+
+                Nothing ->
+                    "unk" ++ String.fromInt i
+
+        TArr ((TArr _ _) as f) t ->
+            "[" ++ toStringT f ++ "] -> " ++ toStringT t
+
+        TArr ((TVar _) as f) t ->
+            toStringT f ++ " -> " ++ toStringT t
+
+
+vars : List String
+vars =
+    String.split "" "abcdefghijkl"
+
+
+length : Int
+length =
+    List.length vars

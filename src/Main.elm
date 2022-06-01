@@ -6,7 +6,7 @@ import Lang.Canonical.Expr as Expr
 import Lang.Canonical.Name as Name
 import Lang.Infer as Infer
 import Lang.Infer.Env as TypeEnv
-import Bidir4 as Bidir
+import Bidir as Bidir
 
 
 main =
