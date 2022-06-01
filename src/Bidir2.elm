@@ -143,9 +143,8 @@ apply funcT argmT state =
                 Nothing ->
                     constraint i argmT state
 
-        TArr _ _ ->
-            -- TODO: allow adding parameters to functions
-            Debug.todo "WIP Apply TArr"
+        withT ->
+            contraintWith withT argmT state
 
 
 constraint : Int -> Type -> State -> Result error ( Type, State )
