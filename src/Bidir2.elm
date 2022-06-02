@@ -55,18 +55,11 @@ ann =
 
 
 type State
-    = State Env
+    = State Int Int Env
 
 
 type alias Env =
-    { viewIndex : Int
-    , anonIndex : Int
-    , env : Dict EnvKey Type
-    }
-
-
-type alias EnvKey =
-    ( Int, Int )
+    Dict ( Int, Int ) Type
 
 
 type alias Error =
@@ -75,51 +68,41 @@ type alias Error =
 
 empty : State
 empty =
-    State (Env 0 0 Dict.empty)
+    State 0 0 Dict.empty
 
 
 get : Int -> State -> Maybe Type
-get index (State { env }) =
+get index (State _ _ env) =
     Dict.get ( 0, index ) env
 
 
 insert : Int -> Type -> State -> State
-insert index thisT (State ({ env } as state)) =
-    State { state | env = Dict.insert ( 0, index ) thisT env }
+insert index thisT (State count0 count1 env) =
+    State count0 count1 (Dict.insert ( 0, index ) thisT env)
 
 
 newTVar : State -> ( Type, State )
-newTVar (State ({ viewIndex } as state)) =
-    ( TVar viewIndex, State { state | viewIndex = viewIndex + 1 } )
+newTVar (State count0 count1 env) =
+    ( TVar count0, State (count0 + 1) count1 env )
 
 
 getAnon : Int -> State -> Maybe Type
-getAnon index (State { env }) =
+getAnon index (State _ _ env) =
     Dict.get ( 1, index ) env
 
 
 insertAnon : Int -> Type -> State -> State
-insertAnon index thisT (State ({ env } as state)) =
-    State { state | env = Dict.insert ( 1, index ) thisT env }
+insertAnon index thisT (State count0 count1 env) =
+    State count0 count1 (Dict.insert ( 1, index ) thisT env)
 
 
 newTAnon : State -> ( Type, State )
-newTAnon (State ({ anonIndex } as state)) =
-    ( TAnon anonIndex, State { state | anonIndex = anonIndex + 1 } )
+newTAnon (State count0 count1 env) =
+    ( TAnon count1, State count0 (count1 + 1) env )
 
 
 check : Exp -> State -> Result Error ( Type, State )
 check exp state =
-    case infer exp state of
-        Ok ( typ, state_ ) ->
-            Ok ( typ, state_ )
-
-        err ->
-            err
-
-
-infer : Exp -> State -> Result Error ( Type, State )
-infer exp state =
     case exp of
         Var _ ->
             Debug.todo "TODO: unbound var error (proper error message)"
@@ -129,7 +112,7 @@ infer exp state =
                 ( anonT, newState1 ) =
                     newTAnon state
             in
-            case infer (body (Ann anonT (Var name))) newState1 of
+            case check (body (Ann anonT (Var name))) newState1 of
                 Ok ( bodyT, newState2 ) ->
                     let
                         ( bodyT_, finalState ) =
@@ -141,9 +124,9 @@ infer exp state =
                     err
 
         App func argm ->
-            case infer argm state of
+            case check argm state of
                 Ok ( argmT, newState ) ->
-                    case infer func newState of
+                    case check func newState of
                         Ok ( funcT, finalState ) ->
                             apply funcT argmT finalState
 
@@ -202,6 +185,11 @@ constraint index anon argmT state =
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
 contraintWith withT thisT state =
+    -- TODO: check if this whole function is needed
+    let
+        _ =
+            Debug.log "caraio" withT
+    in
     case withT of
         TArr funcT bodyT ->
             case thisT of
