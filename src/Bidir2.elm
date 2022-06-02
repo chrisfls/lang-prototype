@@ -96,14 +96,13 @@ insert index anon thisT (State ({ viewEnv, anonEnv } as state)) =
         State { state | viewEnv = Dict.insert index thisT viewEnv }
 
 
-newTVar : State -> ( Type, State )
-newTVar (State ({ viewIndex } as state)) =
-    ( TVar False viewIndex, State { state | viewIndex = viewIndex + 1 } )
+newTVar : Anon -> State -> ( Type, State )
+newTVar anon (State ({ viewIndex, anonIndex } as state)) =
+    if anon then
+        ( TVar True anonIndex, State { state | anonIndex = anonIndex + 1 } )
 
-
-newAnonTVar : State -> ( Type, State )
-newAnonTVar (State ({ anonIndex } as state)) =
-    ( TVar True anonIndex, State { state | anonIndex = anonIndex + 1 } )
+    else
+        ( TVar False viewIndex, State { state | viewIndex = viewIndex + 1 } )
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -125,7 +124,7 @@ infer exp state =
         Lam name body ->
             let
                 ( argmT, newState ) =
-                    newAnonTVar state
+                    newTVar True state
             in
             case infer (body (Ann argmT (Var name))) newState of
                 Ok ( bodyT, finalState ) ->
@@ -171,7 +170,7 @@ constraint : Int -> Bool -> Type -> State -> Result error ( Type, State )
 constraint index anon argmT state =
     let
         ( tvar, state_ ) =
-            newTVar state
+            newTVar False state
     in
     Ok ( tvar, insert index anon (TArr argmT tvar) state_ )
 
