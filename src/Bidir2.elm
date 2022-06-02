@@ -1,13 +1,13 @@
 module Bidir2 exposing
-    ( Exp, var, lam, app, ann, toString
-    , Type, toStringT
+    ( Exp(..), toString
+    , Type(..), toStringT
     , State, empty
     , check
     )
 
 {-|
 
-@docs Exp, var, lam, app, ann, toString
+@docs Exp, toString
 @docs Type, toStringT
 @docs State, empty
 @docs check
@@ -22,9 +22,12 @@ type alias Name =
 
 
 type Type
-    = TAnon Int
-    | TVar Int
+    = TVar Anon Int
     | TArr Type Type
+
+
+type alias Anon =
+    Bool
 
 
 type Exp
@@ -32,26 +35,6 @@ type Exp
     | Lam Name (Exp -> Exp)
     | App Exp Exp
     | Ann Type Exp
-
-
-var : Name -> Exp
-var =
-    Var
-
-
-lam : Name -> (Exp -> Exp) -> Exp
-lam =
-    Lam
-
-
-app : Exp -> Exp -> Exp
-app =
-    App
-
-
-ann : Type -> Exp -> Exp
-ann =
-    Ann
 
 
 type State
@@ -71,34 +54,38 @@ empty =
     State 0 0 Dict.empty
 
 
-get : Int -> State -> Maybe Type
-get index (State _ _ env) =
-    Dict.get ( 0, index ) env
+key : Anon -> Int -> ( Int, Int )
+key anon index =
+    if anon then
+        ( 1, index )
+
+    else
+        ( 0, index )
 
 
-insert : Int -> Type -> State -> State
-insert index thisT (State count0 count1 env) =
-    State count0 count1 (Dict.insert ( 0, index ) thisT env)
+get : Anon -> Int -> State -> Maybe Type
+get anon index (State _ _ env) =
+    Dict.get (key anon index) env
+
+
+insert : Anon -> Int -> Type -> State -> State
+insert anon index thisT (State count0 count1 env) =
+    State count0 count1 (Dict.insert (key anon index) thisT env)
+
+
+insertAnon : Int -> Type -> State -> State
+insertAnon =
+    insert True
 
 
 newTVar : State -> ( Type, State )
 newTVar (State count0 count1 env) =
-    ( TVar count0, State (count0 + 1) count1 env )
+    ( TVar False count0, State (count0 + 1) count1 env )
 
 
-getAnon : Int -> State -> Maybe Type
-getAnon index (State _ _ env) =
-    Dict.get ( 1, index ) env
-
-
-insertAnon : Int -> Type -> State -> State
-insertAnon index thisT (State count0 count1 env) =
-    State count0 count1 (Dict.insert ( 1, index ) thisT env)
-
-
-newTAnon : State -> ( Type, State )
-newTAnon (State count0 count1 env) =
-    ( TAnon count1, State count0 (count1 + 1) env )
+newAnonTVar : State -> ( Type, State )
+newAnonTVar (State count0 count1 env) =
+    ( TVar True count1, State count0 (count1 + 1) env )
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -109,16 +96,16 @@ check exp state =
 
         Lam name body ->
             let
-                ( anonT, newState1 ) =
-                    newTAnon state
+                ( argmT, newState1 ) =
+                    newAnonTVar state
             in
-            case check (body (Ann anonT (Var name))) newState1 of
+            case check (body (Ann argmT (Var name))) newState1 of
                 Ok ( bodyT, newState2 ) ->
                     let
                         ( bodyT_, finalState ) =
                             expose bodyT newState2
                     in
-                    Ok ( TArr (unify anonT finalState) (unify bodyT_ finalState), finalState )
+                    Ok ( TArr (unify argmT finalState) bodyT_, finalState )
 
                 err ->
                     err
@@ -144,67 +131,40 @@ check exp state =
 apply : Type -> Type -> State -> Result Error ( Type, State )
 apply funcT argmT state =
     case funcT of
-        TAnon index ->
-            case get index state of
+        TVar anon index ->
+            case get anon index state of
                 Just withT ->
                     contraintWith withT argmT state
 
                 Nothing ->
-                    constraint index True argmT state
-
-        TVar index ->
-            case get index state of
-                Just withT ->
-                    contraintWith withT argmT state
-
-                Nothing ->
-                    constraint index False argmT state
+                    constraint index argmT state
 
         withT ->
             contraintWith withT argmT state
 
 
-constraint : Int -> Bool -> Type -> State -> Result error ( Type, State )
-constraint index anon argmT state =
+constraint : Int -> Type -> State -> Result error ( Type, State )
+constraint index argmT state =
     let
-        ( argmT_, newState0 ) =
+        ( argmT_, newState ) =
             expose argmT state
 
-        ( bodyT, newState1 ) =
-            newTAnon newState0
-
-        finalState =
-            if anon then
-                insertAnon index (TArr argmT_ bodyT) newState1
-
-            else
-                insert index (TArr argmT_ bodyT) newState1
+        ( bodyT, finalState ) =
+            newAnonTVar newState
     in
-    Ok ( bodyT, finalState )
+    Ok ( bodyT, insertAnon index (TArr argmT_ bodyT) finalState )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
 contraintWith withT thisT state =
-    -- TODO: check if this whole function is needed
-    let
-        _ =
-            Debug.log "caraio" withT
-    in
+    -- TODO: test this function
     case withT of
         TArr funcT bodyT ->
             case thisT of
-                TAnon index ->
-                    -- TODO: check if this is needed
+                TVar anon index ->
                     let
                         state_ =
-                            insertAnon index funcT state
-                    in
-                    Ok ( unify bodyT state_, state_ )
-
-                TVar index ->
-                    let
-                        state_ =
-                            insert index funcT state
+                            insert anon index funcT state
                     in
                     Ok ( unify bodyT state_, state_ )
 
@@ -218,14 +178,14 @@ contraintWith withT thisT state =
 expose : Type -> State -> ( Type, State )
 expose thisT state =
     case thisT of
-        TAnon argmI ->
+        TVar True argmI ->
             let
                 ( someT, finalState ) =
                     newTVar state
             in
             ( someT, insertAnon argmI someT finalState )
 
-        TVar _ ->
+        TVar False _ ->
             ( thisT, state )
 
         TArr left right ->
@@ -242,23 +202,14 @@ expose thisT state =
 unify : Type -> State -> Type
 unify thisT state =
     case thisT of
-        TAnon index ->
-            case getAnon index state of
+        TVar anon index ->
+            case get anon index state of
                 Just someT ->
-                    unify someT state
+                    if thisT == someT then
+                        someT
 
-                Nothing ->
-                    thisT
-
-        TVar index ->
-            case get index state of
-                Just someT ->
-                    case someT of
-                        TVar _ ->
-                            thisT
-
-                        _ ->
-                            unify someT state
+                    else
+                        unify someT state
 
                 Nothing ->
                     thisT
@@ -293,10 +244,11 @@ toString exp =
 toStringT : Type -> String
 toStringT thisT =
     case thisT of
-        TAnon index ->
+        TVar True index ->
+            -- only here to help with debug
             String.fromInt index
 
-        TVar index ->
+        TVar False index ->
             let
                 argm =
                     max 0 (index - 12)

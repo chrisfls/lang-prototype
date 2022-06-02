@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Bidir2 as Bidir
+import Bidir2 as Bidir exposing (Exp(..), Type(..))
 import Browser
 import Html exposing (text)
 
@@ -8,15 +8,15 @@ import Html exposing (text)
 main =
     let
         -- expr =
-        --     Bidir.lam "s" (\s -> Bidir.lam "z" (\z -> Bidir.app s (Bidir.app s z)))
+        --     Lam "s" (\s -> Lam "z" (\z -> App s (App s z)))
         -- expr =
-        --     Bidir.lam "f" (\f -> Bidir.lam "g" (\g -> Bidir.lam "a" (\a -> Bidir.app g (Bidir.app f a))))
-
+        --     Lam "f" (\f -> Lam "g" (\g -> Lam "a" (\a -> App g (App f a))))
         expr =
-            Bidir.lam "f" (\f -> Bidir.lam "a" (\a -> Bidir.lam "b" (\b -> Bidir.app (Bidir.app f a) b)))
+            Lam "f" (\f -> Lam "a" (\a -> Lam "b" (\b -> App (App f a) b)))
+
         _ =
             Bidir.check expr Bidir.empty
-                |> Result.map (\( a, _ ) -> Bidir.toStringT a)
+                |> Result.map (\( a, _ ) -> Debug.toString a)
                 |> Debug.log "LANG2"
     in
     Browser.sandbox { init = (), update = always (always ()), view = always (text "") }
