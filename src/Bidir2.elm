@@ -123,6 +123,9 @@ check exp state =
                 err ->
                     err
 
+        Ann typ (Var _) ->
+            Ok ( typ, state )
+
         Ann typ _ ->
             -- TODO: check if typ and exp are really compatible
             Ok ( typ, state )
