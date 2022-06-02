@@ -15,6 +15,7 @@ module Bidir2 exposing
 -}
 
 import Dict exposing (Dict)
+import Set exposing (Set)
 
 
 type alias Name =
@@ -103,8 +104,11 @@ check exp state =
                     let
                         ( bodyT_, finalState ) =
                             expose bodyT newState2
+
+                        funcT =
+                            TArr argmT bodyT_
                     in
-                    Ok ( TArr (unify argmT finalState) bodyT_, finalState )
+                    unify2 funcT funcT finalState
 
                 err ->
                     err
@@ -176,7 +180,7 @@ contraintWith withT thisT state =
                         state_ =
                             insert anon index funcT state
                     in
-                    Ok ( unify bodyT state_, state_ )
+                    unify2 bodyT bodyT state_
 
                 _ ->
                     Err "TODO: try or elaborate why you can't constrain thisT to withT"
@@ -209,23 +213,44 @@ expose thisT state =
             ( TArr leftT rightT, finalState )
 
 
-unify : Type -> State -> Type
-unify thisT state =
+unify2 : Type -> Type -> State -> Result Error ( Type, State )
+unify2 thisT loopT state =
     case thisT of
         TVar anon index ->
             case get anon index state of
                 Just someT ->
-                    if thisT == someT then
-                        someT
+                    if someT == thisT then
+                        Ok ( someT, state )
+
+                    else if someT == loopT then
+                        Err "TODO: elaborate type loop error"
 
                     else
-                        unify someT state
+                        unify2 someT
+                            loopT
+                            (case someT of
+                                TVar _ _ ->
+                                    insert anon index someT state
+
+                                _ ->
+                                    state
+                            )
 
                 Nothing ->
-                    thisT
+                    Ok ( thisT, state )
 
-        TArr l r ->
-            TArr (unify l state) (unify r state)
+        TArr funcT argmT ->
+            case unify2 funcT loopT state of
+                Ok ( funcT_, newState ) ->
+                    case unify2 argmT loopT newState of
+                        Ok ( argmT_, finalState ) ->
+                            Ok ( TArr funcT_ argmT_, finalState )
+
+                        err ->
+                            err
+
+                err ->
+                    err
 
 
 
