@@ -168,6 +168,11 @@ constraint index argmT state =
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
 contraintWith withT thisT state =
     -- TODO: test this function
+    let
+        _ = Debug.log "withT" withT
+        _ = Debug.log "thisT" thisT
+        _ = Debug.log "state" state
+    in
     case withT of
         TArr funcT bodyT ->
             case thisT of
