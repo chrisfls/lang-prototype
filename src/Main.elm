@@ -14,6 +14,12 @@ main =
         expr =
             Lam "f" (\f -> Lam "a" (\a -> Lam "b" (\b -> App (App f a) b)))
 
+        -- ann =
+        --     TArr (TArr (TVar False 0) (TArr (TVar False 1) (TVar False 2))) (TArr (TVar False 0) (TArr (TVar False 1) (TVar False 2)))
+
+        -- expr_ =
+        --     Ann ann expr
+
         _ =
             Bidir.check expr Bidir.empty
                 |> Result.map (\( a, _ ) -> Debug.toString a)
