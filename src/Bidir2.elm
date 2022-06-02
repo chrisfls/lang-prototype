@@ -22,12 +22,9 @@ type alias Name =
 
 
 type Type
-    = TVar Anon Int
+    = TAnon Int
+    | TVar Int
     | TArr Type Type
-
-
-type alias Anon =
-    Bool
 
 
 type Exp
@@ -63,10 +60,13 @@ type State
 
 type alias Env =
     { viewIndex : Int
-    , viewEnv : Dict Int Type
     , anonIndex : Int
-    , anonEnv : Dict Int Type
+    , env : Dict EnvKey Type
     }
+
+
+type alias EnvKey =
+    ( Int, Int )
 
 
 type alias Error =
@@ -75,34 +75,37 @@ type alias Error =
 
 empty : State
 empty =
-    State (Env 0 Dict.empty 0 Dict.empty)
+    State (Env 0 0 Dict.empty)
 
 
-get : Int -> Bool -> State -> Maybe Type
-get index anon (State { viewEnv, anonEnv }) =
-    if anon then
-        Dict.get index anonEnv
-
-    else
-        Dict.get index viewEnv
+get : Int -> State -> Maybe Type
+get index (State { env }) =
+    Dict.get ( 0, index ) env
 
 
-insert : Int -> Anon -> Type -> State -> State
-insert index anon thisT (State ({ viewEnv, anonEnv } as state)) =
-    if anon then
-        State { state | anonEnv = Dict.insert index thisT anonEnv }
-
-    else
-        State { state | viewEnv = Dict.insert index thisT viewEnv }
+insert : Int -> Type -> State -> State
+insert index thisT (State ({ env } as state)) =
+    State { state | env = Dict.insert ( 0, index ) thisT env }
 
 
-newTVar : Anon -> State -> ( Type, State )
-newTVar anon (State ({ viewIndex, anonIndex } as state)) =
-    if anon then
-        ( TVar True anonIndex, State { state | anonIndex = anonIndex + 1 } )
+newTVar : State -> ( Type, State )
+newTVar (State ({ viewIndex } as state)) =
+    ( TVar viewIndex, State { state | viewIndex = viewIndex + 1 } )
 
-    else
-        ( TVar False viewIndex, State { state | viewIndex = viewIndex + 1 } )
+
+getAnon : Int -> State -> Maybe Type
+getAnon index (State { env }) =
+    Dict.get ( 1, index ) env
+
+
+insertAnon : Int -> Type -> State -> State
+insertAnon index thisT (State ({ env } as state)) =
+    State { state | env = Dict.insert ( 1, index ) thisT env }
+
+
+newTAnon : State -> ( Type, State )
+newTAnon (State ({ anonIndex } as state)) =
+    ( TAnon anonIndex, State { state | anonIndex = anonIndex + 1 } )
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -124,13 +127,13 @@ infer exp state =
         Lam name body ->
             let
                 ( anonT, newState1 ) =
-                    newTVar True state
+                    newTAnon state
             in
             case infer (body (Ann anonT (Var name))) newState1 of
                 Ok ( bodyT, newState2 ) ->
                     let
                         ( bodyT_, finalState ) =
-                            canonicalize bodyT newState2
+                            expose bodyT newState2
                     in
                     Ok ( TArr (unify anonT finalState) (unify bodyT_ finalState), finalState )
 
@@ -158,13 +161,21 @@ infer exp state =
 apply : Type -> Type -> State -> Result Error ( Type, State )
 apply funcT argmT state =
     case funcT of
-        TVar anon index ->
-            case get index anon state of
+        TAnon index ->
+            case get index state of
                 Just withT ->
                     contraintWith withT argmT state
 
                 Nothing ->
-                    constraint index anon argmT state
+                    constraint index True argmT state
+
+        TVar index ->
+            case get index state of
+                Just withT ->
+                    contraintWith withT argmT state
+
+                Nothing ->
+                    constraint index False argmT state
 
         withT ->
             contraintWith withT argmT state
@@ -173,27 +184,20 @@ apply funcT argmT state =
 constraint : Int -> Bool -> Type -> State -> Result error ( Type, State )
 constraint index anon argmT state =
     let
-        ( argmT_, newState ) =
-            canonicalize argmT state
+        ( argmT_, newState0 ) =
+            expose argmT state
 
-        ( bodyT, finalState ) =
-            newTVar True newState
+        ( bodyT, newState1 ) =
+            newTAnon newState0
+
+        finalState =
+            if anon then
+                insertAnon index (TArr argmT_ bodyT) newState1
+
+            else
+                insert index (TArr argmT_ bodyT) newState1
     in
-    Ok ( bodyT, insert index anon (TArr argmT_ bodyT) finalState )
-
-
-canonicalize : Type -> State -> ( Type, State )
-canonicalize thisT state =
-    case thisT of
-        TVar True argmI ->
-            let
-                ( someT, newState_ ) =
-                    newTVar False state
-            in
-            ( someT, insert argmI True someT newState_ )
-
-        _ ->
-            ( thisT, state )
+    Ok ( bodyT, finalState )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
@@ -201,10 +205,18 @@ contraintWith withT thisT state =
     case withT of
         TArr funcT bodyT ->
             case thisT of
-                TVar anon index ->
+                TAnon index ->
+                    -- TODO: check if this is needed
                     let
                         state_ =
-                            insert index anon funcT state
+                            insertAnon index funcT state
+                    in
+                    Ok ( unify bodyT state_, state_ )
+
+                TVar index ->
+                    let
+                        state_ =
+                            insert index funcT state
                     in
                     Ok ( unify bodyT state_, state_ )
 
@@ -212,29 +224,53 @@ contraintWith withT thisT state =
                     Err "Can't constrain someT to withT (TODO: try or elaborate)"
 
         _ ->
-            Err "Can't constrain (TODO: try or elaborate)"
+            Err "Can't constrain shit (TODO: try or elaborate)"
+
+
+expose : Type -> State -> ( Type, State )
+expose thisT state =
+    case thisT of
+        TAnon argmI ->
+            let
+                ( someT, finalState ) =
+                    newTVar state
+            in
+            ( someT, insertAnon argmI someT finalState )
+
+        TVar _ ->
+            ( thisT, state )
+
+        TArr left right ->
+            let
+                ( leftT, newState ) =
+                    expose left state
+
+                ( rightT, finalState ) =
+                    expose right newState
+            in
+            ( TArr leftT rightT, finalState )
 
 
 unify : Type -> State -> Type
 unify thisT state =
     case thisT of
-        TVar anon index ->
-            case get index anon state of
+        TAnon index ->
+            case getAnon index state of
                 Just someT ->
-                    if anon then
-                        if thisT == someT then
-                            someT
+                    unify someT state
 
-                        else
+                Nothing ->
+                    thisT
+
+        TVar index ->
+            case get index state of
+                Just someT ->
+                    case someT of
+                        TVar _ ->
+                            thisT
+
+                        _ ->
                             unify someT state
-
-                    else
-                        case someT of
-                            TVar True _ ->
-                                thisT
-
-                            _ ->
-                                unify someT state
 
                 Nothing ->
                     thisT
@@ -269,10 +305,10 @@ toString exp =
 toStringT : Type -> String
 toStringT thisT =
     case thisT of
-        TVar True index ->
+        TAnon index ->
             String.fromInt index
 
-        TVar False index ->
+        TVar index ->
             let
                 argm =
                     max 0 (index - 12)
@@ -291,7 +327,7 @@ toStringT thisT =
         TArr ((TArr _ _) as f) t ->
             "[" ++ toStringT f ++ "] -> " ++ toStringT t
 
-        TArr ((TVar _ _) as f) t ->
+        TArr f t ->
             toStringT f ++ " -> " ++ toStringT t
 
 
