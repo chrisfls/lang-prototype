@@ -83,6 +83,7 @@ get : Int -> Bool -> State -> Maybe Type
 get at argm (State { env, arg }) =
     if argm then
         Dict.get at arg
+
     else
         Dict.get at env
 
@@ -91,33 +92,25 @@ insertType : Int -> Type -> State -> State
 insertType at typ (State ({ env } as state)) =
     State { state | env = Dict.insert at typ env }
 
+
 insertArgm : Int -> Type -> State -> State
 insertArgm at typ (State ({ arg } as state)) =
     State { state | arg = Dict.insert at typ arg }
 
+
 newTVar : State -> ( Type, State )
-newTVar =
-    newTVarI >> Tuple.mapFirst (TVar False)
-
-
-newTVarI : State -> ( Int, State )
-newTVarI (State ({ count, free } as state)) =
+newTVar (State ({ count, free } as state)) =
     case free of
         count_ :: free_ ->
-            ( count_, State { state | free = free_ } )
+            ( TVar False count_, State { state | free = free_ } )
 
         _ ->
-            ( count, State { state | count = count + 1 } )
+            ( TVar False count, State { state | count = count + 1 } )
 
 
 newArgmTVar : State -> ( Type, State )
 newArgmTVar (State ({ args } as state)) =
     ( TVar True args, State { state | args = args + 1 } )
-
-
--- freeTVar : Int -> State -> State
--- freeTVar index (State ({ free, env } as state)) =
---     State { state | free = index :: free, env = Dict.remove index env }
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -200,7 +193,6 @@ contraintWith withT someT state =
                         state_ =
                             insertType index funcT state
                     in
-                    -- freeTVar index 
                     Ok ( unify bodyT state_, state_ )
 
                 _ ->
