@@ -92,7 +92,7 @@ check : Exp -> State -> Result Error ( Type, State )
 check exp state =
     case exp of
         Var _ ->
-            Debug.todo "TODO: unbound var error (proper error message)"
+            Debug.todo "TODO: proper unbound var error messages"
 
         Lam name body ->
             let
@@ -123,12 +123,20 @@ check exp state =
                 err ->
                     err
 
-        Ann typ (Var _) ->
-            Ok ( typ, state )
+        Ann thisT (Var _) ->
+            Ok ( thisT, state )
 
-        Ann typ _ ->
-            -- TODO: check if typ and exp are really compatible
-            Ok ( typ, state )
+        Ann thisT exp_ ->
+            case check exp_ state of
+                Ok ( someT, _ ) ->
+                    if someT == thisT then
+                        Ok ( thisT, state )
+
+                    else
+                        Err "TODO: proper type mismatch messages"
+
+                err ->
+                    err
 
 
 apply : Type -> Type -> State -> Result Error ( Type, State )
@@ -172,10 +180,10 @@ contraintWith withT thisT state =
                     Ok ( unify bodyT state_, state_ )
 
                 _ ->
-                    Err "Can't constrain someT to withT (TODO: try or elaborate)"
+                    Err "TODO: try or elaborate why you can't constrain thisT to withT"
 
         _ ->
-            Err "Can't constrain shit (TODO: try or elaborate)"
+            Err "TODO: try or elaborate why you can't constrain thisT to withT when withT is not an arrow"
 
 
 expose : Type -> State -> ( Type, State )
