@@ -99,13 +99,8 @@ insertArgm at typ (State ({ arg } as state)) =
 
 
 newTVar : State -> ( Type, State )
-newTVar (State ({ count, free } as state)) =
-    case free of
-        count_ :: free_ ->
-            ( TVar False count_, State { state | free = free_ } )
-
-        _ ->
-            ( TVar False count, State { state | count = count + 1 } )
+newTVar (State ({ count } as state)) =
+    ( TVar False count, State { state | count = count + 1 } )
 
 
 newArgmTVar : State -> ( Type, State )
