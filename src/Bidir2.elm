@@ -19,7 +19,8 @@ import Dict exposing (Dict)
 
 type alias Name =
     String
-    
+
+
 type Type
     = TVar Int
     | TArr Type Type
@@ -53,11 +54,14 @@ ann =
 
 
 type State
-    = State Int (List Int) Env
+    = State Env
 
 
 type alias Env =
-    Dict Int Type
+    { count : Int
+    , free : List Int
+    , env : Dict Int Type
+    }
 
 
 type alias Error =
@@ -66,37 +70,37 @@ type alias Error =
 
 empty : State
 empty =
-    State 0 [] Dict.empty
+    State (Env 0 [] Dict.empty)
 
 
 get : Int -> State -> Maybe Type
-get at (State _ _ env) =
+get at (State { env }) =
     Dict.get at env
 
 
 insert : Int -> Type -> State -> State
-insert at typ (State count free env) =
-    State count free (Dict.insert at typ env)
+insert at typ (State ({ env } as state)) =
+    State { state | env = Dict.insert at typ env }
 
 
 newTVar : State -> ( Type, State )
 newTVar =
-    newTVarI >> Tuple.mapFirst TVar 
+    newTVarI >> Tuple.mapFirst TVar
+
 
 newTVarI : State -> ( Int, State )
-newTVarI (State count free env) =
+newTVarI (State ({ count, free } as state)) =
     case free of
         count_ :: free_ ->
-            ( count_, State count free_ env )
+            ( count_, State { state | free = free_ } )
 
         _ ->
-            ( count, State (count + 1) free env )
-
+            ( count, State { state | count = count + 1 } )
 
 
 freeTVar : Int -> State -> State
-freeTVar index (State count free env) =
-    State count (index :: free) (Dict.remove index env)
+freeTVar index (State ({ free, env } as state)) =
+    State { state | free = index :: free, env = Dict.remove index env }
 
 
 check : Exp -> State -> Result Error ( Type, State )
