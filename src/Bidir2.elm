@@ -19,8 +19,7 @@ import Dict exposing (Dict)
 
 type alias Name =
     String
-
-
+    
 type Type
     = TVar Int
     | TArr Type Type
@@ -71,13 +70,13 @@ empty =
 
 
 get : Int -> State -> Maybe Type
-get key (State _ _ env) =
-    Dict.get key env
+get at (State _ _ env) =
+    Dict.get at env
 
 
 insert : Int -> Type -> State -> State
-insert key typ (State i free env) =
-    State i free (Dict.insert key typ env)
+insert at typ (State count free env) =
+    State count free (Dict.insert at typ env)
 
 
 newTVar : State -> ( Type, State )
@@ -85,19 +84,19 @@ newTVar =
     newTVarI >> Tuple.mapFirst TVar 
 
 newTVarI : State -> ( Int, State )
-newTVarI (State i free env) =
+newTVarI (State count free env) =
     case free of
-        i_ :: free_ ->
-            ( i_, State i free_ env )
+        count_ :: free_ ->
+            ( count_, State count free_ env )
 
         _ ->
-            ( i, State (i + 1) free env )
+            ( count, State (count + 1) free env )
 
 
 
 freeTVar : Int -> State -> State
-freeTVar index (State i free env) =
-    State i (index :: free) (Dict.remove index env)
+freeTVar index (State count free env) =
+    State count (index :: free) (Dict.remove index env)
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -118,15 +117,15 @@ infer exp state =
 
         Lam name body ->
             let
-                ( i, newState ) =
+                ( index, newState ) =
                     newTVarI state
 
                 argmT =
-                    TVar i
+                    TVar index
             in
             case infer (body (Ann argmT (Var name))) newState of
                 Ok ( bodyT, finalState ) ->
-                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), freeTVar i finalState )
+                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), freeTVar index finalState )
 
                 err ->
                     err
@@ -152,25 +151,25 @@ infer exp state =
 apply : Type -> Type -> State -> Result Error ( Type, State )
 apply funcT argmT state =
     case funcT of
-        TVar i ->
-            case get i state of
+        TVar index ->
+            case get index state of
                 Just withT ->
                     contraintWith withT argmT state
 
                 Nothing ->
-                    constraint i argmT state
+                    constraint index argmT state
 
         withT ->
             contraintWith withT argmT state
 
 
 constraint : Int -> Type -> State -> Result error ( Type, State )
-constraint i argmT state =
+constraint index argmT state =
     let
         ( tvar, state_ ) =
             newTVar state
     in
-    Ok ( tvar, insert i (TArr argmT tvar) state_ )
+    Ok ( tvar, insert index (TArr argmT tvar) state_ )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
@@ -178,12 +177,12 @@ contraintWith withT someT state =
     case withT of
         TArr funcT bodyT ->
             case someT of
-                TVar i ->
+                TVar index ->
                     let
                         state_ =
-                            insert i funcT state
+                            insert index funcT state
                     in
-                    Ok ( unify bodyT state_, freeTVar i state_ )
+                    Ok ( unify bodyT state_, freeTVar index state_ )
 
                 _ ->
                     Err "Can't constrain someT to withT (TODO: try or elaborate)"
@@ -195,8 +194,8 @@ contraintWith withT someT state =
 unify : Type -> State -> Type
 unify thisT state =
     case thisT of
-        TVar i ->
-            case get i state of
+        TVar index ->
+            case get index state of
                 Just someT ->
                     if thisT == someT then
                         someT
@@ -237,12 +236,12 @@ toString exp =
 toStringT : Type -> String
 toStringT typ =
     case typ of
-        TVar i ->
+        TVar index ->
             let
                 argm =
-                    max 0 (i - 12)
+                    max 0 (index - 12)
             in
-            case List.head (List.drop (modBy length i) vars) of
+            case List.head (List.drop (modBy length index) vars) of
                 Just a ->
                     if argm > 0 then
                         a ++ String.fromInt argm
@@ -251,7 +250,7 @@ toStringT typ =
                         a
 
                 Nothing ->
-                    "unk" ++ String.fromInt i
+                    "unk" ++ String.fromInt index
 
         TArr ((TArr _ _) as f) t ->
             "[" ++ toStringT f ++ "] -> " ++ toStringT t
