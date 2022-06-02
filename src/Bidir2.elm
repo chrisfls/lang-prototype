@@ -22,8 +22,12 @@ type alias Name =
 
 
 type Type
-    = TVar Int
+    = TVar Argm Int
     | TArr Type Type
+
+
+type alias Argm =
+    Bool
 
 
 type Exp
@@ -59,8 +63,10 @@ type State
 
 type alias Env =
     { count : Int
+    , args : Int
     , free : List Int
     , env : Dict Int Type
+    , arg : Dict Int Type
     }
 
 
@@ -70,22 +76,28 @@ type alias Error =
 
 empty : State
 empty =
-    State (Env 0 [] Dict.empty)
+    State (Env 0 0 [] Dict.empty Dict.empty)
 
 
-get : Int -> State -> Maybe Type
-get at (State { env }) =
-    Dict.get at env
+get : Int -> Bool -> State -> Maybe Type
+get at argm (State { env, arg }) =
+    if argm then
+        Dict.get at arg
+    else
+        Dict.get at env
 
 
-insert : Int -> Type -> State -> State
-insert at typ (State ({ env } as state)) =
+insertType : Int -> Type -> State -> State
+insertType at typ (State ({ env } as state)) =
     State { state | env = Dict.insert at typ env }
 
+insertArgm : Int -> Type -> State -> State
+insertArgm at typ (State ({ arg } as state)) =
+    State { state | arg = Dict.insert at typ arg }
 
 newTVar : State -> ( Type, State )
 newTVar =
-    newTVarI >> Tuple.mapFirst TVar
+    newTVarI >> Tuple.mapFirst (TVar False)
 
 
 newTVarI : State -> ( Int, State )
@@ -98,9 +110,14 @@ newTVarI (State ({ count, free } as state)) =
             ( count, State { state | count = count + 1 } )
 
 
-freeTVar : Int -> State -> State
-freeTVar index (State ({ free, env } as state)) =
-    State { state | free = index :: free, env = Dict.remove index env }
+newArgmTVar : State -> ( Type, State )
+newArgmTVar (State ({ args } as state)) =
+    ( TVar True args, State { state | args = args + 1 } )
+
+
+-- freeTVar : Int -> State -> State
+-- freeTVar index (State ({ free, env } as state)) =
+--     State { state | free = index :: free, env = Dict.remove index env }
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -121,15 +138,12 @@ infer exp state =
 
         Lam name body ->
             let
-                ( index, newState ) =
-                    newTVarI state
-
-                argmT =
-                    TVar index
+                ( argmT, newState ) =
+                    newArgmTVar state
             in
             case infer (body (Ann argmT (Var name))) newState of
                 Ok ( bodyT, finalState ) ->
-                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), freeTVar index finalState )
+                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), finalState )
 
                 err ->
                     err
@@ -155,8 +169,8 @@ infer exp state =
 apply : Type -> Type -> State -> Result Error ( Type, State )
 apply funcT argmT state =
     case funcT of
-        TVar index ->
-            case get index state of
+        TVar argm index ->
+            case get index argm state of
                 Just withT ->
                     contraintWith withT argmT state
 
@@ -173,7 +187,7 @@ constraint index argmT state =
         ( tvar, state_ ) =
             newTVar state
     in
-    Ok ( tvar, insert index (TArr argmT tvar) state_ )
+    Ok ( tvar, insertArgm index (TArr argmT tvar) state_ )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
@@ -181,12 +195,13 @@ contraintWith withT someT state =
     case withT of
         TArr funcT bodyT ->
             case someT of
-                TVar index ->
+                TVar _ index ->
                     let
                         state_ =
-                            insert index funcT state
+                            insertType index funcT state
                     in
-                    Ok ( unify bodyT state_, freeTVar index state_ )
+                    -- freeTVar index 
+                    Ok ( unify bodyT state_, state_ )
 
                 _ ->
                     Err "Can't constrain someT to withT (TODO: try or elaborate)"
@@ -198,8 +213,8 @@ contraintWith withT someT state =
 unify : Type -> State -> Type
 unify thisT state =
     case thisT of
-        TVar index ->
-            case get index state of
+        TVar argm index ->
+            case get index argm state of
                 Just someT ->
                     if thisT == someT then
                         someT
@@ -240,7 +255,7 @@ toString exp =
 toStringT : Type -> String
 toStringT typ =
     case typ of
-        TVar index ->
+        TVar _ index ->
             let
                 argm =
                     max 0 (index - 12)
@@ -259,7 +274,7 @@ toStringT typ =
         TArr ((TArr _ _) as f) t ->
             "[" ++ toStringT f ++ "] -> " ++ toStringT t
 
-        TArr ((TVar _) as f) t ->
+        TArr ((TVar _ _) as f) t ->
             toStringT f ++ " -> " ++ toStringT t
 
 
