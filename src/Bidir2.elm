@@ -54,7 +54,7 @@ ann =
 
 
 type State
-    = State Int Env
+    = State Int (List Int) Env
 
 
 type alias Env =
@@ -67,29 +67,44 @@ type alias Error =
 
 empty : State
 empty =
-    State 0 Dict.empty
+    State 0 [] Dict.empty
 
 
 get : Int -> State -> Maybe Type
-get key (State _ env) =
+get key (State _ _ env) =
     Dict.get key env
 
 
 insert : Int -> Type -> State -> State
-insert key typ (State i env) =
-    State i (Dict.insert key typ env)
+insert key typ (State i free env) =
+    State i free (Dict.insert key typ env)
 
 
-newFreeIndex : State -> ( Type, State )
-newFreeIndex (State i env) =
-    ( TVar i, State (i + 1) env )
+newTVar : State -> ( Type, State )
+newTVar =
+    newTVarI >> Tuple.mapFirst TVar 
+
+newTVarI : State -> ( Int, State )
+newTVarI (State i free env) =
+    case free of
+        i_ :: free_ ->
+            ( i_, State i free_ env )
+
+        _ ->
+            ( i, State (i + 1) free env )
+
+
+
+freeTVar : Int -> State -> State
+freeTVar index (State i free env) =
+    State i (index :: free) (Dict.remove index env)
 
 
 check : Exp -> State -> Result Error ( Type, State )
 check exp state =
     case infer exp state of
-        Ok ( typ, finalState ) ->
-            Ok ( typ, finalState )
+        Ok ( typ, state_ ) ->
+            Ok ( typ, state_ )
 
         err ->
             err
@@ -103,22 +118,25 @@ infer exp state =
 
         Lam name body ->
             let
-                ( argmT, newState ) =
-                    newFreeIndex state
+                ( i, newState ) =
+                    newTVarI state
+
+                argmT =
+                    TVar i
             in
             case infer (body (Ann argmT (Var name))) newState of
                 Ok ( bodyT, finalState ) ->
-                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), finalState )
+                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), freeTVar i finalState )
 
                 err ->
                     err
 
         App func argm ->
             case infer argm state of
-                Ok ( argmT, newState ) ->
-                    case infer func newState of
-                        Ok ( funcT, finalState ) ->
-                            apply funcT argmT finalState
+                Ok ( argmT, state_ ) ->
+                    case infer func state_ of
+                        Ok ( funcT, _ ) ->
+                            apply funcT argmT state_
 
                         err ->
                             err
@@ -146,12 +164,11 @@ apply funcT argmT state =
             contraintWith withT argmT state
 
 
-
 constraint : Int -> Type -> State -> Result error ( Type, State )
 constraint i argmT state =
     let
         ( tvar, state_ ) =
-            newFreeIndex state
+            newTVar state
     in
     Ok ( tvar, insert i (TArr argmT tvar) state_ )
 
@@ -162,23 +179,17 @@ contraintWith withT someT state =
         TArr funcT bodyT ->
             case someT of
                 TVar i ->
-                    Ok (unifyPair ( bodyT, insert i funcT state ))
+                    let
+                        state_ =
+                            insert i funcT state
+                    in
+                    Ok ( unify bodyT state_, freeTVar i state_ )
 
                 _ ->
                     Err "Can't constrain someT to withT (TODO: try or elaborate)"
 
         _ ->
             Err "Can't constrain (TODO: try or elaborate)"
-
-
-unifyResult : Result x ( Type, State ) -> Result x ( Type, State )
-unifyResult =
-    Result.map unifyPair
-
-
-unifyPair : ( Type, State ) -> ( Type, State )
-unifyPair ( thisT, state ) =
-    ( unify thisT state, state )
 
 
 unify : Type -> State -> Type
