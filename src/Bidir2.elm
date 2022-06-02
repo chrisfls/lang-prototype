@@ -64,7 +64,6 @@ type State
 type alias Env =
     { count : Int
     , args : Int
-    , free : List Int
     , env : Dict Int Type
     , arg : Dict Int Type
     }
@@ -76,7 +75,7 @@ type alias Error =
 
 empty : State
 empty =
-    State (Env 0 0 [] Dict.empty Dict.empty)
+    State (Env 0 0 Dict.empty Dict.empty)
 
 
 get : Int -> Bool -> State -> Maybe Type
