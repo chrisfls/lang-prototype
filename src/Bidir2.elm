@@ -22,11 +22,11 @@ type alias Name =
 
 
 type Type
-    = TVar Argm Int
+    = TVar Anon Int
     | TArr Type Type
 
 
-type alias Argm =
+type alias Anon =
     Bool
 
 
@@ -62,10 +62,10 @@ type State
 
 
 type alias Env =
-    { count : Int
-    , args : Int
-    , env : Dict Int Type
-    , arg : Dict Int Type
+    { viewIndex : Int
+    , viewEnv : Dict Int Type
+    , anonIndex : Int
+    , anonEnv : Dict Int Type
     }
 
 
@@ -75,36 +75,35 @@ type alias Error =
 
 empty : State
 empty =
-    State (Env 0 0 Dict.empty Dict.empty)
+    State (Env 0 Dict.empty 0 Dict.empty)
 
 
 get : Int -> Bool -> State -> Maybe Type
-get at argm (State { env, arg }) =
-    if argm then
-        Dict.get at arg
+get index anon (State { viewEnv, anonEnv }) =
+    if anon then
+        Dict.get index anonEnv
 
     else
-        Dict.get at env
+        Dict.get index viewEnv
 
 
-insertType : Int -> Type -> State -> State
-insertType at typ (State ({ env } as state)) =
-    State { state | env = Dict.insert at typ env }
+insert : Int -> Anon -> Type -> State -> State
+insert index anon thisT (State ({ viewEnv, anonEnv } as state)) =
+    if anon then
+        State { state | anonEnv = Dict.insert index thisT anonEnv }
 
-
-insertArgm : Int -> Type -> State -> State
-insertArgm at typ (State ({ arg } as state)) =
-    State { state | arg = Dict.insert at typ arg }
+    else
+        State { state | viewEnv = Dict.insert index thisT viewEnv }
 
 
 newTVar : State -> ( Type, State )
-newTVar (State ({ count } as state)) =
-    ( TVar False count, State { state | count = count + 1 } )
+newTVar (State ({ viewIndex } as state)) =
+    ( TVar False viewIndex, State { state | viewIndex = viewIndex + 1 } )
 
 
-newArgmTVar : State -> ( Type, State )
-newArgmTVar (State ({ args } as state)) =
-    ( TVar True args, State { state | args = args + 1 } )
+newAnonTVar : State -> ( Type, State )
+newAnonTVar (State ({ anonIndex } as state)) =
+    ( TVar True anonIndex, State { state | anonIndex = anonIndex + 1 } )
 
 
 check : Exp -> State -> Result Error ( Type, State )
@@ -126,7 +125,7 @@ infer exp state =
         Lam name body ->
             let
                 ( argmT, newState ) =
-                    newArgmTVar state
+                    newAnonTVar state
             in
             case infer (body (Ann argmT (Var name))) newState of
                 Ok ( bodyT, finalState ) ->
@@ -137,10 +136,10 @@ infer exp state =
 
         App func argm ->
             case infer argm state of
-                Ok ( argmT, state_ ) ->
-                    case infer func state_ of
-                        Ok ( funcT, _ ) ->
-                            apply funcT argmT state_
+                Ok ( argmT, newState ) ->
+                    case infer func newState of
+                        Ok ( funcT, finalState ) ->
+                            apply funcT argmT finalState
 
                         err ->
                             err
@@ -156,36 +155,36 @@ infer exp state =
 apply : Type -> Type -> State -> Result Error ( Type, State )
 apply funcT argmT state =
     case funcT of
-        TVar argm index ->
-            case get index argm state of
+        TVar anon index ->
+            case get index anon state of
                 Just withT ->
                     contraintWith withT argmT state
 
                 Nothing ->
-                    constraint index argmT state
+                    constraint index anon argmT state
 
         withT ->
             contraintWith withT argmT state
 
 
-constraint : Int -> Type -> State -> Result error ( Type, State )
-constraint index argmT state =
+constraint : Int -> Bool -> Type -> State -> Result error ( Type, State )
+constraint index anon argmT state =
     let
         ( tvar, state_ ) =
             newTVar state
     in
-    Ok ( tvar, insertArgm index (TArr argmT tvar) state_ )
+    Ok ( tvar, insert index anon (TArr argmT tvar) state_ )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
-contraintWith withT someT state =
+contraintWith withT thisT state =
     case withT of
         TArr funcT bodyT ->
-            case someT of
-                TVar _ index ->
+            case thisT of
+                TVar anon index ->
                     let
                         state_ =
-                            insertType index funcT state
+                            insert index anon funcT state
                     in
                     Ok ( unify bodyT state_, state_ )
 
@@ -199,8 +198,8 @@ contraintWith withT someT state =
 unify : Type -> State -> Type
 unify thisT state =
     case thisT of
-        TVar argm index ->
-            case get index argm state of
+        TVar anon index ->
+            case get index anon state of
                 Just someT ->
                     if thisT == someT then
                         someT
@@ -231,16 +230,16 @@ toString exp =
         App func argm ->
             "(" ++ toString func ++ " " ++ toString argm ++ ")"
 
-        Ann typ (Lam name body) ->
-            "(" ++ name ++ " [" ++ toStringT typ ++ "] -> " ++ toString (body (Var name)) ++ ")"
+        Ann thisT (Lam name body) ->
+            "(" ++ name ++ " [" ++ toStringT thisT ++ "] -> " ++ toString (body (Var name)) ++ ")"
 
-        Ann typ exp_ ->
-            "[" ++ toStringT typ ++ "]" ++ toString exp_
+        Ann thisT exp_ ->
+            "[" ++ toStringT thisT ++ "]" ++ toString exp_
 
 
 toStringT : Type -> String
-toStringT typ =
-    case typ of
+toStringT thisT =
+    case thisT of
         TVar _ index ->
             let
                 argm =
