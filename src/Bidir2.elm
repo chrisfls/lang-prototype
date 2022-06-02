@@ -123,12 +123,12 @@ infer exp state =
 
         Lam name body ->
             let
-                ( argmT, newState ) =
+                ( anonT, newState1 ) =
                     newTVar True state
             in
-            case infer (body (Ann argmT (Var name))) newState of
+            case infer (body (Ann anonT (Var name))) newState1 of
                 Ok ( bodyT, finalState ) ->
-                    Ok ( TArr (unify argmT finalState) (unify bodyT finalState), finalState )
+                    Ok ( TArr (unify anonT finalState) (unify bodyT finalState), finalState )
 
                 err ->
                     err
@@ -239,7 +239,10 @@ toString exp =
 toStringT : Type -> String
 toStringT thisT =
     case thisT of
-        TVar _ index ->
+        TVar True index ->
+            String.fromInt index
+
+        TVar False index ->
             let
                 argm =
                     max 0 (index - 12)
