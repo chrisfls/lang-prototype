@@ -38,11 +38,11 @@ type Exp
 
 
 type State
-    = State Int Int Env
+    = State Int Int Env Env
 
 
 type alias Env =
-    Dict ( Int, Int ) Type
+    Dict Int Type
 
 
 type alias Error =
@@ -51,26 +51,25 @@ type alias Error =
 
 empty : State
 empty =
-    State 0 0 Dict.empty
-
-
-key : Anon -> Int -> ( Int, Int )
-key anon index =
-    if anon then
-        ( 1, index )
-
-    else
-        ( 0, index )
+    State 0 0 Dict.empty Dict.empty
 
 
 get : Anon -> Int -> State -> Maybe Type
-get anon index (State _ _ env) =
-    Dict.get (key anon index) env
+get anon index (State _ _ env hid) =
+    if anon then
+        Dict.get index hid
+
+    else
+        Dict.get index env
 
 
 insert : Anon -> Int -> Type -> State -> State
-insert anon index thisT (State count0 count1 env) =
-    State count0 count1 (Dict.insert (key anon index) thisT env)
+insert anon index thisT (State count0 count1 env hid) =
+    if anon then
+        State count0 count1 env (Dict.insert index thisT hid)
+
+    else
+        State count0 count1 (Dict.insert index thisT env) hid
 
 
 insertAnon : Int -> Type -> State -> State
@@ -79,13 +78,13 @@ insertAnon =
 
 
 newTVar : State -> ( Type, State )
-newTVar (State count0 count1 env) =
-    ( TVar False count0, State (count0 + 1) count1 env )
+newTVar (State count0 count1 env hid) =
+    ( TVar False count0, State (count0 + 1) count1 env hid )
 
 
 newAnonTVar : State -> ( Type, State )
-newAnonTVar (State count0 count1 env) =
-    ( TVar True count1, State count0 (count1 + 1) env )
+newAnonTVar (State count0 count1 env hid) =
+    ( TVar True count1, State count0 (count1 + 1) env hid )
 
 
 check : Exp -> State -> Result Error ( Type, State )
