@@ -127,8 +127,12 @@ infer exp state =
                     newTVar True state
             in
             case infer (body (Ann anonT (Var name))) newState1 of
-                Ok ( bodyT, finalState ) ->
-                    Ok ( TArr (unify anonT finalState) (unify bodyT finalState), finalState )
+                Ok ( bodyT, newState2 ) ->
+                    let
+                        ( bodyT_, finalState ) =
+                            canonicalize bodyT newState2
+                    in
+                    Ok ( TArr (unify anonT finalState) (unify bodyT_ finalState), finalState )
 
                 err ->
                     err
@@ -169,10 +173,27 @@ apply funcT argmT state =
 constraint : Int -> Bool -> Type -> State -> Result error ( Type, State )
 constraint index anon argmT state =
     let
-        ( tvar, state_ ) =
-            newTVar False state
+        ( argmT_, newState ) =
+            canonicalize argmT state
+
+        ( bodyT, finalState ) =
+            newTVar True newState
     in
-    Ok ( tvar, insert index anon (TArr argmT tvar) state_ )
+    Ok ( bodyT, insert index anon (TArr argmT_ bodyT) finalState )
+
+
+canonicalize : Type -> State -> ( Type, State )
+canonicalize thisT state =
+    case thisT of
+        TVar True argmI ->
+            let
+                ( someT, newState_ ) =
+                    newTVar False state
+            in
+            ( someT, insert argmI True someT newState_ )
+
+        _ ->
+            ( thisT, state )
 
 
 contraintWith : Type -> Type -> State -> Result String ( Type, State )
@@ -200,11 +221,20 @@ unify thisT state =
         TVar anon index ->
             case get index anon state of
                 Just someT ->
-                    if thisT == someT then
-                        someT
+                    if anon then
+                        if thisT == someT then
+                            someT
+
+                        else
+                            unify someT state
 
                     else
-                        unify someT state
+                        case someT of
+                            TVar True _ ->
+                                thisT
+
+                            _ ->
+                                unify someT state
 
                 Nothing ->
                     thisT
