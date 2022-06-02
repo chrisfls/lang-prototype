@@ -2,7 +2,6 @@ module Main exposing (..)
 
 import Bidir2 as Bidir exposing (Exp(..), Type(..))
 import Browser
-import Dict
 import Html exposing (text)
 
 
