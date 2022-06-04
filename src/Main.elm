@@ -1,8 +1,12 @@
 module Main exposing (..)
 
-import Bidir2 as Bidir exposing (Exp(..), Type(..))
 import Browser
 import Html exposing (text)
+import Lang.Canonical.Expr exposing (Expr(..))
+import Lang.Canonical.Type as Type exposing (Type(..))
+import Lang.Infer as Infer exposing (Return(..))
+import Lang.Infer.Error exposing (Error(..))
+import Lang.Infer.State as State
 
 
 main =
@@ -19,10 +23,19 @@ main =
         -- expr_ =
         --     Ann ann expr
         _ =
-            Bidir.check expr Bidir.empty
-                |> Result.map
-                    (\( a, _ ) -> Bidir.toStringT a)
-                |> Debug.log "LANG2"
+            case Infer.infer expr State.empty of
+                Return thisT state ->
+                    let
+                        _ =
+                            Debug.log "type" (Type.toString thisT)
+
+                        _ =
+                            Debug.log "state" state
+                    in
+                    ""
+
+                Throw (Error msg) ->
+                    Debug.log "error" msg
     in
     Browser.sandbox { init = (), update = always (always ()), view = always (text "") }
 
