@@ -6,56 +6,37 @@ import Lang.Infer.Error exposing (Error(..))
 import Lang.Infer.State as State exposing (State)
 
 
-
--- TODO: extend return to also return Expr
--- TODO: unshit some bits of code
-
-
 type Return
     = Throw Error
     | Return Type State
 
 
-return : ( Type, State ) -> Return
-return ( thisT, state ) =
-    Return thisT state
-
-
 infer : Expr -> State -> Return
 infer expr state =
-    case infer2 expr state of
-        Return thisT newState ->
-            let
-                ( someT, finalState ) =
-                    State.unify thisT newState state
-            in
-            Return someT finalState
-
-        throw ->
-            throw
-
-infer2 : Expr -> State -> Return
-infer2 expr state =
     case expr of
         Var _ ->
             Debug.todo "TODO: proper unbound var error messages"
 
         Lam name body ->
             let
-                ( argmT, newState ) =
+                ( argmT, newState1 ) =
                     State.nextTVar state
             in
-            case infer2 (body (Ann argmT (Var name))) newState of
-                Return bodyT finalState ->
-                    Return (TArr argmT bodyT) finalState
+            case infer (body (Ann argmT (Var name))) newState1 of
+                Return bodyT newState2 ->
+                    let
+                        ( bodyT_, finalState ) =
+                            State.unify (TArr argmT bodyT) newState2 state
+                    in
+                    Return bodyT_ finalState
 
                 throw ->
                     throw
 
         App func argm ->
-            case infer2 argm state of
+            case infer argm state of
                 Return argmT newState ->
-                    case infer2 func newState of
+                    case infer func newState of
                         Return funcT finalState ->
                             apply funcT argmT finalState
 
@@ -69,7 +50,7 @@ infer2 expr state =
             Return thisT state
 
         Ann thisT expr0 ->
-            case infer2 expr0 state of
+            case infer expr0 state of
                 Return someT _ ->
                     if someT == thisT then
                         Return thisT state
@@ -87,26 +68,26 @@ apply funcT argmT state =
         TVar index ->
             case State.get index state of
                 Just withT ->
-                    contraintWith withT argmT state
+                    contrainWith withT argmT state
 
                 Nothing ->
-                    constraint index argmT state
+                    constrain index argmT state
 
         withT ->
-            contraintWith withT argmT state
+            contrainWith withT argmT state
 
 
-constraint : Int -> Type -> State -> Return
-constraint index argmT state =
+constrain : Int -> Type -> State -> Return
+constrain index argmT state =
     let
         ( tvar, state_ ) =
             State.nextTVar state
     in
-    Return tvar (State.insert index (TArr argmT tvar) state_ )
+    Return tvar (State.insert index (TArr argmT tvar) state_)
 
 
-contraintWith : Type -> Type -> State -> Return
-contraintWith withT thisT state =
+contrainWith : Type -> Type -> State -> Return
+contrainWith withT thisT state =
     -- TODO: test this function
     case withT of
         TArr funcT bodyT ->
