@@ -26,4 +26,4 @@ toString exp =
             "(" ++ name ++ " [" ++ Type.toString thisT ++ "] -> " ++ toString (body (Var name)) ++ ")"
 
         Ann thisT exp_ ->
-            "[" ++ Type.toString thisT ++ "]" ++ toString exp_
+            "<" ++ Type.toString thisT ++ ">" ++ toString exp_

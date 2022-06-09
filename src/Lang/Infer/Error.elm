@@ -1,4 +1,5 @@
 module Lang.Infer.Error exposing (Error(..))
 
 
-type Error = Error String
+type Error
+    = Error String

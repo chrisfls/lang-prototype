@@ -1,5 +1,8 @@
 module Lang.Canonical.Type exposing (Name, Type(..), toString)
 
+import Bitwise exposing (or)
+import Dict exposing (Dict)
+
 
 type alias Name =
     String
@@ -11,40 +14,79 @@ type Type
 
 
 toString : Type -> String
-toString thisT =
-    case thisT of
-        TVar index ->
-            let
-                argm =
-                    max 0 (index - 12)
-            in
-            case List.head (List.drop (modBy length index) vars) of
-                Just a ->
-                    if argm > 0 then
-                        a ++ String.fromInt argm
-
-                    else
-                        a
-
-                Nothing ->
-                    "unk" ++ String.fromInt index
-
-        TArr ((TArr _ _) as f) t ->
-            "[" ++ toString f ++ "] -> " ++ toString t
-
-        TArr f t ->
-            toString f ++ " -> " ++ toString t
+toString typeT =
+    Tuple.first (toStringHelp typeT (ToStringState 0 Dict.empty))
 
 
 
 --- internal
 
 
-vars : List String
-vars =
-    String.split "" "abcdefghijkl"
+type alias ToStringState =
+    { count : Int, cache : Dict Int String }
 
 
-length : Int
-length =
-    List.length vars
+toStringHelp : Type -> ToStringState -> ( String, ToStringState )
+toStringHelp typeT state =
+    case typeT of
+        TVar index ->
+            getVarName index state
+
+        TArr ((TArr _ _) as f) t ->
+            let
+                ( fstr, newState ) =
+                    toStringHelp f state
+
+                ( tstr, finalState ) =
+                    toStringHelp t newState
+            in
+            ( "(" ++ fstr ++ ") -> " ++ tstr, finalState )
+
+        TArr f t ->
+            let
+                ( fstr, newState ) =
+                    toStringHelp f state
+
+                ( tstr, finalState ) =
+                    toStringHelp t newState
+            in
+            ( fstr ++ " -> " ++ tstr, finalState )
+
+
+getVarName : Int -> ToStringState -> ( String, ToStringState )
+getVarName index state =
+    case Dict.get index state.cache of
+        Just name ->
+            ( name, state )
+
+        Nothing ->
+            let
+                { count, cache } =
+                    state
+
+                name =
+                    getVarNameHelp count
+            in
+            ( name, { count = count + 1, cache = Dict.insert index name cache } )
+
+
+getVarNameHelp : Int -> String
+getVarNameHelp index =
+    case index of
+        0 ->
+            "a"
+
+        1 ->
+            "b"
+
+        2 ->
+            "c"
+
+        3 ->
+            "d"
+
+        4 ->
+            "e"
+
+        _ ->
+            getVarNameHelp (modBy 4 index) ++ String.fromInt (index + 1)

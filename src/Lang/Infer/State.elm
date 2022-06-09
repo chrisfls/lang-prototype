@@ -1,11 +1,17 @@
-module Lang.Infer.State exposing (State(..), empty, get, insert, nextTVar, unify)
+module Lang.Infer.State exposing (State(..), empty, get, insert, nextTVar, unwrap)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Type exposing (Type(..))
 
 
 type State
-    = State Int Env
+    = State Internal
+
+
+type alias Internal =
+    { count : Int
+    , env : Env
+    }
 
 
 type alias Env =
@@ -14,23 +20,22 @@ type alias Env =
 
 empty : State
 empty =
-    State 0 Dict.empty
+    State (Internal 0 Dict.empty)
 
 
 insert : Int -> Type -> State -> State
-insert index thisT state =
-    case thisT of
-        TVar index_ ->
-            case get index_ state of
-                Just someT ->
-                    insert index someT state
-
-                Nothing ->
-                    insertHelp index thisT state
+insert index typeT state =
+    let
+        (State { env }) =
+            state
+    in
+    case getLastTVar typeT env of
+        (TVar _) as someT ->
+            insertHelp index someT state
 
         TArr left right ->
             insertHelp index
-                (TArr (getLastTVar left state) (getLastTVar right state))
+                (TArr (getLastTVar left env) (getLastTVar right env))
                 state
 
 
@@ -44,17 +49,31 @@ nextTVar state =
 
 
 get : Int -> State -> Maybe Type
-get index (State _ env) =
+get index state =
+    let
+        (State { env }) =
+            state
+    in
     getHelp index env
 
 
-unify : Type -> State -> State -> ( Type, State )
-unify thisT original substitute =
-    let
-        ( someT, state ) =
-            unifyHelp thisT (Unify Dict.empty original substitute)
-    in
-    ( someT, state.substitute )
+unwrap : Type -> State -> Type
+unwrap typeT state =
+    case typeT of
+        TVar i ->
+            case get i state of
+                Just someT ->
+                    if typeT == someT then
+                        typeT
+
+                    else
+                        unwrap someT state
+
+                Nothing ->
+                    typeT
+
+        TArr l r ->
+            TArr (unwrap l state) (unwrap r state)
 
 
 
@@ -62,95 +81,63 @@ unify thisT original substitute =
 
 
 insertHelp : Int -> Type -> State -> State
-insertHelp index thisT (State count env) =
-    State count (Dict.insert index thisT env)
+insertHelp index typeT state =
+    let
+        (State internals) =
+            state
+    in
+    State { internals | env = Dict.insert index typeT internals.env }
 
 
 nextTVarHelp : State -> ( Int, State )
-nextTVarHelp (State count env) =
-    ( count, State (count + 1) env )
+nextTVarHelp state =
+    let
+        (State internals) =
+            state
+    in
+    ( internals.count, State { internals | count = internals.count + 1 } )
 
 
 getHelp : Int -> Env -> Maybe Type
 getHelp index env =
     case Dict.get index env of
-        (Just (TVar index_)) as maybeT ->
-            if index_ == index then
-                maybeT
-            else
-                withMaybeDefault maybeT (getHelp index_ env)
+        (Just typeT) as justT ->
+            case typeT of
+                TVar index_ ->
+                    case getHelp index_ env of
+                        (Just _) as justT_ ->
+                            justT_
 
-        default ->
-            default
+                        Nothing ->
+                            justT
+
+                _ ->
+                    justT
+
+        nothing ->
+            nothing
 
 
-getLastTVar : Type -> State -> Type
-getLastTVar thisT (State _ env) =
-    case thisT of
+getLastTVar : Type -> Env -> Type
+getLastTVar typeT env =
+    case typeT of
         TVar index ->
-            Maybe.withDefault thisT (getLastTVarHelp index env)
+            getLastTVarHelp index typeT env
 
-        default ->
-            default
+        _ ->
+            typeT
 
 
-getLastTVarHelp : Int -> Env -> Maybe Type
-getLastTVarHelp index env =
+getLastTVarHelp : Int -> Type -> Env -> Type
+getLastTVarHelp index prevT env =
     case Dict.get index env of
-        (Just (TVar index_)) as maybeT ->
-            if index == index_ then
-                maybeT
-            else
-                withMaybeDefault maybeT (getLastTVarHelp index_ env)
+        Just typeT ->
+            case typeT of
+                TVar index_ ->
+                    getLastTVarHelp index_ typeT env
 
-        default ->
-            default
-
-
-type alias Unify =
-    { remaps : Env, original : State, substitute : State }
-
-
-unifyHelp : Type -> Unify -> ( Type, Unify )
-unifyHelp thisT state =
-    case thisT of
-        TVar index ->
-            case Dict.get index state.remaps of
-                Just remap ->
-                    ( remap, state )
-
-                Nothing ->
-                    let
-                        ( someT, state_ ) =
-                            case get index state.original of
-                                Just thisT_ ->
-                                    unifyHelp thisT_ state
-
-                                Nothing ->
-                                    let
-                                        ( tvar, substitute_ ) =
-                                            nextTVar state.substitute
-                                    in
-                                    ( tvar, { state | substitute = substitute_ } )
-                    in
-                    ( someT, { state_ | remaps = Dict.insert index someT state_.remaps })
-
-        TArr func argm ->
-            let
-                ( func_, newState ) =
-                    unifyHelp func state
-
-                ( argm_, finalState ) =
-                    unifyHelp argm newState
-            in
-            ( TArr func_ argm_, finalState )
-
-
-withMaybeDefault : Maybe x -> Maybe x -> Maybe x
-withMaybeDefault default override =
-    case override of
-        Just _ ->
-            override
+                _ ->
+                    prevT
 
         Nothing ->
-            default
+            prevT

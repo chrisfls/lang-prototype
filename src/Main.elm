@@ -13,11 +13,11 @@ main =
     let
         -- expr =
         --     Lam "s" (\s -> Lam "z" (\z -> App s (App s z)))
-        -- expr =
-        --     Lam "f" (\f -> Lam "g" (\g -> Lam "a" (\a -> App g (App f a))))
         expr =
-            Lam "f" (\f -> Lam "a" (\a -> Lam "b" (\b -> App (App f a) b)))
+            Lam "f" (\f -> Lam "g" (\g -> Lam "a" (\a -> App g (App f a))))
 
+        -- expr =
+        --     Lam "f" (\f -> Lam "a" (\a -> Lam "b" (\b -> App (App f a) b)))
         -- ann =
         --     TArr (TArr (TVar False 0) (TArr (TVar False 1) (TVar False 2))) (TArr (TVar False 0) (TArr (TVar False 1) (TVar False 2)))
         -- expr_ =
