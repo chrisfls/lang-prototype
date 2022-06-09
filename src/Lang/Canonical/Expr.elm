@@ -1,11 +1,11 @@
 module Lang.Canonical.Expr exposing (Expr(..), toString)
 
-import Lang.Canonical.Type as Type exposing (Name, Type)
-
+import Lang.Canonical.Type as Type exposing (Type)
+import Lang.Canonical.Name exposing (QuaName, VarName)
 
 type Expr
-    = Var Name
-    | Lam Name (Expr -> Expr)
+    = Var QuaName
+    | Lam VarName (Expr -> Expr)
     | App Expr Expr
     | Ann Type Expr
 

@@ -1,11 +1,10 @@
-module Lang.Canonical.Type exposing (Name, Type(..), toString)
+module Lang.Canonical.Type exposing (Type(..), toString)
 
-import Bitwise exposing (or)
 import Dict exposing (Dict)
 
 
-type alias Name =
-    String
+
+-- TODO: Add module type
 
 
 type Type
