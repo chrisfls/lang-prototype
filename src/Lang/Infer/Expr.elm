@@ -86,16 +86,16 @@ constrain index t state =
 
 
 contrainWith : Type -> Type -> State -> Return
-contrainWith typeA typeB state =
+contrainWith tA tB state =
     -- TODO: test this function
-    case typeA of
+    case tA of
         Type.Arr argmT bodyT ->
-            case typeB of
+            case tB of
                 Type.Var index ->
                     Return bodyT (State.insert index argmT state)
 
                 _ ->
-                    Throw (Error "TODO: try or elaborate why you can't constrain typeB to typeA")
+                    Throw (Error "TODO: try or elaborate why you can't constrain tB to tA")
 
         _ ->
-            Throw (Error "TODO: try or elaborate why you can't constrain typeB to typeA when typeA is not an arrow")
+            Throw (Error "TODO: try or elaborate why you can't constrain tB to tA when tA is not an arrow")
