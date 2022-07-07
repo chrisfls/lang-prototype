@@ -7,6 +7,8 @@ import Lang.Infer.Return exposing (Return(..))
 import Lang.Infer.State as State exposing (State)
 
 
+-- maybe move this into Lang.Canonical.Expr
+
 infer : Expr -> State -> Return
 infer expr state =
     case expr of
