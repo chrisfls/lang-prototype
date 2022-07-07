@@ -1,0 +1,14 @@
+{
+  "name": "react-elm",
+  "version": "0.0.1",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "fmt": "elm-format --yes src"
+  },
+  "devDependencies": {
+    "elm": "^0.19.1-5",
+    "elm-format": "^0.8.5",
+    "elm-test": "^0.19.1-revision8"
+  }
+}
