@@ -10,6 +10,7 @@ import Dict exposing (Dict)
 type Type
     = Var Int
     | Arr Type Type
+    | Tup (List Type)
 
 
 toString : Type -> String
@@ -50,6 +51,22 @@ toStringHelp typeT state =
                     toStringHelp t newState
             in
             ( fstr ++ " -> " ++ tstr, finalState )
+
+        Tup ts ->
+            let
+                ( types, finalState ) =
+                    List.foldl
+                        (\t (xs, nextState) ->
+                            let
+                                (str, nextState_) =
+                                    toStringHelp t nextState
+                            in
+                            ( str :: xs, nextState_)
+                        )
+                        ([], state)
+                        ts
+            in
+            ( "{ " ++ String.join ", " types ++ " }", finalState)
 
 
 getVarName : Int -> ToStringState -> ( String, ToStringState )
