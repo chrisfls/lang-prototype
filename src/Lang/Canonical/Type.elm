@@ -55,7 +55,7 @@ toStringHelp typeT state =
         Tup ts ->
             let
                 ( types, finalState ) =
-                    List.foldl
+                    List.foldr
                         (\t (xs, nextState) ->
                             let
                                 (str, nextState_) =
