@@ -27,6 +27,10 @@ suite =
                 \_ ->
                     toResult Fixtures.apply2
                         |> Expect.equal (Ok "(a -> b -> c) -> a -> b -> c")
+            , test "\\a b -> (a, b)" <|
+                \_ ->
+                    toResult Fixtures.pair
+                        |> Expect.equal (Ok "(a -> b) -> (a, b)")
             ]
         ]
 
