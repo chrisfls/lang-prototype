@@ -6,6 +6,7 @@ import Lang.Canonical.Type as Type exposing (Type)
 type Expr
     = Var String
     | Tup (List Expr)
+      -- I might have to replace HOAS with FOAS eventually
     | Lam String (Expr -> Expr)
     | App Expr Expr
     | Ann Type Expr
@@ -14,20 +15,20 @@ type Expr
 toString : Expr -> String
 toString exp =
     case exp of
-        Var name ->
-            name
+        Var n ->
+            n
 
-        Tup types ->
-            "(" ++ String.join ", " (List.map toString types) ++ ")"
+        Tup t ->
+            "(" ++ String.join ", " (List.map toString t) ++ ")"
 
-        Lam name body ->
-            "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"
+        Lam n b ->
+            "(" ++ n ++ " -> " ++ toString (b (Var n)) ++ ")"
 
-        App func argm ->
-            "(" ++ toString func ++ " " ++ toString argm ++ ")"
+        App f a ->
+            "(" ++ toString f ++ " " ++ toString a ++ ")"
 
-        Ann thisT (Lam name body) ->
-            "(" ++ name ++ " [" ++ Type.toString thisT ++ "] -> " ++ toString (body (Var name)) ++ ")"
+        Ann t (Lam n b) ->
+            "(" ++ n ++ " [" ++ Type.toString t ++ "] -> " ++ toString (b (Var n)) ++ ")"
 
-        Ann thisT exp_ ->
-            "<" ++ Type.toString thisT ++ ">" ++ toString exp_
+        Ann t exp_ ->
+            "<" ++ Type.toString t ++ ">" ++ toString exp_

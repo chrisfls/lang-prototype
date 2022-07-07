@@ -38,8 +38,8 @@ suite =
 toResult : Expr -> Result String String
 toResult expr =
     case Infer.infer expr State.empty of
-        Return thisT _ ->
-            Ok (Type.toString thisT)
+        Return t _ ->
+            Ok (Type.toString t)
 
         Throw (Error msg) ->
             Err msg
