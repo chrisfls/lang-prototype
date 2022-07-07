@@ -38,6 +38,9 @@ insert index typeT state =
                 (Arr (getLastTVar left env) (getLastTVar right env))
                 state
 
+        Tup _ ->
+            Debug.todo "Insert record"
+
 
 nextTVar : State -> ( Type, State )
 nextTVar state =
@@ -74,6 +77,9 @@ unwrap typeT state =
 
         Arr l r ->
             Arr (unwrap l state) (unwrap r state)
+
+        Tup xs ->
+            Tup (List.map (\t -> unwrap t state) xs)
 
 
 
