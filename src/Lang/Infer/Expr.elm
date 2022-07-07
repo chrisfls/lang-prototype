@@ -18,6 +18,11 @@ infer expr state =
             Debug.todo "TODO: proper unbound var error messages"
 
         Expr.Tup _ ->
+            -- to support tuples I'll have to first infer the type of each typle element,
+            -- then return a tuple type containing them here, because inference yields a
+            -- return this is a folding operation instead of mapping, but in the end it
+            -- should be pretty simple,
+            -- doing the same thing for the records should also work fine
             Debug.todo "TODO: support tuples"
 
         Expr.Lam name body ->
