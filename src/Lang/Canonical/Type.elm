@@ -56,17 +56,17 @@ toStringHelp typeT state =
             let
                 ( types, finalState ) =
                     List.foldr
-                        (\t (xs, nextState) ->
+                        (\t ( xs, nextState ) ->
                             let
-                                (str, nextState_) =
+                                ( str, nextState_ ) =
                                     toStringHelp t nextState
                             in
-                            ( str :: xs, nextState_)
+                            ( str :: xs, nextState_ )
                         )
-                        ([], state)
+                        ( [], state )
                         ts
             in
-            ( "{ " ++ String.join ", " types ++ " }", finalState)
+            ( "(" ++ String.join ", " types ++ ")", finalState )
 
 
 getVarName : Int -> ToStringState -> ( String, ToStringState )

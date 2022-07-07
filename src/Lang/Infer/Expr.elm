@@ -13,6 +13,9 @@ infer expr state =
         Expr.Var _ ->
             Debug.todo "TODO: proper unbound var error messages"
 
+        Expr.Tup _ ->
+            Debug.todo "TODO: support tuples"
+
         Expr.Lam name body ->
             let
                 ( argmT, newState ) =

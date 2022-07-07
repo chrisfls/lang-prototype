@@ -33,3 +33,12 @@ apply2 =
                 \a ->
                     Lam "b" <|
                         \b -> App (App f a) b
+
+
+pair : Expr
+pair =
+    -- \a b -> (a, b)
+    Lam "a" <|
+        \a ->
+            Lam "b" <|
+                \b -> Tup [ a, b ]

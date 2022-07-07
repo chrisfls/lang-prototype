@@ -2,8 +2,10 @@ module Lang.Canonical.Expr exposing (Expr(..), toString)
 
 import Lang.Canonical.Type as Type exposing (Type)
 
+
 type Expr
     = Var String
+    | Tup (List Expr)
     | Lam String (Expr -> Expr)
     | App Expr Expr
     | Ann Type Expr
@@ -14,6 +16,9 @@ toString exp =
     case exp of
         Var name ->
             name
+
+        Tup types ->
+            "( " ++ String.join ", " (List.map toString types) ++ " )"
 
         Lam name body ->
             "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"
