@@ -50,8 +50,8 @@ infer expr state =
 
         Expr.Ann t expr0 ->
             case infer expr0 state of
-                Return someT _ ->
-                    if someT == t then
+                Return t_ _ ->
+                    if t_ == t then
                         Return t state
 
                     else
@@ -66,36 +66,36 @@ apply funcT argmT state =
     case funcT of
         Type.Var index ->
             case State.get index state of
-                Just withT ->
-                    contrainWith withT argmT state
+                Just t ->
+                    contrainWith t argmT state
 
                 Nothing ->
                     constrain index argmT state
 
-        withT ->
-            contrainWith withT argmT state
+        t ->
+            contrainWith t argmT state
 
 
 constrain : Int -> Type -> State -> Return
-constrain index argmT state =
+constrain index t state =
     let
         ( tvar, state_ ) =
             State.nextTVar state
     in
-    Return tvar (State.insert index (Type.Arr argmT tvar) state_)
+    Return tvar (State.insert index (Type.Arr t tvar) state_)
 
 
 contrainWith : Type -> Type -> State -> Return
-contrainWith withT t state =
+contrainWith typeA typeB state =
     -- TODO: test this function
-    case withT of
+    case typeA of
         Type.Arr argmT bodyT ->
-            case t of
+            case typeB of
                 Type.Var index ->
                     Return bodyT (State.insert index argmT state)
 
                 _ ->
-                    Throw (Error "TODO: try or elaborate why you can't constrain t to withT")
+                    Throw (Error "TODO: try or elaborate why you can't constrain typeB to typeA")
 
         _ ->
-            Throw (Error "TODO: try or elaborate why you can't constrain t to withT when withT is not an arrow")
+            Throw (Error "TODO: try or elaborate why you can't constrain typeB to typeA when typeA is not an arrow")
