@@ -15,20 +15,20 @@ type Expr
 toString : Expr -> String
 toString exp =
     case exp of
-        Var n ->
-            n
+        Var name ->
+            name
 
-        Tup t ->
-            "(" ++ String.join ", " (List.map toString t) ++ ")"
+        Tup list ->
+            "(" ++ String.join ", " (List.map toString list) ++ ")"
 
-        Lam n b ->
-            "(" ++ n ++ " -> " ++ toString (b (Var n)) ++ ")"
+        Lam name body ->
+            "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"
 
-        App f a ->
-            "(" ++ toString f ++ " " ++ toString a ++ ")"
+        App func argm ->
+            "(" ++ toString func ++ " " ++ toString argm ++ ")"
 
-        Ann t (Lam n b) ->
-            "(" ++ n ++ " [" ++ Type.toString t ++ "] -> " ++ toString (b (Var n)) ++ ")"
+        Ann t (Lam name body) ->
+            "(" ++ name ++ " [" ++ Type.toString t ++ "] -> " ++ toString (body (Var name)) ++ ")"
 
         Ann t exp_ ->
             "<" ++ Type.toString t ++ ">" ++ toString exp_
