@@ -38,8 +38,10 @@ insert index typeT state =
                 (Arr (getLastTVar left env) (getLastTVar right env))
                 state
 
-        Tup _ ->
-            Debug.todo "Insert record"
+        Tup types ->
+            insertHelp index
+                (Tup (List.map (\t -> getLastTVar t env) types))
+                state
 
 
 nextTVar : State -> ( Type, State )
