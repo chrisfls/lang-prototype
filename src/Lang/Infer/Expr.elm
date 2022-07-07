@@ -45,14 +45,14 @@ infer expr state =
                 throw ->
                     throw
 
-        Expr.Ann thisT (Expr.Var _) ->
-            Return thisT state
+        Expr.Ann t (Expr.Var _) ->
+            Return t state
 
-        Expr.Ann thisT expr0 ->
+        Expr.Ann t expr0 ->
             case infer expr0 state of
                 Return someT _ ->
-                    if someT == thisT then
-                        Return thisT state
+                    if someT == t then
+                        Return t state
 
                     else
                         Throw (Error "TODO: proper type mismatch messages")
@@ -86,16 +86,16 @@ constrain index argmT state =
 
 
 contrainWith : Type -> Type -> State -> Return
-contrainWith withT thisT state =
+contrainWith withT t state =
     -- TODO: test this function
     case withT of
         Type.Arr argmT bodyT ->
-            case thisT of
+            case t of
                 Type.Var index ->
                     Return bodyT (State.insert index argmT state)
 
                 _ ->
-                    Throw (Error "TODO: try or elaborate why you can't constrain thisT to withT")
+                    Throw (Error "TODO: try or elaborate why you can't constrain t to withT")
 
         _ ->
-            Throw (Error "TODO: try or elaborate why you can't constrain thisT to withT when withT is not an arrow")
+            Throw (Error "TODO: try or elaborate why you can't constrain t to withT when withT is not an arrow")

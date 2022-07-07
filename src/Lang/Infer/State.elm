@@ -24,14 +24,14 @@ empty =
 
 
 insert : Int -> Type -> State -> State
-insert index typeT state =
+insert index t state =
     let
         (State { env }) =
             state
     in
-    case getLastTVar typeT env of
-        (Var _) as someT ->
-            insertHelp index someT state
+    case getLastTVar t env of
+        (Var _) as t_ ->
+            insertHelp index t_ state
 
         Arr left right ->
             insertHelp index
@@ -40,7 +40,7 @@ insert index typeT state =
 
         Tup types ->
             insertHelp index
-                (Tup (List.map (\t -> getLastTVar t env) types))
+                (Tup (List.map (\t_ -> getLastTVar t_ env) types))
                 state
 
 
@@ -63,25 +63,25 @@ get index state =
 
 
 unwrap : Type -> State -> Type
-unwrap typeT state =
-    case typeT of
+unwrap t state =
+    case t of
         Var i ->
             case get i state of
-                Just someT ->
-                    if typeT == someT then
-                        typeT
+                Just t_ ->
+                    if t == t_ then
+                        t
 
                     else
-                        unwrap someT state
+                        unwrap t_ state
 
                 Nothing ->
-                    typeT
+                    t
 
         Arr l r ->
             Arr (unwrap l state) (unwrap r state)
 
         Tup xs ->
-            Tup (List.map (\t -> unwrap t state) xs)
+            Tup (List.map (\t_ -> unwrap t_ state) xs)
 
 
 
@@ -89,12 +89,12 @@ unwrap typeT state =
 
 
 insertHelp : Int -> Type -> State -> State
-insertHelp index typeT state =
+insertHelp index t state =
     let
         (State internals) =
             state
     in
-    State { internals | env = Dict.insert index typeT internals.env }
+    State { internals | env = Dict.insert index t internals.env }
 
 
 nextTVarHelp : State -> ( Int, State )
@@ -109,43 +109,43 @@ nextTVarHelp state =
 getHelp : Int -> Env -> Maybe Type
 getHelp index env =
     case Dict.get index env of
-        (Just typeT) as justT ->
-            case typeT of
+        (Just t) as just ->
+            case t of
                 Var index_ ->
                     case getHelp index_ env of
-                        (Just _) as justT_ ->
-                            justT_
+                        (Just _) as just_ ->
+                            just_
 
                         Nothing ->
-                            justT
+                            just
 
                 _ ->
-                    justT
+                    just
 
         nothing ->
             nothing
 
 
 getLastTVar : Type -> Env -> Type
-getLastTVar typeT env =
-    case typeT of
+getLastTVar t env =
+    case t of
         Var index ->
-            getLastTVarHelp index typeT env
+            getLastTVarHelp index t env
 
         _ ->
-            typeT
+            t
 
 
 getLastTVarHelp : Int -> Type -> Env -> Type
-getLastTVarHelp index prevT env =
+getLastTVarHelp index t env =
     case Dict.get index env of
-        Just typeT ->
-            case typeT of
+        Just t_ ->
+            case t_ of
                 Var index_ ->
-                    getLastTVarHelp index_ typeT env
+                    getLastTVarHelp index_ t_ env
 
                 _ ->
-                    prevT
+                    t
 
         Nothing ->
-            prevT
+            t

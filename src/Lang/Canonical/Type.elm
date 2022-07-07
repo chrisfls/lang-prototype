@@ -14,8 +14,8 @@ type Type
 
 
 toString : Type -> String
-toString typeT =
-    Tuple.first (toStringHelp typeT (ToStringState 0 Dict.empty))
+toString t =
+    Tuple.first (toStringHelp t (ToStringState 0 Dict.empty))
 
 
 
@@ -27,46 +27,46 @@ type alias ToStringState =
 
 
 toStringHelp : Type -> ToStringState -> ( String, ToStringState )
-toStringHelp typeT state =
-    case typeT of
+toStringHelp t state =
+    case t of
         Var index ->
             getVarName index state
 
-        Arr ((Arr _ _) as f) t ->
+        Arr ((Arr _ _) as arg) ret ->
             let
                 ( fstr, newState ) =
-                    toStringHelp f state
+                    toStringHelp arg state
 
                 ( tstr, finalState ) =
-                    toStringHelp t newState
+                    toStringHelp ret newState
             in
             ( "(" ++ fstr ++ ") -> " ++ tstr, finalState )
 
-        Arr f t ->
+        Arr arg ret ->
             let
                 ( fstr, newState ) =
-                    toStringHelp f state
+                    toStringHelp arg state
 
                 ( tstr, finalState ) =
-                    toStringHelp t newState
+                    toStringHelp ret newState
             in
             ( fstr ++ " -> " ++ tstr, finalState )
 
-        Tup ts ->
+        Tup types ->
             let
-                ( types, finalState ) =
+                ( names, finalState ) =
                     List.foldr
-                        (\t ( xs, nextState ) ->
+                        (\t_ ( xs, nextState ) ->
                             let
                                 ( str, nextState_ ) =
-                                    toStringHelp t nextState
+                                    toStringHelp t_ nextState
                             in
                             ( str :: xs, nextState_ )
                         )
                         ( [], state )
-                        ts
+                        types
             in
-            ( "(" ++ String.join ", " types ++ ")", finalState )
+            ( "(" ++ String.join ", " names ++ ")", finalState )
 
 
 getVarName : Int -> ToStringState -> ( String, ToStringState )
