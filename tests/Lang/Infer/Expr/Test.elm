@@ -2,10 +2,10 @@ module Lang.Infer.Expr.Test exposing (suite)
 
 import Expect
 import Lang.Canonical.Expr exposing (Expr)
+import Lang.Canonical.Expr.Fixtures as Fixtures
 import Lang.Canonical.Type as Type
 import Lang.Infer.Error exposing (Error(..))
 import Lang.Infer.Expr as Infer
-import Lang.Infer.Expr.Fixtures as Fixtures
 import Lang.Infer.Return exposing (Return(..))
 import Lang.Infer.State as State
 import Test exposing (..)

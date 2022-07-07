@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "fmt": "elm-format --yes src",
+    "fmt": "elm-format --yes src tests",
     "test": "elm-test"
   },
   "devDependencies": {

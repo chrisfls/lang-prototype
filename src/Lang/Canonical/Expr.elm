@@ -18,7 +18,7 @@ toString exp =
             name
 
         Tup types ->
-            "( " ++ String.join ", " (List.map toString types) ++ " )"
+            "(" ++ String.join ", " (List.map toString types) ++ ")"
 
         Lam name body ->
             "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"

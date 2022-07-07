@@ -1,4 +1,4 @@
-module Lang.Infer.Expr.Fixtures exposing (..)
+module Lang.Canonical.Expr.Fixtures exposing (..)
 
 import Lang.Canonical.Expr exposing (Expr(..))
 import Lang.Infer.Error exposing (Error(..))
