@@ -8,8 +8,8 @@ import Dict exposing (Dict)
 
 
 type Type
-    = TVar Int
-    | TArr Type Type
+    = Var Int
+    | Arr Type Type
 
 
 toString : Type -> String
@@ -28,10 +28,10 @@ type alias ToStringState =
 toStringHelp : Type -> ToStringState -> ( String, ToStringState )
 toStringHelp typeT state =
     case typeT of
-        TVar index ->
+        Var index ->
             getVarName index state
 
-        TArr ((TArr _ _) as f) t ->
+        Arr ((Arr _ _) as f) t ->
             let
                 ( fstr, newState ) =
                     toStringHelp f state
@@ -41,7 +41,7 @@ toStringHelp typeT state =
             in
             ( "(" ++ fstr ++ ") -> " ++ tstr, finalState )
 
-        TArr f t ->
+        Arr f t ->
             let
                 ( fstr, newState ) =
                     toStringHelp f state

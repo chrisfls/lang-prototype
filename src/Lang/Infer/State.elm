@@ -30,12 +30,12 @@ insert index typeT state =
             state
     in
     case getLastTVar typeT env of
-        (TVar _) as someT ->
+        (Var _) as someT ->
             insertHelp index someT state
 
-        TArr left right ->
+        Arr left right ->
             insertHelp index
-                (TArr (getLastTVar left env) (getLastTVar right env))
+                (Arr (getLastTVar left env) (getLastTVar right env))
                 state
 
 
@@ -45,7 +45,7 @@ nextTVar state =
         ( index, state_ ) =
             nextTVarHelp state
     in
-    ( TVar index, state_ )
+    ( Var index, state_ )
 
 
 get : Int -> State -> Maybe Type
@@ -60,7 +60,7 @@ get index state =
 unwrap : Type -> State -> Type
 unwrap typeT state =
     case typeT of
-        TVar i ->
+        Var i ->
             case get i state of
                 Just someT ->
                     if typeT == someT then
@@ -72,8 +72,8 @@ unwrap typeT state =
                 Nothing ->
                     typeT
 
-        TArr l r ->
-            TArr (unwrap l state) (unwrap r state)
+        Arr l r ->
+            Arr (unwrap l state) (unwrap r state)
 
 
 
@@ -103,7 +103,7 @@ getHelp index env =
     case Dict.get index env of
         (Just typeT) as justT ->
             case typeT of
-                TVar index_ ->
+                Var index_ ->
                     case getHelp index_ env of
                         (Just _) as justT_ ->
                             justT_
@@ -121,7 +121,7 @@ getHelp index env =
 getLastTVar : Type -> Env -> Type
 getLastTVar typeT env =
     case typeT of
-        TVar index ->
+        Var index ->
             getLastTVarHelp index typeT env
 
         _ ->
@@ -133,7 +133,7 @@ getLastTVarHelp index prevT env =
     case Dict.get index env of
         Just typeT ->
             case typeT of
-                TVar index_ ->
+                Var index_ ->
                     getLastTVarHelp index_ typeT env
 
                 _ ->

@@ -1,35 +1,31 @@
-module Lang.Infer exposing (Return(..), infer)
+module Lang.Infer.Expr exposing (infer)
 
-import Lang.Canonical.Expr exposing (Expr(..))
-import Lang.Canonical.Type exposing (Type(..))
+import Lang.Canonical.Expr as Expr exposing (Expr)
+import Lang.Canonical.Type as Type exposing (Type)
 import Lang.Infer.Error exposing (Error(..))
+import Lang.Infer.Return exposing (Return(..))
 import Lang.Infer.State as State exposing (State)
-
-
-type Return
-    = Throw Error
-    | Return Type State
 
 
 infer : Expr -> State -> Return
 infer expr state =
     case expr of
-        Var _ ->
+        Expr.Var _ ->
             Debug.todo "TODO: proper unbound var error messages"
 
-        Lam name body ->
+        Expr.Lam name body ->
             let
                 ( argmT, newState ) =
                     State.nextTVar state
             in
-            case infer (body (Ann argmT (Var name))) newState of
+            case infer (body (Expr.Ann argmT (Expr.Var name))) newState of
                 Return bodyT finalState ->
-                    Return (State.unwrap (TArr argmT bodyT) finalState) finalState
+                    Return (State.unwrap (Type.Arr argmT bodyT) finalState) finalState
 
                 throw ->
                     throw
 
-        App func argm ->
+        Expr.App func argm ->
             case infer argm state of
                 Return argmT newState ->
                     case infer func newState of
@@ -42,10 +38,10 @@ infer expr state =
                 throw ->
                     throw
 
-        Ann thisT (Var _) ->
+        Expr.Ann thisT (Expr.Var _) ->
             Return thisT state
 
-        Ann thisT expr0 ->
+        Expr.Ann thisT expr0 ->
             case infer expr0 state of
                 Return someT _ ->
                     if someT == thisT then
@@ -61,7 +57,7 @@ infer expr state =
 apply : Type -> Type -> State -> Return
 apply funcT argmT state =
     case funcT of
-        TVar index ->
+        Type.Var index ->
             case State.get index state of
                 Just withT ->
                     contrainWith withT argmT state
@@ -79,16 +75,16 @@ constrain index argmT state =
         ( tvar, state_ ) =
             State.nextTVar state
     in
-    Return tvar (State.insert index (TArr argmT tvar) state_)
+    Return tvar (State.insert index (Type.Arr argmT tvar) state_)
 
 
 contrainWith : Type -> Type -> State -> Return
 contrainWith withT thisT state =
     -- TODO: test this function
     case withT of
-        TArr argmT bodyT ->
+        Type.Arr argmT bodyT ->
             case thisT of
-                TVar index ->
+                Type.Var index ->
                     Return bodyT (State.insert index argmT state)
 
                 _ ->
