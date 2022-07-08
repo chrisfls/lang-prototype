@@ -17,13 +17,8 @@ infer expr state =
         Expr.Var _ ->
             Debug.todo "TODO: proper unbound var error messages"
 
-        Expr.Tup _ ->
-            -- to support tuples I'll have to first infer the type of each typle element,
-            -- then return a tuple type containing them here, because inference yields a
-            -- return this is a folding operation instead of mapping, but in the end it
-            -- should be pretty simple,
-            -- doing the same thing for the records should also work fine
-            Debug.todo "TODO: support tuples"
+        Expr.Tup types ->
+            inferTup types [] state
 
         Expr.Lam name body ->
             let
@@ -61,6 +56,21 @@ infer expr state =
 
                     else
                         Throw (Error "TODO: proper type mismatch messages")
+
+                throw ->
+                    throw
+
+
+inferTup : List Expr -> List Type -> State -> Return
+inferTup types xs state =
+    case types of
+        [] ->
+            Return (Type.Tup (List.reverse xs)) state
+
+        head :: tail ->
+            case infer head state of
+                Return t nextState ->
+                    inferTup tail (t :: xs) nextState
 
                 throw ->
                     throw
