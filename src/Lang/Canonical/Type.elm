@@ -4,7 +4,7 @@ import Dict exposing (Dict)
 
 
 
--- TODO: Add module type
+-- TODO: Add module type (they will work exactly like records)
 
 
 type Type
