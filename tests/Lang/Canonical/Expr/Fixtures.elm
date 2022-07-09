@@ -57,3 +57,19 @@ record =
                         , ( "b", b )
                         ]
                         |> Rec
+
+
+recordUpdate : Expr
+recordUpdate =
+    -- \a b c -> { c | a = a, b = b }
+    Lam "a" <|
+        \a ->
+            Lam "b" <|
+                \b ->
+                    Lam "c" <|
+                        \c ->
+                            Dict.fromList
+                                [ ( "a", a )
+                                , ( "b", b )
+                                ]
+                                |> Upd c

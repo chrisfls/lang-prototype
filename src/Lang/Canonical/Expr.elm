@@ -8,6 +8,7 @@ type Expr
     = Var String
     | Tup (List Expr)
     | Rec (Dict String Expr)
+    | Upd Expr (Dict String Expr)
       -- I might have to replace HOAS with FOAS eventually
     | Lam String (Expr -> Expr)
     | App Expr Expr
@@ -24,12 +25,21 @@ toString exp =
             "( " ++ String.join ", " (List.map toString list) ++ " )"
 
         Rec fields ->
-            "{"
+            "{ "
                 ++ (Dict.toList fields
                         |> List.map (\( name, exp_ ) -> name ++ " : " ++ toString exp_)
                         |> String.join ", "
                    )
-                ++ "}"
+                ++ " }"
+
+        Upd name fields ->
+            "{ " ++ toString name
+                ++ " | "
+                ++ (Dict.toList fields
+                        |> List.map (\( name_, exp_ ) -> name_ ++ " : " ++ toString exp_)
+                        |> String.join ", "
+                   )
+                ++ " }"
 
         Lam name body ->
             "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"

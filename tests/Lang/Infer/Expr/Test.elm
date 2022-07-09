@@ -35,6 +35,10 @@ suite =
                 \_ ->
                     toResult Fixtures.record
                         |> Expect.equal (Ok "a -> b -> { a : a, b : b }")
+            , test "\\a b c -> { c | a = a, b = b }" <|
+                \_ ->
+                    toResult Fixtures.recordUpdate
+                        |> Expect.equal (Ok "a -> b -> c -> { c | a : a, b : b }")
             ]
         ]
 

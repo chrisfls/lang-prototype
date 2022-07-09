@@ -22,7 +22,15 @@ infer expr state =
             inferTup types [] state
 
         Expr.Rec types ->
-            inferRec (Dict.toList types) [] state
+            inferRec Nothing (Dict.toList types) [] state
+
+        Expr.Upd name types ->
+            case infer name state of
+                Return nameT finalState ->
+                    inferRec (Just nameT) (Dict.toList types) [] finalState
+
+                throw ->
+                    throw
 
         Expr.Lam name body ->
             let
@@ -79,19 +87,20 @@ inferTup types xs state =
                 throw ->
                     throw
 
-inferRec : List (String, Expr) -> List (String, Type) -> State -> Return
-inferRec types xs state =
+inferRec : Maybe Type -> List (String, Expr) -> List (String, Type) -> State -> Return
+inferRec ext types xs state =
     case types of
         [] ->
-            Return (Type.Rec Nothing (Dict.fromList xs)) state
+            Return (Type.Rec ext (Dict.fromList xs)) state
 
         (name, head) :: tail ->
             case infer head state of
                 Return t nextState ->
-                    inferRec tail ((name, t) :: xs) nextState
+                    inferRec ext tail ((name, t) :: xs) nextState
 
                 throw ->
                     throw
+
 
 apply : Type -> Type -> State -> Return
 apply funcT argmT state =
