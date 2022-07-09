@@ -30,7 +30,7 @@ suite =
             , test "\\a b -> (a, b)" <|
                 \_ ->
                     toResult Fixtures.pair
-                        |> Expect.equal (Ok "a -> b -> (a, b)")
+                        |> Expect.equal (Ok "a -> b -> ( a, b )")
             ]
         ]
 
