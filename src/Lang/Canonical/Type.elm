@@ -4,9 +4,10 @@ import Dict exposing (Dict)
 
 
 
--- TODO: Add module type (they will work exactly like records)
--- Rec has a maybe because it can be extensible
-
+-- TODO: add internal types
+-- TODO: add union types
+-- TODO: add module types (they will work exactly like records)
+-- TODO: add linear types
 
 type Type
     = Var Int
