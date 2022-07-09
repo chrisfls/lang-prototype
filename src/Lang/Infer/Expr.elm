@@ -5,6 +5,7 @@ import Lang.Canonical.Type as Type exposing (Type)
 import Lang.Infer.Error exposing (Error(..))
 import Lang.Infer.Return exposing (Return(..))
 import Lang.Infer.State as State exposing (State)
+import Dict
 
 
 
@@ -19,6 +20,9 @@ infer expr state =
 
         Expr.Tup types ->
             inferTup types [] state
+
+        Expr.Rec types ->
+            inferRec (Dict.toList types) [] state
 
         Expr.Lam name body ->
             let
@@ -75,6 +79,19 @@ inferTup types xs state =
                 throw ->
                     throw
 
+inferRec : List (String, Expr) -> List (String, Type) -> State -> Return
+inferRec types xs state =
+    case types of
+        [] ->
+            Return (Type.Rec Nothing (Dict.fromList xs)) state
+
+        (name, head) :: tail ->
+            case infer head state of
+                Return t nextState ->
+                    inferRec tail ((name, t) :: xs) nextState
+
+                throw ->
+                    throw
 
 apply : Type -> Type -> State -> Return
 apply funcT argmT state =

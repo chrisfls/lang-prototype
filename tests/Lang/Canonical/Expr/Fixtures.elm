@@ -2,6 +2,7 @@ module Lang.Canonical.Expr.Fixtures exposing (..)
 
 import Lang.Canonical.Expr exposing (Expr(..))
 import Lang.Infer.Error exposing (Error(..))
+import Dict
 
 
 two : Expr
@@ -42,3 +43,17 @@ pair =
         \a ->
             Lam "b" <|
                 \b -> Tup [ a, b ]
+
+
+record : Expr
+record =
+    -- \a b ->  { a : a, b : b }
+    Lam "a" <|
+        \a ->
+            Lam "b" <|
+                \b ->
+                    Dict.fromList
+                        [ ( "a", a )
+                        , ( "b", b )
+                        ]
+                        |> Rec

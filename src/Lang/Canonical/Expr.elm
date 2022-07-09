@@ -1,11 +1,13 @@
 module Lang.Canonical.Expr exposing (Expr(..), toString)
 
+import Dict exposing (Dict)
 import Lang.Canonical.Type as Type exposing (Type)
 
 
 type Expr
     = Var String
     | Tup (List Expr)
+    | Rec (Dict String Expr)
       -- I might have to replace HOAS with FOAS eventually
     | Lam String (Expr -> Expr)
     | App Expr Expr
@@ -19,7 +21,15 @@ toString exp =
             name
 
         Tup list ->
-            "(" ++ String.join ", " (List.map toString list) ++ ")"
+            "( " ++ String.join ", " (List.map toString list) ++ " )"
+
+        Rec fields ->
+            "{"
+                ++ (Dict.toList fields
+                        |> List.map (\( name, exp_ ) -> name ++ " : " ++ toString exp_)
+                        |> String.join ", "
+                   )
+                ++ "}"
 
         Lam name body ->
             "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"
