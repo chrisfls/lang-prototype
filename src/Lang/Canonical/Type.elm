@@ -5,12 +5,14 @@ import Dict exposing (Dict)
 
 
 -- TODO: Add module type (they will work exactly like records)
+-- Rec has a maybe because it can be extensible
 
 
 type Type
     = Var Int
     | Arr Type Type
     | Tup (List Type)
+    | Rec (Maybe Type) (Dict String Type)
 
 
 toString : Type -> String
@@ -66,7 +68,36 @@ toStringHelp t state =
                         ( [], state )
                         types
             in
-            ( "(" ++ String.join ", " names ++ ")", finalState )
+            ( "( " ++ String.join ", " names ++ " )", finalState )
+
+        Rec maybeExt fields ->
+            -- TODO: clean this up a bit
+            let
+                ( names, finalState ) =
+                    Dict.foldr
+                        (\name t_ ( xs, nextState ) ->
+                            let
+                                ( str, nextState_ ) =
+                                    toStringHelp t_ nextState
+                            in
+                            ( (name ++ " : " ++ str) :: xs, nextState_ )
+                        )
+                        ( [], state )
+                        fields
+
+                ( ext, finalState_ ) =
+                    case maybeExt of
+                        Just t_ ->
+                            let
+                                ( str, fff ) =
+                                    toStringHelp t_ finalState
+                            in
+                            ( str ++ " | ", fff )
+
+                        Nothing ->
+                            ( "", finalState )
+            in
+            ( "{ " ++ ext ++ String.join ", " names ++ " }", finalState_ )
 
 
 getVarName : Int -> ToStringState -> ( String, ToStringState )

@@ -43,6 +43,14 @@ insert index t state =
                 (Tup (List.map (\t_ -> getLastTVar t_ env) types))
                 state
 
+        Rec maybeE fields ->
+            insertHelp index
+                (Rec
+                    (Maybe.map (\t_ -> getLastTVar t_ env) maybeE)
+                    (Dict.map (\_ t_ -> getLastTVar t_ env) fields)
+                )
+                state
+
 
 nextTVar : State -> ( Type, State )
 nextTVar state =
@@ -82,6 +90,10 @@ unwrap t state =
 
         Tup xs ->
             Tup (List.map (\t_ -> unwrap t_ state) xs)
+
+        Rec mx xs ->
+            Rec (Maybe.map (\t_ -> unwrap t_ state) mx)
+                (Dict.map (\_ t_ -> unwrap t_ state) xs)
 
 
 
