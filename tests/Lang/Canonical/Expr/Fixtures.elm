@@ -47,7 +47,7 @@ pair =
 
 record : Expr
 record =
-    -- \a b ->  { a : a, b : b }
+    -- \a b ->  { a = a, b = b }
     Lam "a" <|
         \a ->
             Lam "b" <|
