@@ -15,6 +15,6 @@ suite =
             [ test "\\a b -> (a , b)" <|
                 \_ ->
                     Expr.toString Fixtures.pair
-                        |> Expect.equal "(a -> (b -> (a, b)))"
+                        |> Expect.equal "(a -> (b -> ( a, b )))"
             ]
         ]
