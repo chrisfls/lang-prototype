@@ -1,4 +1,4 @@
-module Lang.Canonical.Expr exposing (Expr(..), toString)
+module Lang.Canonical.Expr exposing (BuiltinValue(..), Expr(..), toString)
 
 import Dict exposing (Dict)
 import Lang.Canonical.Type as Type exposing (Type)
@@ -13,6 +13,16 @@ type Expr
     | Lam String (Expr -> Expr)
     | App Expr Expr
     | Ann Type Expr
+    | Bul BuiltinValue
+
+
+type BuiltinValue
+    = UnitVal
+    | TrueVal
+    | FalseVal
+    | IntVal Int
+    | FloatVal Float
+    | StringVal String
 
 
 toString : Expr -> String
@@ -33,7 +43,8 @@ toString exp =
                 ++ " }"
 
         Upd name fields ->
-            "{ " ++ toString name
+            "{ "
+                ++ toString name
                 ++ " | "
                 ++ (Dict.toList fields
                         |> List.map (\( name_, exp_ ) -> name_ ++ " : " ++ toString exp_)
@@ -52,3 +63,23 @@ toString exp =
 
         Ann t exp_ ->
             "<" ++ Type.toString t ++ ">" ++ toString exp_
+
+        Bul raw ->
+            case raw of
+                UnitVal ->
+                    "()"
+
+                TrueVal ->
+                    "True"
+
+                FalseVal ->
+                    "False"
+
+                IntVal int ->
+                    String.fromInt int
+
+                FloatVal float ->
+                    String.fromFloat float
+
+                StringVal string ->
+                    "\"" ++ String.replace "\"" "\\\"" string ++ "\""

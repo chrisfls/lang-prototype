@@ -1,11 +1,11 @@
 module Lang.Infer.Expr exposing (infer)
 
+import Dict
 import Lang.Canonical.Expr as Expr exposing (Expr)
 import Lang.Canonical.Type as Type exposing (Type)
 import Lang.Infer.Error exposing (Error(..))
 import Lang.Infer.Return exposing (Return(..))
 import Lang.Infer.State as State exposing (State)
-import Dict
 
 
 
@@ -72,6 +72,26 @@ infer expr state =
                 throw ->
                     throw
 
+        Expr.Bul builtin ->
+            case builtin of
+                Expr.UnitVal ->
+                    Return Type.unit state
+
+                Expr.TrueVal ->
+                    Return Type.bool state
+
+                Expr.FalseVal ->
+                    Return Type.bool state
+
+                Expr.IntVal _ ->
+                    Return Type.int state
+
+                Expr.FloatVal _ ->
+                    Return Type.float state
+
+                Expr.StringVal _ ->
+                    Return Type.string state
+
 
 inferTup : List Expr -> List Type -> State -> Return
 inferTup types xs state =
@@ -87,16 +107,17 @@ inferTup types xs state =
                 throw ->
                     throw
 
-inferRec : Maybe Type -> List (String, Expr) -> List (String, Type) -> State -> Return
+
+inferRec : Maybe Type -> List ( String, Expr ) -> List ( String, Type ) -> State -> Return
 inferRec ext types xs state =
     case types of
         [] ->
             Return (Type.Rec ext (Dict.fromList xs)) state
 
-        (name, head) :: tail ->
+        ( name, head ) :: tail ->
             case infer head state of
                 Return t nextState ->
-                    inferRec ext tail ((name, t) :: xs) nextState
+                    inferRec ext tail (( name, t ) :: xs) nextState
 
                 throw ->
                     throw

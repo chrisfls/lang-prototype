@@ -1,8 +1,8 @@
 module Lang.Canonical.Expr.Fixtures exposing (..)
 
-import Lang.Canonical.Expr exposing (Expr(..))
-import Lang.Infer.Error exposing (Error(..))
 import Dict
+import Lang.Canonical.Expr exposing (BuiltinValue(..), Expr(..))
+import Lang.Infer.Error exposing (Error(..))
 
 
 two : Expr
@@ -73,3 +73,45 @@ recordUpdate =
                                 , ( "b", b )
                                 ]
                                 |> Upd c
+
+
+alwaysUnit : Expr
+alwaysUnit =
+    -- \a -> ()
+    Lam "a" <|
+        \_ -> Bul UnitVal
+
+
+alwaysTrue : Expr
+alwaysTrue =
+    -- \a -> True
+    Lam "a" <|
+        \_ -> Bul TrueVal
+
+
+alwaysFalse : Expr
+alwaysFalse =
+    -- \a -> False
+    Lam "a" <|
+        \_ -> Bul FalseVal
+
+
+alwaysInt : Expr
+alwaysInt =
+    -- \a -> 0
+    Lam "a" <|
+        \_ -> Bul <| IntVal 0
+
+
+alwaysFloat : Expr
+alwaysFloat =
+    -- \a -> 0.5
+    Lam "a" <|
+        \_ -> Bul <| FloatVal 0.5
+
+
+alwaysString : Expr
+alwaysString =
+    -- \a -> "example"
+    Lam "a" <|
+        \_ -> Bul <| StringVal "example"

@@ -39,6 +39,30 @@ suite =
                 \_ ->
                     toResult Fixtures.recordUpdate
                         |> Expect.equal (Ok "a -> b -> c -> { c | a : a, b : b }")
+            , test "\\a -> ()" <|
+                \_ ->
+                    toResult Fixtures.alwaysUnit
+                        |> Expect.equal (Ok "a -> ()")
+            , test "\\a -> True" <|
+                \_ ->
+                    toResult Fixtures.alwaysTrue
+                        |> Expect.equal (Ok "a -> Bool")
+            , test "\\a -> False" <|
+                \_ ->
+                    toResult Fixtures.alwaysFalse
+                        |> Expect.equal (Ok "a -> Bool")
+            , test "\\a -> 0" <|
+                \_ ->
+                    toResult Fixtures.alwaysInt
+                        |> Expect.equal (Ok "a -> Int")
+            , test "\\a -> 0.5" <|
+                \_ ->
+                    toResult Fixtures.alwaysFloat
+                        |> Expect.equal (Ok "a -> Float")
+            , test "\\a -> \"example\"" <|
+                \_ ->
+                    toResult Fixtures.alwaysString
+                        |> Expect.equal (Ok "a -> String")
             ]
         ]
 

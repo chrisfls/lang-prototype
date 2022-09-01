@@ -51,6 +51,9 @@ insert index t state =
                 )
                 state
 
+        (Bul _) as t_ ->
+            insertHelp index t_ state
+
 
 nextTVar : State -> ( Type, State )
 nextTVar state =
@@ -94,6 +97,9 @@ unwrap t state =
         Rec mx xs ->
             Rec (Maybe.map (\t_ -> unwrap t_ state) mx)
                 (Dict.map (\_ t_ -> unwrap t_ state) xs)
+
+        Bul _ ->
+            t
 
 
 

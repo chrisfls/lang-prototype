@@ -1,24 +1,58 @@
-module Lang.Canonical.Type exposing (Type(..), toString)
+module Lang.Canonical.Type exposing
+    ( Type(..)
+    , bool
+    , float
+    , int
+    , string
+    , toString
+    , unit
+    )
 
 import Dict exposing (Dict)
 
 
 
--- TODO: add internal types
 -- TODO: add union types
 -- TODO: add module types (they will work exactly like records)
 -- TODO: add linear types
+
 
 type Type
     = Var Int
     | Arr Type Type
     | Tup (List Type)
     | Rec (Maybe Type) (Dict String Type)
+    | Bul String
 
 
 toString : Type -> String
 toString t =
     Tuple.first (toStringHelp t (ToStringState 0 Dict.empty))
+
+
+unit : Type
+unit =
+    Bul "()"
+
+
+bool : Type
+bool =
+    Bul "Bool"
+
+
+int : Type
+int =
+    Bul "Int"
+
+
+float : Type
+float =
+    Bul "Float"
+
+
+string : Type
+string =
+    Bul "String"
 
 
 
@@ -99,6 +133,9 @@ toStringHelp t state =
                             ( "", finalState )
             in
             ( "{ " ++ ext ++ String.join ", " names ++ " }", finalState_ )
+
+        Bul name ->
+            ( name, state )
 
 
 getVarName : Int -> ToStringState -> ( String, ToStringState )
