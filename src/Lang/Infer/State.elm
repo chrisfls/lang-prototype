@@ -55,6 +55,10 @@ insert index t state =
             insertHelp index t_ state
 
 
+        (Adt _ _) as t_ ->
+            insertHelp index t_ state
+
+
 nextTVar : State -> ( Type, State )
 nextTVar state =
     let
@@ -99,6 +103,9 @@ unwrap t state =
                 (Dict.map (\_ t_ -> unwrap t_ state) xs)
 
         Bul _ ->
+            t
+
+        Adt _ _ ->
             t
 
 

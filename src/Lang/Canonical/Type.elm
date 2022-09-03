@@ -23,6 +23,7 @@ type Type
     | Tup (List Type)
     | Rec (Maybe Type) (Dict String Type)
     | Bul String
+    | Adt String (List ( String, Type ))
 
 
 toString : Type -> String
@@ -135,6 +136,9 @@ toStringHelp t state =
             ( "{ " ++ ext ++ String.join ", " names ++ " }", finalState_ )
 
         Bul name ->
+            ( name, state )
+
+        Adt name _ ->
             ( name, state )
 
 

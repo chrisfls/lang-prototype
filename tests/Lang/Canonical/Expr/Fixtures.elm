@@ -115,3 +115,16 @@ alwaysString =
     -- \a -> "example"
     Lam "a" <|
         \_ -> Bul <| StringVal "example"
+
+alwaysSome : Expr
+alwaysSome =
+    Lam "a" <|
+        \_ ->
+            App (Var "Some") (Bul UnitVal)
+
+
+alwaysNone : Expr
+alwaysNone =
+    Lam "a" <|
+        \_ ->
+            (Var "None")
