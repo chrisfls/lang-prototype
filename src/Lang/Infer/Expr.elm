@@ -24,6 +24,21 @@ infer expr state =
         Expr.Rec types ->
             inferRec Nothing (Dict.toList types) [] state
 
+        Expr.Fil name field ->
+
+            case infer name state of
+                Return nameT newState1 ->
+                    Debug.todo "inferFil"
+                    -- let
+                    --     ( fieldT, newState2 ) =
+                    --         State.nextTVar newState1
+                    -- in
+                    -- inferRec (Just nameT) [] [(field, fieldT)] newState2
+
+                throw ->
+                    throw
+
+
         Expr.Upd name types ->
             case infer name state of
                 Return nameT finalState ->

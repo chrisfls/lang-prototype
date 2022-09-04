@@ -4,9 +4,12 @@ import Dict exposing (Dict)
 import Lang.Canonical.Type as Type exposing (Type)
 
 
+-- TODO: pattern match
+
 type Expr
     = Var String
     | Tup (List Expr)
+    | Fil Expr String
     | Rec (Dict String Expr)
     | Upd Expr (Dict String Expr)
       -- I might have to replace HOAS with FOAS eventually
@@ -51,6 +54,9 @@ toString exp =
                         |> String.join ", "
                    )
                 ++ " }"
+
+        Fil body field ->
+            toString body ++ "." ++ field
 
         Lam name body ->
             "(" ++ name ++ " -> " ++ toString (body (Var name)) ++ ")"

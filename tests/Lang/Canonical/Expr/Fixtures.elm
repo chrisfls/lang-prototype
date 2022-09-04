@@ -75,6 +75,13 @@ recordUpdate =
                                 |> Upd c
 
 
+recordAccess : Expr
+recordAccess =
+    -- \a -> a.a
+    Lam "a" <|
+        \a ->
+            Fil a "a"
+
 alwaysUnit : Expr
 alwaysUnit =
     -- \a -> ()
