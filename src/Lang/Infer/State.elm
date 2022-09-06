@@ -54,7 +54,6 @@ insert index t state =
         (Bul _) as t_ ->
             insertHelp index t_ state
 
-
         (Adt _ _) as t_ ->
             insertHelp index t_ state
 

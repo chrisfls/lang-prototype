@@ -82,6 +82,7 @@ recordAccess =
         \a ->
             Fil a "a"
 
+
 alwaysUnit : Expr
 alwaysUnit =
     -- \a -> ()
@@ -123,6 +124,7 @@ alwaysString =
     Lam "a" <|
         \_ -> Bul <| StringVal "example"
 
+
 alwaysSome : Expr
 alwaysSome =
     Lam "a" <|
@@ -134,4 +136,4 @@ alwaysNone : Expr
 alwaysNone =
     Lam "a" <|
         \_ ->
-            (Var "None")
+            Var "None"
