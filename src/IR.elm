@@ -1,5 +1,6 @@
 module IR exposing
     ( IR(..)
+    , ApplyArgs
     , Defs(..)
     , Path(..)
     , Privacy(..)
@@ -8,6 +9,7 @@ module IR exposing
 {-|
 
 @docs IR
+@docs ApplyArgs
 @docs Defs
 @docs Path
 @docs Privacy
@@ -20,19 +22,26 @@ import IR.Spec exposing (Spec, SpecName)
 
 
 type IR
-    = Deps ModuleName Path IR
-    | Defs Defs
+    = Argument ModuleName (Maybe Spec) IR
+    | Import ModuleName Path ApplyArgs IR
+    | Forward Expr Path ApplyArgs IR
+    | Body Defs
+
+
+type alias ApplyArgs =
+    List ModuleName
 
 
 
 -- TODO: verify if forall should be added
 --       to DefSpec or to Spec itself
--- TODO: DefMacro
 
 
 type Defs
     = DefSpec Privacy SpecName Spec Defs
+    | DefMacro Privacy ExprName Expr Defs
     | DefExpr Privacy ExprName Expr Defs
+    | ApplyMacro Expr Defs
     | DefModule
 
 
