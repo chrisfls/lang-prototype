@@ -4,6 +4,7 @@
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
+    "start": "elm reactor",
     "fmt": "elm-format --yes src tests",
     "test": "elm-test"
   },
