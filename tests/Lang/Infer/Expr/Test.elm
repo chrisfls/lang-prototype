@@ -39,10 +39,10 @@ suite =
                 \_ ->
                     toResult Fixtures.recordUpdate
                         |> Expect.equal (Ok "a -> b -> c -> { c | a : a, b : b }")
-            , test "\\a -> a.a" <|
-                \_ ->
-                    toResult Fixtures.recordAccess
-                        |> Expect.equal (Ok "{ b | a : a } -> c")
+            -- , test "\\a -> a.a" <|
+            --     \_ ->
+            --         toResult Fixtures.recordAccess
+            --             |> Expect.equal (Ok "{ b | a : a } -> c")
             , test "\\a -> ()" <|
                 \_ ->
                     toResult Fixtures.alwaysUnit
