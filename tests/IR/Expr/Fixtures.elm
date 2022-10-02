@@ -27,3 +27,10 @@ apply2 =
         Lambda "a" <|
             Lambda "b" <|
                 Apply (Apply (Variable "f") (Variable "a")) (Variable "b")
+
+
+always : Expr
+always =
+    Lambda "a" <|
+        Lambda "b" <|
+            Variable "a"

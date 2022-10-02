@@ -94,8 +94,8 @@ unwrap spec state =
                 Nothing ->
                     spec
 
-        Arrow func argm ->
-            Arrow (unwrap func state) (unwrap argm state)
+        Arrow name func argm ->
+            Arrow name (unwrap func state) (unwrap argm state)
 
         Linear subSpec ->
             Linear (unwrap subSpec state)

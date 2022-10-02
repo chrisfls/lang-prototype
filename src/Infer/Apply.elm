@@ -29,13 +29,14 @@ constrain index spec state =
         returnReference =
             Reference returnAddress
     in
-    Return returnReference (State.insertAtAddress index (Arrow spec returnReference) nextState)
+    -- TODO: give a proper name or create a type of arrow without named fields
+    Return returnReference (State.insertAtAddress index (Arrow Nothing spec returnReference) nextState)
 
 
 contrainWith : Spec -> Spec -> State -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
         _ ->

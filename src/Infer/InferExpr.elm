@@ -44,7 +44,7 @@ infer expr state =
                     -- if value returned is not another linear function
                     -- mark which vars are freed here
                     State.unassignName name lastState
-                        |> Return (Spec.Arrow argumentSpec returnSpec)
+                        |> Return (Spec.Arrow (Just name) argumentSpec returnSpec)
 
                 throw ->
                     throw

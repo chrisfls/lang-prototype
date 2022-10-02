@@ -43,3 +43,9 @@ setJust
     | None:
       # this free must be infered
       free m in Some b
+
+# both forms of specifying function types as aliases exist
+type Always a b = a -> b -> a
+
+# the second form is useful for enforcing frees
+type AlwaysNamed a b = a: a -> b: b -> free b in a

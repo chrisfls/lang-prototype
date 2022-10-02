@@ -5,9 +5,9 @@ import Dict exposing (Dict)
 
 type Spec
     = Reference Address
-    | Arrow Spec Spec
+    | Arrow (Maybe String) Spec Spec
     | Linear Spec
-    | Free Address Spec
+    | Free String Spec
 
 
 type alias Address =
@@ -37,42 +37,48 @@ toStringHelp spec state =
         Reference address ->
             getVarName address state
 
-        Arrow ((Arrow _ _) as argument) return ->
-            let
-                ( argumentString, newState ) =
-                    toStringHelp argument state
+        Arrow name argument return ->
+            arrowToString name argument return state
 
-                ( returnString, finalState ) =
-                    toStringHelp return newState
-            in
-            ( "(" ++ argumentString ++ ") -> " ++ returnString, finalState )
-
-        Arrow argument return ->
-            let
-                ( argumentString, newState ) =
-                    toStringHelp argument state
-
-                ( returnString, finalState ) =
-                    toStringHelp return newState
-            in
-            ( argumentString ++ " -> " ++ returnString, finalState )
-
-        Linear ((Arrow _ _) as arrow) ->
-            let
-                ( arrowString, newState ) =
-                    toStringHelp arrow state
-            in
-            ( "(" ++ arrowString ++ ")!", newState )
+        Linear ((Arrow _ _ _) as arrow) ->
+            toStringHelp arrow state
 
         Linear subSpec ->
+            toStringHelp subSpec state
+
+        Free name subSpec ->
             let
                 ( subSpecString, newState ) =
                     toStringHelp subSpec state
             in
-            ( subSpecString ++ "!", newState )
+            ( "free " ++ name ++ " in " ++ subSpecString, newState )
 
-        Free _ _ ->
-            Debug.todo "TODO FREE "
+
+arrowToString : Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
+arrowToString maybeName argument return state =
+    let
+        ( argumentString, newState ) =
+            case argument of
+                Arrow _ _ _ ->
+                    Tuple.mapFirst wrapParens <| toStringHelp argument state
+
+                _ ->
+                    toStringHelp argument state
+
+        ( returnString, finalState ) =
+            toStringHelp return newState
+    in
+    case maybeName of
+        Just name ->
+            ( name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
+
+        Nothing ->
+            ( argumentString ++ " -> " ++ returnString, finalState )
+
+
+wrapParens : String -> String
+wrapParens str =
+    "(" ++ str ++ ")"
 
 
 getVarName : Address -> ToStringState -> ( String, ToStringState )

@@ -17,15 +17,19 @@ suite =
             [ test "\\s z -> s (s z)" <|
                 \_ ->
                     toResult Fixtures.two
-                        |> Expect.equal (Ok "(a -> a) -> a -> a")
+                        |> Expect.equal (Ok "s: (a -> a) -> z: a -> a")
             , test "\\f g a -> g (f a)" <|
                 \_ ->
                     toResult Fixtures.compose
-                        |> Expect.equal (Ok "(a -> b) -> (b -> c) -> a -> c")
+                        |> Expect.equal (Ok "f: (a -> b) -> g: (b -> c) -> a: a -> c")
             , test "\\f a b -> f a b" <|
                 \_ ->
                     toResult Fixtures.apply2
-                        |> Expect.equal (Ok "(a -> b -> c) -> a -> b -> c")
+                        |> Expect.equal (Ok "f: (a -> b -> c) -> a: a -> b: b -> c")
+            , test "\\a b -> a" <|
+                \_ ->
+                    toResult Fixtures.always
+                        |> Expect.equal (Ok "a: a -> b: b -> free b in a")
             ]
         ]
 
