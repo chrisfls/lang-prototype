@@ -1,0 +1,45 @@
+# single line comment
+
+###
+HEREDOC
+###
+
+# borrows are tracked by frees
+# frees are infered as early as possible
+discard
+  (a: a)
+  (b: b) free a
+-> b =
+  b
+
+# if a is linear then the returned (b -> a) is linear too
+always
+  (a: a)
+  (b: b)
+-> a free b =
+  a
+
+# unions and aliases share the same `type` keyword, but unions have | prefixes
+type Maybe x =
+  | Some x
+  | None
+
+# opaque types can be declared with a single |
+type Id =
+  | Id String
+
+# some functions only work with linear types
+setJust
+  (b: b)
+  (m: *Maybe a)
+-> *Maybe b =
+  # set is like case except it allows changing the values
+  # the returned type must be a tag to make set work
+  set m in
+    | Some _:
+      # if a is *a, a free for a should be inserted here
+      Some b
+
+    | None:
+      # this free must be infered
+      free m in Some b
