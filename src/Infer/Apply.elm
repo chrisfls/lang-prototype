@@ -29,7 +29,7 @@ constrain index spec state =
         returnReference =
             Reference returnAddress
     in
-    -- TODO: give a proper name or create a type of arrow without named fields
+    -- NOTE: having unamed arrows will hurt ability to infer frees...
     Return returnReference (State.insertAtAddress index (Arrow Nothing spec returnReference) nextState)
 
 
