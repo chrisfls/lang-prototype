@@ -36,14 +36,14 @@ infer expr state =
                     Spec.Reference address
 
                 nextState2 =
-                    State.assignName name argumentSpec nextState1
+                    State.insertAtName name argumentSpec nextState1
             in
             case infer body nextState2 of
                 Return returnSpec lastState ->
                     -- returned spec must be linear too
                     -- if value returned is not another linear function
                     -- mark which vars are freed here
-                    State.unassignName name lastState
+                    State.removeAtName name lastState
                         |> Return (Spec.Arrow (Just name) argumentSpec returnSpec)
 
                 throw ->

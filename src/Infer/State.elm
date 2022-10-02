@@ -1,4 +1,4 @@
-module Infer.State exposing (State, assignName, empty, getAtAddress, getByName, insertAtAddress, nextFreeAddress, unassignName, unwrap)
+module Infer.State exposing (State, insertAtName, empty, getByAddress, getByName, insertAtAddress, nextFreeAddress, removeAtName, unwrap)
 
 import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
@@ -38,13 +38,13 @@ insertAtAddress address spec state =
     { state | graph = IntDict.insert address spec state.graph }
 
 
-assignName : String -> Spec -> State -> State
-assignName name spec state =
+insertAtName : String -> Spec -> State -> State
+insertAtName name spec state =
     { state | scope = Dict.insert name spec state.scope }
 
 
-unassignName : String -> State -> State
-unassignName name state =
+removeAtName : String -> State -> State
+removeAtName name state =
     { state | scope = Dict.remove name state.scope }
 
 
@@ -53,8 +53,8 @@ nextFreeAddress ({ count } as state) =
     ( count, { state | count = count + 1 } )
 
 
-getAtAddress : Address -> State -> Maybe Spec
-getAtAddress index state =
+getByAddress : Address -> State -> Maybe Spec
+getByAddress index state =
     getHelp index state.graph
 
 
@@ -65,7 +65,7 @@ getByName name state =
         (Just spec) as justSpec ->
             case spec of
                 Reference address ->
-                    case getAtAddress address state of
+                    case getByAddress address state of
                         (Just _) as justSpec_ ->
                             justSpec_
 
@@ -83,7 +83,7 @@ unwrap : Spec -> State -> Spec
 unwrap spec state =
     case spec of
         Reference address ->
-            case getAtAddress address state of
+            case getByAddress address state of
                 Just nextSpec ->
                     if spec == nextSpec then
                         spec

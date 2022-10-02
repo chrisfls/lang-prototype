@@ -9,7 +9,7 @@ apply : Spec -> Spec -> State -> Return
 apply functionSpec argumentSpec state =
     case functionSpec of
         Reference address ->
-            case State.getAtAddress address state of
+            case State.getByAddress address state of
                 Just specAtAddress ->
                     contrainWith specAtAddress argumentSpec state
 
