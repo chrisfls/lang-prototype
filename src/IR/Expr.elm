@@ -5,7 +5,8 @@ import IR.Spec as Spec exposing (Spec)
 
 type Expr
     = Variable String
-    | Lambda Linear String Expr
+    | Lambda String Expr
+    | Closure String Expr
     | Apply Expr Expr
     | Free String Expr
     | Annotation Skip Spec Expr
@@ -27,10 +28,10 @@ toString expr =
         Variable name ->
             name
 
-        Lambda (Just True) name body ->
+        Closure name body ->
             "(*" ++ name ++ " -> " ++ toString body ++ ")"
 
-        Lambda _ name body ->
+        Lambda name body ->
             "(" ++ name ++ " -> " ++ toString body ++ ")"
 
         Apply function argument ->
@@ -39,7 +40,7 @@ toString expr =
         Free name body ->
             "free " ++ name ++ " in " ++ toString body
 
-        Annotation _ spec (Lambda _ name body) ->
+        Annotation _ spec (Lambda name body) ->
             -- WTF is this? I don't remember
             "(" ++ name ++ " [" ++ Spec.toString spec ++ "] -> " ++ toString body ++ ")"
 

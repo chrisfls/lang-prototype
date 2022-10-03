@@ -18,31 +18,20 @@ infer expr state =
                 Nothing ->
                     Debug.todo "undefined error"
 
-        Lambda linear name body ->
+        Closure name body ->
             -- TODO: optimize
-            -- TODO: error if function is explicitly or implicitly non-linear when linear variables are available
             let
                 ( address, nextState1 ) =
                     State.nextFreeAddress state
 
                 argumentSpec =
-                    case linear of
-                        Just True ->
-                            Spec.Linear <| Spec.Reference address
-
-                        _ ->
-                            Spec.Reference address
+                    Spec.Linear <| Spec.Reference address
 
                 nextState2 =
                     State.insertAtName name argumentSpec nextState1
 
                 nextState3 =
-                    -- TODO: if possible combine this with previous `case linear of`
-                    if linear /= Just False then
-                        State.insertLinear name nextState2
-
-                    else
-                        nextState2
+                    State.insertLinear name nextState2
             in
             case infer body nextState3 of
                 Return returnSpec nextState4 ->
@@ -55,10 +44,39 @@ infer expr state =
                         inferedSpec =
                             Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState4) returnSpec)
                     in
-                    if linear == Just True then
-                        Return (Spec.Linear inferedSpec) lastState
-                    else
-                        Return inferedSpec lastState
+                    Return (Spec.Linear inferedSpec) lastState
+
+                throw ->
+                    throw
+
+
+        Lambda name body ->
+            -- TODO: error if function is explicitly or implicitly non-linear when linear variables are available
+            let
+                ( address, nextState1 ) =
+                    State.nextFreeAddress state
+
+                argumentSpec =
+                    Spec.Reference address
+
+                nextState2 =
+                    State.insertAtName name argumentSpec nextState1
+
+                nextState3 =
+                    State.insertLinear name nextState2
+            in
+            case infer body nextState3 of
+                Return returnSpec nextState4 ->
+                    let
+                        lastState =
+                            State.removeAtName name nextState4
+                                |> State.removeBorrow name
+                                |> State.removeLinear name
+
+                        inferedSpec =
+                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState4) returnSpec)
+                    in
+                    Return inferedSpec lastState
 
                 throw ->
                     throw

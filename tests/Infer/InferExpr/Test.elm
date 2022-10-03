@@ -30,14 +30,10 @@ suite =
                 \_ ->
                     toResult Fixtures.discard
                         |> Expect.equal (Ok "a: a -> *b: b -> free b in a")
-            , test "\\a b -> free? b in a" <|
-                \_ ->
-                    toResult Fixtures.discardOrAlways
-                        |> Expect.equal (Ok "a: a -> b: b -> free b in a")
-            , test "\\a b -> a" <|
+            , test "\\a b -> free b in a" <|
                 \_ ->
                     toResult Fixtures.always
-                        |> Expect.equal (Ok "a: a -> b: b -> a")
+                        |> Expect.equal (Ok "a: a -> b: b -> free b in a")
             ]
         ]
 
