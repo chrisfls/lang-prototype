@@ -26,16 +26,12 @@ infer expr state =
 
                 argumentSpec =
                     Spec.Linear <| Spec.Reference address
-
-                nextState2 =
-                    State.insertAtName name argumentSpec nextState1
             in
-            case infer body nextState2 of
+            case infer body <| State.insertAtName name argumentSpec nextState1 of
                 Return returnSpec nextState3 ->
                     let
                         lastState =
                             State.removeAtName name nextState3
-                                |> State.removeBorrow name
 
                         inferedSpec =
                             Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState3) returnSpec)
@@ -44,7 +40,6 @@ infer expr state =
 
                 throw ->
                     throw
-
 
         Lambda name body ->
             -- TODO: error if function is explicitly or implicitly non-linear when linear variables are available
@@ -63,7 +58,6 @@ infer expr state =
                     let
                         lastState =
                             State.removeAtName name nextState3
-                                |> State.removeBorrow name
 
                         inferedSpec =
                             Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState3) returnSpec)
@@ -88,7 +82,7 @@ infer expr state =
                     throw
 
         Free name subExpr ->
-            case infer subExpr <| State.removeBorrow name <| State.removeAtName name state of
+            case infer subExpr <| State.removeAtName name state of
                 Return argumentSpec nextState ->
                     Return (Spec.Free name argumentSpec) nextState
 

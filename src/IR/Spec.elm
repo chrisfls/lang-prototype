@@ -72,6 +72,7 @@ arrowToString linear maybeName argument return state =
         Just name ->
             if linear then
                 ( "*" ++ name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
+
             else
                 ( name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
 

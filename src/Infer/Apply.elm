@@ -8,6 +8,7 @@ import Infer.State as State exposing (State)
 apply : Spec -> Spec -> State -> Return
 apply functionSpec argumentSpec state =
     case functionSpec of
+        -- TODO: deal with linearity
         Reference address ->
             case State.getByAddress address state of
                 Just specAtAddress ->

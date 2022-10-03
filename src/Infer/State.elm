@@ -1,5 +1,4 @@
-module Infer.State exposing (State, empty, getByAddress, getByName, insertAtAddress, insertAtName, nextFreeAddress, removeAtName, unwrap, getFrees, insertBorrow, removeBorrow)
-
+module Infer.State exposing (State, empty, getByAddress, getByName, getFrees, insertAtAddress, insertAtName, insertBorrow, nextFreeAddress, removeAtName, unwrap)
 
 import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
@@ -7,8 +6,8 @@ import IntDict exposing (IntDict)
 import Set exposing (Set)
 
 
--- TODO: make free work for tracking free vars and used vars
 
+-- TODO: make free work for tracking free vars and used vars
 
 
 type alias State =
@@ -50,14 +49,10 @@ insertBorrow : String -> State -> State
 insertBorrow name state =
     { state | borrow = Set.insert name state.borrow }
 
+
 removeAtName : String -> State -> State
 removeAtName name state =
-    { state | scope = Dict.remove name state.scope }
-
-
-removeBorrow : String -> State -> State
-removeBorrow name state =
-    { state | borrow = Set.remove name state.borrow }
+    { state | scope = Dict.remove name state.scope, borrow = Set.remove name state.borrow }
 
 
 nextFreeAddress : State -> ( Address, State )
@@ -69,12 +64,12 @@ getByAddress : Address -> State -> Maybe Spec
 getByAddress index state =
     getHelp index state.graph
 
+
 getFrees : State -> List String
 getFrees state =
     -- TODO: optimize
     Dict.keys state.scope
-        |> List.filter (\name -> not <| Set.member name state.borrow )
-
+        |> List.filter (\name -> not <| Set.member name state.borrow)
 
 
 getByName : String -> State -> Maybe Spec
@@ -121,7 +116,6 @@ unwrap spec state =
 
         Free name subSpec ->
             Free name (unwrap subSpec state)
-
 
 
 
