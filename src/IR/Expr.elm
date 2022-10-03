@@ -28,11 +28,11 @@ toString expr =
         Variable name ->
             name
 
-        Closure name body ->
-            "(*" ++ name ++ " -> " ++ toString body ++ ")"
-
         Lambda name body ->
             "(" ++ name ++ " -> " ++ toString body ++ ")"
+
+        Closure name body ->
+            "(*" ++ name ++ " -> " ++ toString body ++ ")"
 
         Apply function argument ->
             "(" ++ toString function ++ " " ++ toString argument ++ ")"

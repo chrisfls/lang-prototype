@@ -1,4 +1,4 @@
-module Infer.State exposing (State, empty, getByAddress, getByName, insertAtAddress, insertAtName, insertLinear, nextFreeAddress, removeAtName, removeLinear, unwrap, getFrees, insertBorrow, removeBorrow)
+module Infer.State exposing (State, empty, getByAddress, getByName, insertAtAddress, insertAtName, nextFreeAddress, removeAtName, unwrap, getFrees, insertBorrow, removeBorrow)
 
 
 import Dict exposing (Dict)
@@ -15,7 +15,6 @@ type alias State =
     { graph : Graph
     , count : Int
     , scope : Scope
-    , linear : Set String
     , borrow : Set String
     }
 
@@ -34,7 +33,7 @@ type alias Scope =
 
 empty : State
 empty =
-    State IntDict.empty 0 Dict.empty Set.empty Set.empty
+    State IntDict.empty 0 Dict.empty Set.empty
 
 
 insertAtAddress : Address -> Spec -> State -> State
@@ -47,10 +46,6 @@ insertAtName name spec state =
     { state | scope = Dict.insert name spec state.scope }
 
 
-insertLinear : String -> State -> State
-insertLinear name state =
-    { state | linear = Set.insert name state.linear }
-
 insertBorrow : String -> State -> State
 insertBorrow name state =
     { state | borrow = Set.insert name state.borrow }
@@ -59,10 +54,6 @@ removeAtName : String -> State -> State
 removeAtName name state =
     { state | scope = Dict.remove name state.scope }
 
-
-removeLinear : String -> State -> State
-removeLinear name state =
-    { state | linear = Set.remove name state.linear }
 
 removeBorrow : String -> State -> State
 removeBorrow name state =
@@ -81,7 +72,7 @@ getByAddress index state =
 getFrees : State -> List String
 getFrees state =
     -- TODO: optimize
-    Set.toList state.linear
+    Dict.keys state.scope
         |> List.filter (\name -> not <| Set.member name state.borrow )
 
 

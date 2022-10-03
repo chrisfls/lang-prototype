@@ -29,20 +29,16 @@ infer expr state =
 
                 nextState2 =
                     State.insertAtName name argumentSpec nextState1
-
-                nextState3 =
-                    State.insertLinear name nextState2
             in
-            case infer body nextState3 of
-                Return returnSpec nextState4 ->
+            case infer body nextState2 of
+                Return returnSpec nextState3 ->
                     let
                         lastState =
-                            State.removeAtName name nextState4
+                            State.removeAtName name nextState3
                                 |> State.removeBorrow name
-                                |> State.removeLinear name
 
                         inferedSpec =
-                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState4) returnSpec)
+                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState3) returnSpec)
                     in
                     Return (Spec.Linear inferedSpec) lastState
 
@@ -61,20 +57,16 @@ infer expr state =
 
                 nextState2 =
                     State.insertAtName name argumentSpec nextState1
-
-                nextState3 =
-                    State.insertLinear name nextState2
             in
-            case infer body nextState3 of
-                Return returnSpec nextState4 ->
+            case infer body nextState2 of
+                Return returnSpec nextState3 ->
                     let
                         lastState =
-                            State.removeAtName name nextState4
+                            State.removeAtName name nextState3
                                 |> State.removeBorrow name
-                                |> State.removeLinear name
 
                         inferedSpec =
-                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState4) returnSpec)
+                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState3) returnSpec)
                     in
                     Return inferedSpec lastState
 
@@ -96,7 +88,7 @@ infer expr state =
                     throw
 
         Free name subExpr ->
-            case infer subExpr <| State.removeLinear name <| State.removeBorrow name <| State.removeAtName name state of
+            case infer subExpr <| State.removeBorrow name <| State.removeAtName name state of
                 Return argumentSpec nextState ->
                     Return (Spec.Free name argumentSpec) nextState
 
