@@ -30,11 +30,8 @@ infer expr state =
                         Just True ->
                             Spec.Linear <| Spec.Reference address
 
-                        Just False ->
+                        _ ->
                             Spec.Reference address
-
-                        Nothing ->
-                            Spec.Borrow <| Spec.Reference address
 
                 nextState2 =
                     State.insertAtName name argumentSpec nextState1

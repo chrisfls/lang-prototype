@@ -14,7 +14,7 @@ suite : Test
 suite =
     describe "Lang.Infer.Expr"
         [ describe "infer"
-            [ Test.only <| test "\\s z -> s (s z)" <|
+            [ test "\\s z -> s (s z)" <|
                 \_ ->
                     toResult Fixtures.two
                         |> Expect.equal (Ok "s: (a -> a) -> z: a -> a")

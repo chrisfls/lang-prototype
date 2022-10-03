@@ -131,8 +131,6 @@ unwrap spec state =
         Free name subSpec ->
             Free name (unwrap subSpec state)
 
-        Borrow subSpec ->
-            Borrow (unwrap subSpec state)
 
 
 

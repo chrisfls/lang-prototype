@@ -7,7 +7,6 @@ type Spec
     = Reference Address
     | Arrow (Maybe Linear) (Maybe String) Spec Spec
     | Linear Spec
-    | Borrow Spec
     | Free String Spec
 
 
@@ -45,9 +44,6 @@ toStringHelp spec state =
             toStringHelp arrow state
 
         Linear subSpec ->
-            toStringHelp subSpec state
-
-        Borrow subSpec ->
             toStringHelp subSpec state
 
         Free name subSpec ->
