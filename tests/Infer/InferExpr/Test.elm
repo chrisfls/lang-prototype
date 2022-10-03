@@ -14,7 +14,7 @@ suite : Test
 suite =
     describe "Lang.Infer.Expr"
         [ describe "infer"
-            [ test "\\s z -> s (s z)" <|
+            [ Test.only <| test "\\s z -> s (s z)" <|
                 \_ ->
                     toResult Fixtures.two
                         |> Expect.equal (Ok "s: (a -> a) -> z: a -> a")
@@ -26,10 +26,18 @@ suite =
                 \_ ->
                     toResult Fixtures.apply2
                         |> Expect.equal (Ok "f: (a -> b -> c) -> a: a -> b: b -> c")
+            , test "\\a *b -> free b in a" <|
+                \_ ->
+                    toResult Fixtures.discard
+                        |> Expect.equal (Ok "a: a -> *b: b -> free b in a")
+            , test "\\a b -> free? b in a" <|
+                \_ ->
+                    toResult Fixtures.discardOrAlways
+                        |> Expect.equal (Ok "a: a -> b: b -> free b in a")
             , test "\\a b -> a" <|
                 \_ ->
                     toResult Fixtures.always
-                        |> Expect.equal (Ok "a: a -> b: b -> free b in a")
+                        |> Expect.equal (Ok "a: a -> b: b -> a")
             ]
         ]
 
@@ -38,6 +46,11 @@ toResult : Expr -> Result String String
 toResult expr =
     case InferExpr.infer expr State.empty of
         Return spec state ->
+            let
+                _ =
+                    Debug.log "Result" spec
+            in
+
             Ok (Spec.toString <| State.unwrap spec state)
 
         Throw msg ->

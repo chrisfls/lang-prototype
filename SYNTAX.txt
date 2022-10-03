@@ -31,7 +31,7 @@ type Id =
 # some functions only work with linear types
 setJust
   (b: b)
-  (m: *Maybe a)
+  (*m: Maybe a)
 -> *Maybe b =
   # set is like case except it allows changing the values
   # the returned type must be a tag to make set work

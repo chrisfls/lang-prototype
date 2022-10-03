@@ -1,18 +1,22 @@
-module Infer.State exposing (State, insertAtName, empty, getByAddress, getByName, insertAtAddress, nextFreeAddress, removeAtName, unwrap)
+module Infer.State exposing (State, empty, getByAddress, getByName, insertAtAddress, insertAtName, insertLinear, nextFreeAddress, removeAtName, removeLinear, unwrap, getFrees, insertBorrow, removeBorrow)
+
 
 import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
 import IntDict exposing (IntDict)
+import Set exposing (Set)
 
 
+-- TODO: make free work for tracking free vars and used vars
 
--- TODO: enrich state with linear values available
 
 
 type alias State =
     { graph : Graph
     , count : Int
     , scope : Scope
+    , linear : Set String
+    , borrow : Set String
     }
 
 
@@ -30,7 +34,7 @@ type alias Scope =
 
 empty : State
 empty =
-    State IntDict.empty 0 Dict.empty
+    State IntDict.empty 0 Dict.empty Set.empty Set.empty
 
 
 insertAtAddress : Address -> Spec -> State -> State
@@ -43,9 +47,26 @@ insertAtName name spec state =
     { state | scope = Dict.insert name spec state.scope }
 
 
+insertLinear : String -> State -> State
+insertLinear name state =
+    { state | linear = Set.insert name state.linear }
+
+insertBorrow : String -> State -> State
+insertBorrow name state =
+    { state | borrow = Set.insert name state.borrow }
+
 removeAtName : String -> State -> State
 removeAtName name state =
     { state | scope = Dict.remove name state.scope }
+
+
+removeLinear : String -> State -> State
+removeLinear name state =
+    { state | linear = Set.remove name state.linear }
+
+removeBorrow : String -> State -> State
+removeBorrow name state =
+    { state | borrow = Set.remove name state.borrow }
 
 
 nextFreeAddress : State -> ( Address, State )
@@ -56,6 +77,13 @@ nextFreeAddress ({ count } as state) =
 getByAddress : Address -> State -> Maybe Spec
 getByAddress index state =
     getHelp index state.graph
+
+getFrees : State -> List String
+getFrees state =
+    -- TODO: optimize
+    Set.toList state.linear
+        |> List.filter (\name -> not <| Set.member name state.borrow )
+
 
 
 getByName : String -> State -> Maybe Spec
@@ -94,14 +122,17 @@ unwrap spec state =
                 Nothing ->
                     spec
 
-        Arrow name func argm ->
-            Arrow name (unwrap func state) (unwrap argm state)
+        Arrow linear name func argm ->
+            Arrow linear name (unwrap func state) (unwrap argm state)
 
         Linear subSpec ->
             Linear (unwrap subSpec state)
 
-        Free _ _ ->
-            Debug.todo "UNWRAP FREE"
+        Free name subSpec ->
+            Free name (unwrap subSpec state)
+
+        Borrow subSpec ->
+            Borrow (unwrap subSpec state)
 
 
 

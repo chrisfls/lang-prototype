@@ -30,17 +30,17 @@ constrain index spec state =
             Reference returnAddress
     in
     -- NOTE: having unamed arrows will hurt ability to infer frees...
-    Return returnReference (State.insertAtAddress index (Arrow Nothing spec returnReference) nextState)
+    Return returnReference (State.insertAtAddress index (Arrow Nothing Nothing spec returnReference) nextState)
 
 
 contrainWith : Spec -> Spec -> State -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
-        _ ->
-            Throw "TODO: try or elaborate why you can't constrain tB to tA when tA is not an arrow"
+        spec ->
+            Debug.todo <| "contrainWith " ++ Debug.toString spec
 
 
 constrainFunctionWith : Spec -> Spec -> Spec -> State -> Return
@@ -50,5 +50,5 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec state =
             State.insertAtAddress address argumentSpec state
                 |> Return returnSpec
 
-        _ ->
-            Throw "TODO: try or elaborate why you can't constrain tB to tA"
+        spec ->
+            Debug.todo <| "constrainFunctionWith " ++ Debug.toString spec
