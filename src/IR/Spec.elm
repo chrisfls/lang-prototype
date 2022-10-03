@@ -5,7 +5,7 @@ import Dict exposing (Dict)
 
 type Spec
     = Reference Address
-    | Arrow (Maybe Linear) (Maybe String) Spec Spec
+    | Arrow (Maybe String) Spec Spec
     | Linear Spec
     | Free String Spec
 
@@ -37,11 +37,11 @@ toStringHelp spec state =
         Reference address ->
             getVarName address state
 
-        Arrow linear name argument return ->
-            arrowToString linear name argument return state
+        Arrow name argument return ->
+            arrowToString False name argument return state
 
-        Linear ((Arrow _ _ _ _) as arrow) ->
-            toStringHelp arrow state
+        Linear (Arrow name argument return) ->
+            arrowToString True name argument return state
 
         Linear subSpec ->
             toStringHelp subSpec state
@@ -54,12 +54,12 @@ toStringHelp spec state =
             ( "free " ++ name ++ " in " ++ subSpecString, newState )
 
 
-arrowToString : Maybe Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
+arrowToString : Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
 arrowToString linear maybeName argument return state =
     let
         ( argumentString, newState ) =
             case argument of
-                Arrow _ _ _ _ ->
+                Arrow _ _ _ ->
                     Tuple.mapFirst wrapParens <| toStringHelp argument state
 
                 _ ->
@@ -70,19 +70,17 @@ arrowToString linear maybeName argument return state =
     in
     case maybeName of
         Just name ->
-            case linear of
-                Just True ->
-                    ( "*" ++ name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
-                _ ->
-                    ( name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
+            if linear then
+                ( "*" ++ name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
+            else
+                ( name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
 
         Nothing ->
-            case linear of
-                Just True ->
-                    ( "*" ++ argumentString ++ " -> " ++ returnString, finalState )
+            if linear then
+                ( "*" ++ argumentString ++ " -> " ++ returnString, finalState )
 
-                _ ->
-                    ( argumentString ++ " -> " ++ returnString, finalState )
+            else
+                ( argumentString ++ " -> " ++ returnString, finalState )
 
 
 wrapParens : String -> String

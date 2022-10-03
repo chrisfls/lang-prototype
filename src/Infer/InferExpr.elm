@@ -53,9 +53,12 @@ infer expr state =
                                 |> State.removeLinear name
 
                         inferedSpec =
-                            Spec.Arrow linear (Just name) argumentSpec (wrapInFrees (State.getFrees nextState4) returnSpec)
+                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState4) returnSpec)
                     in
-                    Return inferedSpec lastState
+                    if linear == Just True then
+                        Return (Spec.Linear inferedSpec) lastState
+                    else
+                        Return inferedSpec lastState
 
                 throw ->
                     throw

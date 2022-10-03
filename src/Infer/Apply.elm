@@ -21,7 +21,7 @@ apply functionSpec argumentSpec state =
 
 
 constrain : Int -> Spec -> State -> Return
-constrain index spec state =
+constrain index argumentSpec state =
     let
         ( returnAddress, nextState ) =
             State.nextFreeAddress state
@@ -30,13 +30,13 @@ constrain index spec state =
             Reference returnAddress
     in
     -- NOTE: having unamed arrows will hurt ability to infer frees...
-    Return returnReference (State.insertAtAddress index (Arrow Nothing Nothing spec returnReference) nextState)
+    Return returnReference (State.insertAtAddress index (Arrow Nothing argumentSpec returnReference) nextState)
 
 
 contrainWith : Spec -> Spec -> State -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
         spec ->

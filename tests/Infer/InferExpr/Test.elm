@@ -46,11 +46,6 @@ toResult : Expr -> Result String String
 toResult expr =
     case InferExpr.infer expr State.empty of
         Return spec state ->
-            let
-                _ =
-                    Debug.log "Result" spec
-            in
-
             Ok (Spec.toString <| State.unwrap spec state)
 
         Throw msg ->
