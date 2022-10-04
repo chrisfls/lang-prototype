@@ -29,11 +29,16 @@ suite =
             , test "\\a *b -> free b in a" <|
                 \_ ->
                     toResult Fixtures.discard
-                        |> Expect.equal (Ok "a: a -> *b: b -> free b in a")
+                        |> Expect.equal (Ok "a: a -> *b: b -> free b => a")
             , test "\\a b -> free b in a" <|
                 \_ ->
                     toResult Fixtures.always
-                        |> Expect.equal (Ok "a: a -> b: b -> free b in a")
+                        |> Expect.equal (Ok "a: a -> b: b -> free b => a")
+            , Test.only <|
+                test "WIP" <|
+                    \_ ->
+                        toResult Fixtures.always2
+                            |> Expect.equal (Ok "*a: a -> free a => b: b -> b")
             ]
         ]
 

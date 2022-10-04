@@ -41,3 +41,10 @@ always =
     Lambda "a" <|
         Lambda "b" <|
             Variable "a"
+
+
+always2 : Expr
+always2 =
+    Closure "a" <|
+        Lambda "b" <|
+            Variable "b"

@@ -6,9 +6,13 @@ import Infer.Apply exposing (apply)
 import Infer.Return exposing (Return(..))
 import Infer.State as State exposing (State)
 
-
 infer : Expr -> State -> Return
 infer expr state =
+    inferExpr expr False state
+
+
+inferExpr : Expr -> Bool -> State -> Return
+inferExpr expr linear state =
     case expr of
         Variable name ->
             case State.getByName name state of
@@ -27,14 +31,14 @@ infer expr state =
                 argumentSpec =
                     Spec.Linear <| Spec.Reference address
             in
-            case infer body <| State.insertAtName name argumentSpec nextState1 of
-                Return returnSpec nextState3 ->
+            case inferExpr body True <| State.insertAtName name argumentSpec nextState1 of
+                Return returnSpec nextState2 ->
                     let
                         lastState =
-                            State.removeAtName name nextState3
+                            State.removeAtName name nextState2
 
                         inferedSpec =
-                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState3) returnSpec)
+                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState2) returnSpec)
                     in
                     Return (Spec.Linear inferedSpec) lastState
 
@@ -50,17 +54,15 @@ infer expr state =
                 argumentSpec =
                     Spec.Reference address
 
-                nextState2 =
-                    State.insertAtName name argumentSpec nextState1
             in
-            case infer body nextState2 of
-                Return returnSpec nextState3 ->
+            case inferExpr body linear <| State.insertAtName name argumentSpec nextState1 of
+                Return returnSpec nextState2 ->
                     let
                         lastState =
-                            State.removeAtName name nextState3
+                            State.removeAtName name nextState2
 
                         inferedSpec =
-                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState3) returnSpec)
+                            Spec.Arrow (Just name) argumentSpec (wrapInFrees (State.getFrees nextState2) returnSpec)
                     in
                     Return inferedSpec lastState
 

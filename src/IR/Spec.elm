@@ -51,7 +51,7 @@ toStringHelp spec state =
                 ( subSpecString, newState ) =
                     toStringHelp subSpec state
             in
-            ( "free " ++ name ++ " in " ++ subSpecString, newState )
+            ( "free " ++ name ++ " => " ++ subSpecString, newState )
 
 
 arrowToString : Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
