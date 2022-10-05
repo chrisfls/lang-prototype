@@ -1,12 +1,11 @@
-module Infer.Apply exposing (Return(..), apply)
+module Infer.Apply exposing (Return, apply)
 
 import IR.Spec exposing (Spec(..))
 import Infer.State as State exposing (State)
 
 
-type Return
-    = Return Spec State
-    | Throw String
+type alias Return =
+    Result String { spec : Spec, state : State }
 
 
 apply : Spec -> Spec -> State -> Return
@@ -35,7 +34,10 @@ constrain index argumentSpec state =
             Reference returnAddress
     in
     -- NOTE: having unamed arrows will hurt ability to infer frees...
-    Return returnReference (State.insertAtAddress index (Arrow Nothing argumentSpec returnReference) nextState)
+    Ok
+        { spec = returnReference
+        , state = State.insertAtAddress index (Arrow Nothing argumentSpec returnReference) nextState
+        }
 
 
 contrainWith : Spec -> Spec -> State -> Return
@@ -52,8 +54,10 @@ constrainFunctionWith : Spec -> Spec -> Spec -> State -> Return
 constrainFunctionWith argumentSpec returnSpec appliedSpec state =
     case appliedSpec of
         Reference address ->
-            State.insertAtAddress address argumentSpec state
-                |> Return returnSpec
+            Ok
+                { spec = returnSpec
+                , state = State.insertAtAddress address argumentSpec state
+                }
 
         spec ->
             Debug.todo <| "constrainFunctionWith " ++ Debug.toString spec

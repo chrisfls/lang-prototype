@@ -1,4 +1,4 @@
-module Infer.State exposing (State, empty, getByAddress, getByName, getFrees, insertAtAddress, insertAtName, insertBorrow, insertLinear, nextFreeAddress, removeAtName, removeBorrow, removeLinear, unwrap)
+module Infer.State exposing (..)
 
 import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
@@ -8,6 +8,7 @@ import Set exposing (Set)
 
 
 -- TODO: make free work for tracking free vars and used vars
+-- TODO: use IntDict for everything (begone string refs)
 
 
 type alias State =
@@ -15,16 +16,12 @@ type alias State =
     , count : Int
     , scope : Scope
     , linear : Set String
-    , borrow : Set String
+    , unused : Set String
     }
 
 
 type alias Graph =
     IntDict Spec
-
-
-
--- TODO: use IntDict
 
 
 type alias Scope =
@@ -43,7 +40,12 @@ insertAtAddress address spec state =
 
 insertAtName : String -> Spec -> State -> State
 insertAtName name spec state =
-    { state | scope = Dict.insert name spec state.scope }
+    { state | scope = Dict.insert name spec state.scope, unused = Set.insert name state.unused }
+
+
+insertUsedName : String -> State -> State
+insertUsedName name state =
+    { state | unused = Set.remove name state.unused }
 
 
 insertLinear : String -> State -> State
@@ -51,24 +53,14 @@ insertLinear name state =
     { state | linear = Set.insert name state.linear }
 
 
-insertBorrow : String -> State -> State
-insertBorrow name state =
-    { state | borrow = Set.insert name state.borrow }
-
-
 removeAtName : String -> State -> State
 removeAtName name state =
-    { state | scope = Dict.remove name state.scope, linear = Set.remove name state.linear, borrow = Set.remove name state.borrow }
+    { state | scope = Dict.remove name state.scope, unused = Set.remove name state.unused }
 
 
 removeLinear : String -> State -> State
 removeLinear name state =
-    { state | linear = Set.remove name state.linear, borrow = Set.remove name state.borrow }
-
-
-removeBorrow : String -> State -> State
-removeBorrow name state =
-    { state | borrow = Set.remove name state.borrow }
+    { state | linear = Set.remove name state.linear }
 
 
 nextFreeAddress : State -> ( Address, State )
@@ -81,10 +73,11 @@ getByAddress index state =
     getHelp index state.graph
 
 
-getFrees : State -> List String
-getFrees state =
-    Set.toList state.linear
-        |> List.filter (\name -> not <| Set.member name state.borrow)
+
+-- getFrees : State -> List String
+-- getFrees state =
+--     Set.toList state.linear
+--         |> List.filter (\name -> not <| Set.member name state.borrow)
 
 
 getByName : String -> State -> Maybe Spec

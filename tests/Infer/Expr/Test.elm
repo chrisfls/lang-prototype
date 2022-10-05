@@ -1,10 +1,10 @@
-module Infer.InferExpr.Test exposing (suite)
+module Infer.Expr.Test exposing (suite)
 
 import Expect
 import IR.Expr exposing (Expr)
 import IR.Expr.Fixtures as Fixtures
 import IR.Spec as Spec
-import Infer.InferExpr as InferExpr
+import Infer.Expr as Expr
 import Infer.State as State
 import Test exposing (..)
 
@@ -43,9 +43,9 @@ suite =
 
 toResult : Expr -> Result String String
 toResult expr =
-    case InferExpr.infer expr State.empty of
-        InferExpr.Return _ spec state ->
+    case Expr.infer expr State.empty of
+        Ok { spec, state } ->
             Ok (Spec.toString <| State.unwrap spec state)
 
-        InferExpr.Throw msg ->
+        Err msg ->
             Err msg

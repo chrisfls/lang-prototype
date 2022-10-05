@@ -3,6 +3,8 @@ module IR.Expr exposing (..)
 import IR.Spec as Spec exposing (Spec)
 
 
+-- TODO: perhaps decorate every tag with a spec
+
 type Expr
     = Variable String
     | Lambda Linear String Expr

@@ -2,7 +2,6 @@ module IR.Expr.Fixtures exposing (..)
 
 import IR.Expr exposing (Expr(..))
 
-
 two : Expr
 two =
     -- \s z -> s (s z)
