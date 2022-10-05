@@ -1,8 +1,12 @@
-module Infer.Apply exposing (apply)
+module Infer.Apply exposing (Return(..), apply)
 
 import IR.Spec exposing (Spec(..))
-import Infer.Return exposing (Return(..))
 import Infer.State as State exposing (State)
+
+
+type Return
+    = Return Spec State
+    | Throw String
 
 
 apply : Spec -> Spec -> State -> Return

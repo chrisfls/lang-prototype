@@ -1,4 +1,4 @@
-module Infer.State exposing (State, empty, getByAddress, getByName, getFrees, insertAtAddress, insertAtName, insertBorrow, nextFreeAddress, removeAtName, unwrap)
+module Infer.State exposing (State, empty, getByAddress, getByName, getFrees, insertAtAddress, insertAtName, insertBorrow, insertLinear, nextFreeAddress, removeAtName, removeBorrow, removeLinear, unwrap)
 
 import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
@@ -14,6 +14,7 @@ type alias State =
     { graph : Graph
     , count : Int
     , scope : Scope
+    , linear : Set String
     , borrow : Set String
     }
 
@@ -32,7 +33,7 @@ type alias Scope =
 
 empty : State
 empty =
-    State IntDict.empty 0 Dict.empty Set.empty
+    State IntDict.empty 0 Dict.empty Set.empty Set.empty
 
 
 insertAtAddress : Address -> Spec -> State -> State
@@ -45,6 +46,11 @@ insertAtName name spec state =
     { state | scope = Dict.insert name spec state.scope }
 
 
+insertLinear : String -> State -> State
+insertLinear name state =
+    { state | linear = Set.insert name state.linear }
+
+
 insertBorrow : String -> State -> State
 insertBorrow name state =
     { state | borrow = Set.insert name state.borrow }
@@ -52,7 +58,17 @@ insertBorrow name state =
 
 removeAtName : String -> State -> State
 removeAtName name state =
-    { state | scope = Dict.remove name state.scope, borrow = Set.remove name state.borrow }
+    { state | scope = Dict.remove name state.scope, linear = Set.remove name state.linear, borrow = Set.remove name state.borrow }
+
+
+removeLinear : String -> State -> State
+removeLinear name state =
+    { state | linear = Set.remove name state.linear, borrow = Set.remove name state.borrow }
+
+
+removeBorrow : String -> State -> State
+removeBorrow name state =
+    { state | borrow = Set.remove name state.borrow }
 
 
 nextFreeAddress : State -> ( Address, State )
@@ -67,8 +83,7 @@ getByAddress index state =
 
 getFrees : State -> List String
 getFrees state =
-    -- TODO: optimize
-    Dict.keys state.scope
+    Set.toList state.linear
         |> List.filter (\name -> not <| Set.member name state.borrow)
 
 
