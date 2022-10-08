@@ -7,6 +7,8 @@ import Infer.State as State exposing (State)
 type alias Return =
     Result String { spec : Spec, state : State }
 
+-- TODO: when applying a free the reference should be marked as unborrowed
+
 
 apply : Spec -> Spec -> State -> Return
 apply functionSpec argumentSpec state =

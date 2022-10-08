@@ -7,7 +7,7 @@ type Spec
     = Reference Address
     | Arrow (Maybe String) Spec Spec
     | Linear Spec
-    | Free String Spec
+    | Unborrow String Spec
 
 
 type alias Address =
@@ -46,12 +46,12 @@ toStringHelp spec state =
         Linear subSpec ->
             toStringHelp subSpec state
 
-        Free name subSpec ->
+        Unborrow name subSpec ->
             let
                 ( subSpecString, newState ) =
                     toStringHelp subSpec state
             in
-            ( "free " ++ name ++ " => " ++ subSpecString, newState )
+            ( "unborrow " ++ name ++ " => " ++ subSpecString, newState )
 
 
 arrowToString : Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )

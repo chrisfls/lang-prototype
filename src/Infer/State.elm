@@ -43,8 +43,8 @@ insertAtName name spec state =
     { state | scope = Dict.insert name spec state.scope, unused = Set.insert name state.unused }
 
 
-insertUsedName : String -> State -> State
-insertUsedName name state =
+markAsUsed : String -> State -> State
+markAsUsed name state =
     { state | unused = Set.remove name state.unused }
 
 
@@ -55,7 +55,7 @@ insertLinear name state =
 
 removeAtName : String -> State -> State
 removeAtName name state =
-    { state | scope = Dict.remove name state.scope, unused = Set.remove name state.unused }
+    { state | scope = Dict.remove name state.scope, linear = Set.remove name state.linear, unused = Set.remove name state.unused }
 
 
 removeLinear : String -> State -> State
@@ -73,7 +73,9 @@ getByAddress index state =
     getHelp index state.graph
 
 
-
+listUnused : State -> List String
+listUnused state =
+    Set.toList state.unused
 -- getFrees : State -> List String
 -- getFrees state =
 --     Set.toList state.linear
@@ -122,8 +124,8 @@ unwrap spec state =
         Linear subSpec ->
             Linear (unwrap subSpec state)
 
-        Free name subSpec ->
-            Free name (unwrap subSpec state)
+        Unborrow name subSpec ->
+            Unborrow name (unwrap subSpec state)
 
 
 

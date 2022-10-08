@@ -8,7 +8,9 @@ import Set exposing (Set)
 
 
 type alias Return =
-    Result String { expr : Expr, spec : Spec, state : State }
+    Result String InferExpr
+
+type alias InferExpr = { expr : Expr, spec : Spec, state : State }
 
 
 infer : Expr -> State -> Return
@@ -22,7 +24,7 @@ infer expr state =
                     Ok
                         { expr = expr
                         , spec = spec
-                        , state = State.insertUsedName name state
+                        , state = State.markAsUsed name state
                         }
 
                 Nothing ->
@@ -46,13 +48,16 @@ infer expr state =
                         nextState3 =
                             State.removeAtName name bodyInfer.state
 
+                        unborrowed =
+                            unborrow (State.listUnused bodyInfer.state) bodyInfer.expr bodyInfer.spec nextState3
+
                         spec =
-                            Spec.Arrow (Just name) argumentSpec bodyInfer.spec
+                            Spec.Arrow (Just name) argumentSpec unborrowed.spec
                     in
                     Ok
-                        { expr = Annotation True spec (Lambda linear name bodyInfer.expr)
+                        { expr = Annotation spec (Lambda linear name unborrowed.expr)
                         , spec = spec
-                        , state = nextState3
+                        , state = unborrowed.state
                         }
 
                 err ->
@@ -67,7 +72,7 @@ infer expr state =
                             case apply functionInfer.spec argumentInfer.spec argumentInfer.state of
                                 Ok resultInfer ->
                                     Ok
-                                        { expr = Annotation True resultInfer.spec expr
+                                        { expr = Annotation resultInfer.spec expr
                                         , spec = resultInfer.spec
                                         , state = resultInfer.state
                                         }
@@ -81,11 +86,11 @@ infer expr state =
                 err ->
                     err
 
-        Free name subExpr ->
+        Unborrow name subExpr ->
             case infer subExpr <| State.removeAtName name state of
                 Ok argumentInfer ->
                     Ok
-                        { expr = Free name argumentInfer.expr
+                        { expr = Unborrow name argumentInfer.expr
                         , spec = argumentInfer.spec
                         , state = argumentInfer.state
                         }
@@ -93,16 +98,21 @@ infer expr state =
                 err ->
                     err
 
-        Annotation True spec _ ->
-            Ok
-                { expr = expr
-                , spec = spec
-                , state = state
-                }
-
-        Annotation False _ _ ->
+        Annotation _ _ ->
             -- TODO: typecheck
             Debug.todo "infer Annotation False"
+
+unborrow : List String -> Expr -> Spec -> State -> InferExpr
+unborrow  list expr spec state =
+    case list of
+        name :: tail ->
+            unborrow tail (Unborrow name expr) (Spec.Unborrow name spec) (State.removeLinear name state)
+
+        [] ->
+            { expr = expr
+            , spec = spec
+            , state = state
+            }
 
 
 
