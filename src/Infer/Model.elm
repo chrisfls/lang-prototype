@@ -1,4 +1,4 @@
-module Infer.State exposing (..)
+module Infer.Model exposing (..)
 
 import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
@@ -6,17 +6,11 @@ import IntDict exposing (IntDict)
 import Set exposing (Set)
 
 
-
--- TODO: make free work for tracking free vars and used vars
--- TODO: use IntDict for everything (begone string refs)
-
-
-type alias State =
+type alias Model =
     { graph : Graph
     , count : Int
-    , scope : Scope
-    , linear : Set String
-    , unused : Set String
+    , scope : Dict String Spec
+    , state : Dict String State
     }
 
 
@@ -24,72 +18,71 @@ type alias Graph =
     IntDict Spec
 
 
-type alias Scope =
-    Dict String Spec
+type State
+    = FreshNew
+    | Required
+    | Borrowed
+    | Disposed
 
 
-empty : State
+empty : Model
 empty =
-    State IntDict.empty 0 Dict.empty Set.empty Set.empty
+    { graph = IntDict.empty
+    , count = 0
+    , scope = Dict.empty
+    -- TODO: maybe optimize this into multiple sets
+    , state = Dict.empty
+    }
 
 
-insertAtAddress : Address -> Spec -> State -> State
+insertAtAddress : Address -> Spec -> Model -> Model
 insertAtAddress address spec state =
     { state | graph = IntDict.insert address spec state.graph }
 
 
-insertAtName : String -> Spec -> State -> State
-insertAtName name spec state =
-    { state | scope = Dict.insert name spec state.scope, unused = Set.insert name state.unused }
+insert : String -> Spec -> Model -> Model
+insert name spec state =
+    { state | scope = Dict.insert name spec state.scope, state = Dict.insert name FreshNew state.state }
 
 
-markAsUsed : String -> State -> State
-markAsUsed name state =
-    { state | unused = Set.remove name state.unused }
+setUsedName : String -> Model -> Model
+setUsedName name state =
+    { state | state = Dict.insert name Required state.state }
 
 
-insertLinear : String -> State -> State
-insertLinear name state =
-    { state | linear = Set.insert name state.linear }
+setDisposedName : String -> Model -> Model
+setDisposedName name state =
+    { state | state = Dict.insert name Disposed state.state }
 
-
-removeAtName : String -> State -> State
+removeAtName : String -> Model -> Model
 removeAtName name state =
-    { state | scope = Dict.remove name state.scope, linear = Set.remove name state.linear, unused = Set.remove name state.unused }
+    { state | scope = Dict.remove name state.scope }
 
 
-removeLinear : String -> State -> State
-removeLinear name state =
-    { state | linear = Set.remove name state.linear }
-
-
-nextFreeAddress : State -> ( Address, State )
+nextFreeAddress : Model -> ( Address, Model )
 nextFreeAddress ({ count } as state) =
     ( count, { state | count = count + 1 } )
 
 
-getByAddress : Address -> State -> Maybe Spec
-getByAddress index state =
+getAtAddress : Address -> Model -> Maybe Spec
+getAtAddress index state =
     getHelp index state.graph
 
 
-listUnused : State -> List String
-listUnused state =
-    Set.toList state.unused
--- getFrees : State -> List String
--- getFrees state =
---     Set.toList state.linear
---         |> List.filter (\name -> not <| Set.member name state.borrow)
+listFreshNames : Model -> List String
+listFreshNames model =
+    Dict.toList model.state
+        |> List.filterMap (\(name,state) -> if state == FreshNew then Just name else Nothing)
 
 
-getByName : String -> State -> Maybe Spec
-getByName name state =
+getAtName : String -> Model -> Maybe Spec
+getAtName name state =
     -- TODO: maybe unwrap
     case Dict.get name state.scope of
         (Just spec) as justSpec ->
             case spec of
                 Reference address ->
-                    case getByAddress address state of
+                    case getAtAddress address state of
                         (Just _) as justSpec_ ->
                             justSpec_
 
@@ -103,11 +96,11 @@ getByName name state =
             Nothing
 
 
-unwrap : Spec -> State -> Spec
+unwrap : Spec -> Model -> Spec
 unwrap spec state =
     case spec of
         Reference address ->
-            case getByAddress address state of
+            case getAtAddress address state of
                 Just nextSpec ->
                     if spec == nextSpec then
                         spec

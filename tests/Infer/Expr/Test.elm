@@ -4,7 +4,8 @@ import Expect
 import IR.Expr as Expr exposing (Expr)
 import IR.Spec as Spec
 import Infer.Expr as Expr
-import Infer.State as State
+import Infer.Model as State
+import IR.SpecExpr as SpecExpr
 import Test exposing (..)
 
 
@@ -70,10 +71,10 @@ suite =
 
 
 toResult : Expr -> Result String String
-toResult expr =
-    case Expr.infer expr State.empty of
-        Ok { spec, state } ->
-            Ok (Spec.toString <| State.unwrap spec state)
+toResult baseExpr =
+    case Expr.toSpecExpr baseExpr State.empty of
+        Expr.Return expr state ->
+            Ok <| Spec.toString <| State.unwrap (SpecExpr.toSpec expr) state
 
-        Err msg ->
+        Expr.Throw msg ->
             Err msg

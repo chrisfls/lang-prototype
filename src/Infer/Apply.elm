@@ -1,21 +1,21 @@
 module Infer.Apply exposing (Return, apply)
 
 import IR.Spec exposing (Spec(..))
-import Infer.State as State exposing (State)
+import Infer.Model as State exposing (Model)
 
 
 type alias Return =
-    Result String { spec : Spec, state : State }
+    Result String { spec : Spec, state : Model }
 
 -- TODO: when applying a free the reference should be marked as unborrowed
 
 
-apply : Spec -> Spec -> State -> Return
+apply : Spec -> Spec -> Model -> Return
 apply functionSpec argumentSpec state =
     case functionSpec of
         -- TODO: deal with linearity
         Reference address ->
-            case State.getByAddress address state of
+            case State.getAtAddress address state of
                 Just specAtAddress ->
                     contrainWith specAtAddress argumentSpec state
 
@@ -26,7 +26,7 @@ apply functionSpec argumentSpec state =
             contrainWith functionSpec argumentSpec state
 
 
-constrain : Int -> Spec -> State -> Return
+constrain : Int -> Spec -> Model -> Return
 constrain index argumentSpec state =
     let
         ( returnAddress, nextState ) =
@@ -42,7 +42,7 @@ constrain index argumentSpec state =
         }
 
 
-contrainWith : Spec -> Spec -> State -> Return
+contrainWith : Spec -> Spec -> Model -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
         Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
@@ -52,7 +52,7 @@ contrainWith functionSpec argumentSpec state =
             Debug.todo <| "contrainWith " ++ Debug.toString spec
 
 
-constrainFunctionWith : Spec -> Spec -> Spec -> State -> Return
+constrainFunctionWith : Spec -> Spec -> Spec -> Model -> Return
 constrainFunctionWith argumentSpec returnSpec appliedSpec state =
     case appliedSpec of
         Reference address ->

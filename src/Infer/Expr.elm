@@ -1,84 +1,81 @@
-module Infer.Expr exposing (Return, infer)
+module Infer.Expr exposing (Return(..), toSpecExpr)
 
 import IR.Expr exposing (Expr(..))
 import IR.Spec as Spec exposing (Spec)
+import IR.SpecExpr as SpecExpr exposing (SpecExpr)
 import Infer.Apply exposing (apply)
-import Infer.State as State exposing (State)
+import Infer.Model as Model exposing (Model)
 import Set exposing (Set)
 
 
-type alias Return =
-    Result String InferExpr
+type Return
+    = Return SpecExpr Model
+    | Throw String
 
-type alias InferExpr = { expr : Expr, spec : Spec, state : State }
+
+toSpecExpr : Expr -> Model -> Return
+toSpecExpr expr state =
+    case infer expr False state of
+        Return specExpr nextState ->
+            Return specExpr nextState
+
+        throw ->
+            throw
 
 
-infer : Expr -> State -> Return
-infer expr state =
-    -- TODO: decide if it is worth to infer frees at the user language or here
+infer : Expr -> Bool -> Model -> Return
+infer expr defaultLinear model =
+    -- TODO: decide if it is worth to inferExpr frees at the user language or here
     -- it is probably worth to do a free inference step before infering the rest of the expr
     case expr of
         Variable name ->
-            case State.getByName name state of
+            case Model.getAtName name model of
                 Just spec ->
-                    Ok
-                        { expr = expr
-                        , spec = spec
-                        , state = State.markAsUsed name state
-                        }
+                    Return (SpecExpr.Variable spec name) (Model.setUsedName name model)
 
                 Nothing ->
-                    Err "TODO: var not found error"
+                    Throw <| "var '" ++ name ++ "' not found"
 
-        Lambda linear name body ->
+        Lambda maybeLinear name body ->
             let
-                ( address, nextState1 ) =
-                    State.nextFreeAddress state
+                ( address, freeAddressModel ) =
+                    Model.nextFreeAddress model
+
+                isLinear =
+                    Maybe.withDefault defaultLinear maybeLinear
 
                 argumentSpec =
-                    -- TODO: maybe mark reference as possibly linear
-                    Spec.Reference address
+                    if isLinear then
+                        Spec.Linear (Spec.Reference address)
 
-                nextState2 =
-                    State.insertAtName name argumentSpec nextState1
+                    else
+                        Spec.Reference address
+
+                argumentModel =
+                    Model.insert name argumentSpec freeAddressModel
             in
-            case infer body nextState2 of
-                Ok bodyInfer ->
+            case inferExpr body isLinear argumentModel of
+                Return _ tempModel ->
                     let
-                        nextState3 =
-                            State.removeAtName name bodyInfer.state
+                        freshNames =
+                            Model.listFreshNames tempModel
 
-                        unborrowed =
-                            unborrow (State.listUnused bodyInfer.state) bodyInfer.expr bodyInfer.spec nextState3
-
-                        spec =
-                            Spec.Arrow (Just name) argumentSpec unborrowed.spec
+                        disposedModel =
+                            List.foldl Model.setDisposedName argumentModel freshNames
                     in
-                    Ok
-                        { expr = Annotation spec (Lambda linear name unborrowed.expr)
-                        , spec = spec
-                        , state = unborrowed.state
-                        }
+                    case infer body isLinear disposedModel of
+                        Return bodyInfer bodyState ->
+                            let
+                                lambdaState =
+                                    Model.removeAtName name bodyState
 
-                err ->
-                    err
+                                ( returnSpec, bodySpecExpr ) =
+                                    unborrow freshNames bodyInfer
 
-        Apply function argument ->
-            case infer function state of
-                Ok functionInfer ->
-                    case infer argument functionInfer.state of
-                        Ok argumentInfer ->
-                            -- TODO: when applying a lambda that returns a Free type, add the values back to the unborrowed list
-                            case apply functionInfer.spec argumentInfer.spec argumentInfer.state of
-                                Ok resultInfer ->
-                                    Ok
-                                        { expr = Annotation resultInfer.spec expr
-                                        , spec = resultInfer.spec
-                                        , state = resultInfer.state
-                                        }
-
-                                Err msg ->
-                                    Err msg
+                                lambdaSpec =
+                                    Spec.Arrow (Just name) argumentSpec returnSpec
+                            in
+                            Return (SpecExpr.Lambda lambdaSpec isLinear name bodySpecExpr) lambdaState
 
                         err ->
                             err
@@ -86,40 +83,112 @@ infer expr state =
                 err ->
                     err
 
+        Apply function argument ->
+            -- case inferExpr function model of
+            --     Ok functionInfer ->
+            --         case inferExpr argument functionInfer.state of
+            --             Ok argumentInfer ->
+            --                 -- TODO: when applying a lambda that returns a Free type, add the values back to the unborrowed list
+            --                 case apply functionInfer.spec argumentInfer.spec argumentInfer.state of
+            --                     Ok resultInfer ->
+            --                         Ok
+            --                             { expr = Annotation resultInfer.spec expr
+            --                             , spec = resultInfer.spec
+            --                             , state = resultInfer.state
+            --                             }
+            --                     Err msg ->
+            --                         Err msg
+            --             err ->
+            --                 err
+            --     err ->
+            --         err
+            Debug.todo "inferExpr Apply"
+
         Unborrow name subExpr ->
-            case infer subExpr <| State.removeAtName name state of
-                Ok argumentInfer ->
-                    Ok
-                        { expr = Unborrow name argumentInfer.expr
-                        , spec = argumentInfer.spec
-                        , state = argumentInfer.state
-                        }
+            -- case inferExpr subExpr <| Model.removeAtName name state of
+            --     Ok argumentInfer ->
+            --         -- Ok
+            --         --     { expr = Unborrow name argumentInfer.expr
+            --         --     , spec = argumentInfer.spec
+            --         --     , state = argumentInfer.state
+            --         --     }
+            --         Debug.todo "a"
+            --     err ->
+            --         err
+            Debug.todo "inferExpr Unborrow"
+
+        Annotation _ _ ->
+            -- TODO: typecheck
+            Debug.todo "inferExpr Annotation"
+
+
+inferExpr : Expr -> Bool -> Model -> Return
+inferExpr expr defaultLinear model =
+    case expr of
+        Variable name ->
+            case Model.getAtName name model of
+                Just spec ->
+                    Return (SpecExpr.Variable spec name) (Model.setUsedName name model)
+
+                Nothing ->
+                    Throw <| "var '" ++ name ++ "' not found"
+
+        Lambda maybeLinear name body ->
+            let
+                ( address, freeAddressModel ) =
+                    Model.nextFreeAddress model
+
+                isLinear =
+                    Maybe.withDefault defaultLinear maybeLinear
+
+                argumentSpec =
+                    if isLinear then
+                        Spec.Linear (Spec.Reference address)
+
+                    else
+                        Spec.Reference address
+
+                argumentModel =
+                    Model.insert name argumentSpec freeAddressModel
+            in
+            case inferExpr body isLinear argumentModel of
+                Return bodyInfer bodyModel ->
+                    let
+                        lambdaState =
+                            Model.removeAtName name bodyModel
+
+                        lambdaSpec =
+                            Spec.Arrow (Just name) argumentSpec (SpecExpr.toSpec bodyInfer)
+                    in
+                    Return (SpecExpr.Lambda lambdaSpec isLinear name bodyInfer) lambdaState
 
                 err ->
                     err
 
-        Annotation _ _ ->
-            -- TODO: typecheck
-            Debug.todo "infer Annotation False"
+        Apply _ _ ->
+            Debug.todo "inferExpr Apply"
 
-unborrow : List String -> Expr -> Spec -> State -> InferExpr
-unborrow  list expr spec state =
+        Unborrow _ _ ->
+            Debug.todo "inferExpr Unborrow"
+
+        Annotation _ _ ->
+            Debug.todo "inferExpr Annotation"
+
+
+unborrow : List String -> SpecExpr -> ( Spec, SpecExpr )
+unborrow list specExpr =
+    unborrowHelp list (SpecExpr.toSpec specExpr) specExpr
+
+
+unborrowHelp : List String -> Spec -> SpecExpr -> ( Spec, SpecExpr )
+unborrowHelp list spec specExpr =
     case list of
         name :: tail ->
-            unborrow tail (Unborrow name expr) (Spec.Unborrow name spec) (State.removeLinear name state)
+            let
+                nextSpec =
+                    Spec.Unborrow name (SpecExpr.toSpec specExpr)
+            in
+            unborrowHelp tail nextSpec (SpecExpr.Unborrow nextSpec name specExpr)
 
         [] ->
-            { expr = expr
-            , spec = spec
-            , state = state
-            }
-
-
-
--- wrapInFrees : List String -> Spec -> State -> ( Spec, State )
--- wrapInFrees list spec state =
---     case list of
---         name :: tail ->
---             wrapInFrees tail (Spec.Free name spec) (State.removeLinear name state)
---         [] ->
---             ( spec, state )
+            ( spec, specExpr )

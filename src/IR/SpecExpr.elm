@@ -4,13 +4,9 @@ import IR.Expr as Expr exposing (Expr)
 import IR.Spec exposing (Spec)
 
 
-
--- TODO: perhaps decorate every tag with a spec
-
-
 type SpecExpr
     = Variable Spec String
-    | Lambda Spec Linear String SpecExpr
+    | Lambda Spec Bool String SpecExpr
     | Apply Spec SpecExpr SpecExpr
     | Unborrow Spec String SpecExpr
 
@@ -47,7 +43,7 @@ toExpr specExpr =
             Expr.Variable name
 
         Lambda _ linear name body ->
-            Expr.Lambda linear name (toExpr body)
+            Expr.Lambda (Just linear) name (toExpr body)
 
         Apply _ function argument ->
             Expr.Apply (toExpr function) (toExpr argument)
