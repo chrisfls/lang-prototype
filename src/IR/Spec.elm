@@ -5,7 +5,7 @@ import Dict exposing (Dict)
 
 type Spec
     = Reference Address
-    | Arrow (Maybe String) Spec Spec
+    | Arrow Bool (Maybe String) Spec Spec
     | Linear Spec
     | Unborrow String Spec
 
@@ -37,13 +37,12 @@ toStringHelp spec state =
         Reference address ->
             getVarName address state
 
-        Arrow name argument return ->
-            case argument of
-                Linear _ ->
-                    arrowToString True name argument return state
+        Linear (Arrow linear name argument return) ->
+            arrowToString True linear name argument return state
 
-                _ ->
-                    arrowToString False name argument return state
+        Arrow linear name argument return ->
+            arrowToString False linear name argument return state
+
 
         Linear subSpec ->
             toStringHelp subSpec state
@@ -53,15 +52,15 @@ toStringHelp spec state =
                 ( subSpecString, newState ) =
                     toStringHelp subSpec state
             in
-            ( "unborrow " ++ name ++ " => " ++ subSpecString, newState )
+            ( "[unborrow " ++ name ++ "] " ++ subSpecString, newState )
 
 
-arrowToString : Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
-arrowToString linear maybeName argument return state =
+arrowToString : Bool -> Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
+arrowToString fatArrow linear maybeName argument return state =
     let
         ( argumentString, newState ) =
             case argument of
-                Arrow _ _ _ ->
+                Arrow _ _ _ _ ->
                     Tuple.mapFirst wrapParens <| toStringHelp argument state
 
                 _ ->
@@ -69,21 +68,32 @@ arrowToString linear maybeName argument return state =
 
         ( returnString, finalState ) =
             toStringHelp return newState
+
+        arrow =
+            if fatArrow then
+                " => "
+
+            else
+                " -> "
+
+        prefix =
+            if linear then
+                case maybeName of
+                    Just name ->
+                        "*" ++ name ++ ": "
+
+                    Nothing ->
+                        "*"
+
+            else
+                case maybeName of
+                    Just name ->
+                        name ++ ": "
+
+                    Nothing ->
+                        ""
     in
-    case maybeName of
-        Just name ->
-            if linear then
-                ( "*" ++ name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
-
-            else
-                ( name ++ ": " ++ argumentString ++ " -> " ++ returnString, finalState )
-
-        Nothing ->
-            if linear then
-                ( "*" ++ argumentString ++ " -> " ++ returnString, finalState )
-
-            else
-                ( argumentString ++ " -> " ++ returnString, finalState )
+    ( prefix ++ argumentString ++ arrow ++ returnString, finalState )
 
 
 wrapParens : String -> String

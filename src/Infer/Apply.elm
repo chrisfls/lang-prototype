@@ -38,14 +38,14 @@ constrain index argumentSpec state =
     -- NOTE: having unamed arrows will hurt ability to infer frees...
     Ok
         { spec = returnReference
-        , state = State.insertAtAddress index (Arrow Nothing argumentSpec returnReference) nextState
+        , state = State.insertAtAddress index (Arrow False Nothing argumentSpec returnReference) nextState
         }
 
 
 contrainWith : Spec -> Spec -> Model -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
         spec ->

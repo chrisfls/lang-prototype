@@ -54,11 +54,11 @@ suite =
                     lam "a" (lam "b" (var "a"))
                         |> toResult
                         |> Expect.equal (Ok "a: a -> b: b -> unborrow b => a")
-            , only <| test "\\*a b -> a" <|
+            , only <| test "\\*a b -> a" <| -- HERE
                 \_ ->
                     cls "a" (lam "b" (var "a"))
                         |> toResult
-                        |> Expect.equal (Ok "*a: a -> *b: b -> unborrow b => a")
+                        |> Expect.equal (Ok "*a: a => b: b => [unborrow b] a")
             , test "\\a b -> b" <|
                 \_ ->
                     lam "a" (lam "b" (var "b"))

@@ -26,7 +26,7 @@ toString expr =
             name
 
         Lambda (Just True) name body ->
-            "(*" ++ name ++ " -> " ++ toString body ++ ")"
+            "(*" ++ name ++ " => " ++ toString body ++ ")"
 
         Lambda _ name body ->
             "(" ++ name ++ " -> " ++ toString body ++ ")"

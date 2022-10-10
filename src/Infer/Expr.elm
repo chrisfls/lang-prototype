@@ -78,7 +78,7 @@ infer expr model =
                                     unborrow freshNames bodyInfer
 
                                 lambdaSpec =
-                                    Spec.Arrow (Just name) argumentSpec returnSpec
+                                    Spec.Arrow isLinear (Just name) argumentSpec returnSpec
                             in
                             Return (SpecExpr.Lambda lambdaSpec isLinear name bodySpecExpr) lambdaState
 
@@ -167,7 +167,7 @@ inferExpr expr model =
                             Model.removeAtName name bodyModel
 
                         lambdaSpec =
-                            Spec.Arrow (Just name) argumentSpec (SpecExpr.toSpec bodyInfer)
+                            Spec.Arrow False (Just name) argumentSpec (SpecExpr.toSpec bodyInfer)
                     in
                     Return (SpecExpr.Lambda lambdaSpec isLinear name bodyInfer) lambdaState
 
