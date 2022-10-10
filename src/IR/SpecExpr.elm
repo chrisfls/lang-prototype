@@ -6,7 +6,8 @@ import IR.Spec exposing (Spec)
 
 type SpecExpr
     = Variable Spec String
-    | Lambda Spec Bool String SpecExpr
+    | Lambda Spec String SpecExpr
+    | Closure Spec Bool String SpecExpr
     | Apply Spec SpecExpr SpecExpr
     | Unborrow Spec String SpecExpr
 
@@ -26,7 +27,10 @@ toSpec specExpr =
         Variable spec _ ->
             spec
 
-        Lambda spec _ _ _ ->
+        Lambda spec _ _ ->
+            spec
+
+        Closure spec _ _ _ ->
             spec
 
         Apply spec _ _ ->
@@ -42,8 +46,11 @@ toExpr specExpr =
         Variable _ name ->
             Expr.Variable name
 
-        Lambda _ linear name body ->
-            Expr.Lambda (Just linear) name (toExpr body)
+        Lambda _ name body ->
+            Expr.Lambda False name (toExpr body)
+
+        Closure _ linear name body ->
+            Expr.Lambda linear name (toExpr body)
 
         Apply _ function argument ->
             Expr.Apply (toExpr function) (toExpr argument)

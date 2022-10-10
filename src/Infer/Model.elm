@@ -104,7 +104,7 @@ getAtName name state =
     case Dict.get name state.scope of
         (Just spec) as justSpec ->
             case spec of
-                Reference address ->
+                Reference _ address ->
                     case getAtAddress address state of
                         (Just _) as justSpec_ ->
                             justSpec_
@@ -122,7 +122,7 @@ getAtName name state =
 unwrap : Spec -> Model -> Spec
 unwrap spec state =
     case spec of
-        Reference address ->
+        Reference _ address ->
             case getAtAddress address state of
                 Just nextSpec ->
                     if spec == nextSpec then
@@ -134,11 +134,11 @@ unwrap spec state =
                 Nothing ->
                     spec
 
-        Arrow linear name func argm ->
-            Arrow linear name (unwrap func state) (unwrap argm state)
+        Arrow name func argm ->
+            Arrow name (unwrap func state) (unwrap argm state)
 
-        Linear subSpec ->
-            Linear (unwrap subSpec state)
+        LinearArrow linear name func argm ->
+            LinearArrow linear name (unwrap func state) (unwrap argm state)
 
         Unborrow name subSpec ->
             Unborrow name (unwrap subSpec state)
@@ -153,7 +153,7 @@ getHelp address graph =
     case IntDict.get address graph of
         (Just spec) as justSpec ->
             case spec of
-                Reference nextAddress ->
+                Reference _ nextAddress ->
                     case getHelp nextAddress graph of
                         (Just _) as justSpec_ ->
                             justSpec_

@@ -4,9 +4,8 @@ import IR.Expr exposing (Expr(..))
 import IR.Spec as Spec exposing (Spec)
 import IR.SpecExpr as SpecExpr exposing (SpecExpr)
 import Infer.Apply exposing (apply)
-import Infer.Model as Model exposing (Model)
+import Infer.Model as Model exposing (Model, nextFreeAddress)
 import Set exposing (Set)
-import Infer.Model exposing (nextFreeAddress)
 
 
 type Return
@@ -16,7 +15,7 @@ type Return
 
 toSpecExpr : Expr -> Model -> Return
 toSpecExpr expr state =
-    case infer expr state of
+    case infer expr False state of
         Return specExpr nextState ->
             Return specExpr nextState
 
@@ -24,8 +23,8 @@ toSpecExpr expr state =
             throw
 
 
-infer : Expr -> Model -> Return
-infer expr model =
+infer : Expr -> Bool -> Model -> Return
+infer expr mock model =
     -- TODO: there are two kinds of linearity,
     --       lambda linearity and parameter linearity
     --       every lambda with linear parameters are linear themselves
@@ -39,56 +38,15 @@ infer expr model =
                 Nothing ->
                     Throw <| "var '" ++ name ++ "' not found"
 
-        Lambda maybeLinear name body ->
-            let
-                ( address, freeAddressModel ) =
-                    Model.nextFreeAddress model
+        Lambda linear name body ->
+            if mock then
+                inferLambdaMock (linear || Model.hasLinearNames model) name body model
 
-                isLinear =
-                    Maybe.withDefault (Model.hasLinearNames freeAddressModel) maybeLinear
+            else
+                inferLambda (linear || Model.hasLinearNames model) name body model
 
-                ( argumentSpec, linearModel) =
-                    if isLinear then
-                        ( Spec.Linear (Spec.Reference address)
-                        , Model.setLinearName name freeAddressModel
-                        )
-
-                    else
-                        ( Spec.Reference address
-                        , freeAddressModel
-                        )
-
-                argumentModel =
-                    Model.insertAtName name argumentSpec linearModel
-            in
-            case inferExpr body argumentModel of
-                Return _ tempModel ->
-                    let
-                        freshNames =
-                            Model.listFreshNames tempModel
-
-                        disposedModel =
-                            List.foldl Model.setDisposedName argumentModel freshNames
-                    in
-                    case infer body disposedModel of
-                        Return bodyInfer bodyState ->
-                            let
-                                lambdaState =
-                                    Model.removeAtName name bodyState
-
-                                ( returnSpec, bodySpecExpr ) =
-                                    unborrow freshNames bodyInfer
-
-                                lambdaSpec =
-                                    Spec.Arrow isLinear (Just name) argumentSpec returnSpec
-                            in
-                            Return (SpecExpr.Lambda lambdaSpec isLinear name bodySpecExpr) lambdaState
-
-                        err ->
-                            err
-
-                err ->
-                    err
+        Closure linear name body ->
+            Debug.todo "a"
 
         Apply function argument ->
             -- case inferExpr function model of
@@ -129,61 +87,82 @@ infer expr model =
             Debug.todo "inferExpr Annotation"
 
 
-inferExpr : Expr -> Model -> Return
-inferExpr expr model =
-    case expr of
-        Variable name ->
-            case Model.getAtName name model of
-                Just spec ->
-                    Return (SpecExpr.Variable spec name) (Model.setUsedName name model)
+inferLambdaMock isLinear name body model =
+    let
+        ( address, freeAddressModel ) =
+            Model.nextFreeAddress model
 
-                Nothing ->
-                    Throw <| "var '" ++ name ++ "' not found"
+        argumentSpec =
+            Spec.Reference isLinear address
 
-        Lambda maybeLinear name body ->
+        linearModel =
+            if isLinear then
+                Model.setLinearName name freeAddressModel
+
+            else
+                freeAddressModel
+    in
+    case infer body True <| Model.insertAtName name argumentSpec linearModel of
+        Return bodyInfer bodyModel ->
             let
-                ( address, freeAddressModel ) =
-                    Model.nextFreeAddress model
+                lambdaState =
+                    Model.removeAtName name bodyModel
 
-                isLinear =
-                    Maybe.withDefault (Model.hasLinearNames freeAddressModel) maybeLinear
-
-                ( argumentSpec, linearModel) =
-                    if isLinear then
-                        ( Spec.Linear (Spec.Reference address)
-                        , Model.setLinearName name freeAddressModel
-                        )
-
-                    else
-                        ( Spec.Reference address
-                        , freeAddressModel
-                        )
-
-                argumentModel =
-                    Model.insertAtName name argumentSpec linearModel
+                lambdaSpec =
+                    Spec.Arrow (Just name) argumentSpec (SpecExpr.toSpec bodyInfer)
             in
-            case inferExpr body argumentModel of
-                Return bodyInfer bodyModel ->
+            Return (SpecExpr.Lambda lambdaSpec name bodyInfer) lambdaState
+
+        err ->
+            err
+
+
+inferLambda isLinear name body model =
+    let
+        ( address, freeAddressModel ) =
+            Model.nextFreeAddress model
+
+        argumentSpec =
+            Spec.Reference isLinear address
+
+        linearModel =
+            if isLinear then
+                Model.setLinearName name freeAddressModel
+
+            else
+                freeAddressModel
+
+        argumentModel =
+            Model.insertAtName name argumentSpec linearModel
+    in
+    case infer body True argumentModel of
+        Return _ tempModel ->
+            let
+                freshNames =
+                    Model.listFreshNames tempModel
+
+                disposedModel =
+                    List.foldl Model.setDisposedName argumentModel freshNames
+            in
+            case infer body False disposedModel of
+                Return bodyInfer bodyState ->
                     let
                         lambdaState =
-                            Model.removeAtName name bodyModel
+                            Model.removeAtName name bodyState
+
+                        ( returnSpec, bodySpecExpr ) =
+                            unborrow freshNames bodyInfer
 
                         lambdaSpec =
-                            Spec.Arrow False (Just name) argumentSpec (SpecExpr.toSpec bodyInfer)
+                            Spec.Arrow (Just name) argumentSpec returnSpec
                     in
-                    Return (SpecExpr.Lambda lambdaSpec isLinear name bodyInfer) lambdaState
+                    Return (SpecExpr.Lambda lambdaSpec name bodySpecExpr) lambdaState
 
                 err ->
                     err
 
-        Apply _ _ ->
-            Debug.todo "inferExpr Apply"
-
-        Unborrow _ _ ->
-            Debug.todo "inferExpr Unborrow"
-
-        Annotation _ _ ->
-            Debug.todo "inferExpr Annotation"
+        err ->
+            err
 
 
 unborrow : List String -> SpecExpr -> ( Spec, SpecExpr )

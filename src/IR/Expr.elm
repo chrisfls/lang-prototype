@@ -9,14 +9,11 @@ import IR.Spec as Spec exposing (Spec)
 
 type Expr
     = Variable String
-    | Lambda Linear String Expr
+    | Lambda Bool String Expr
+    | Closure Bool String Expr
     | Apply Expr Expr
     | Unborrow String Expr
     | Annotation Spec Expr
-
-
-type alias Linear =
-    Maybe Bool
 
 
 toString : Expr -> String
@@ -25,21 +22,23 @@ toString expr =
         Variable name ->
             name
 
-        Lambda (Just True) name body ->
-            "(*" ++ name ++ " => " ++ toString body ++ ")"
+        Lambda True name body ->
+            toString (Closure True name body)
 
-        Lambda _ name body ->
+        Lambda False name body ->
             "(" ++ name ++ " -> " ++ toString body ++ ")"
+
+        Closure False name body ->
+            "(" ++ name ++ " => " ++ toString body ++ ")"
+
+        Closure True name body ->
+            "(*" ++ name ++ " => " ++ toString body ++ ")"
 
         Apply function argument ->
             "(" ++ toString function ++ " " ++ toString argument ++ ")"
 
         Unborrow name body ->
             "unborrow " ++ name ++ " in " ++ toString body
-
-        Annotation spec (Lambda _ name body) ->
-            -- WTF is this? I don't remember
-            "(" ++ name ++ " [" ++ Spec.toString spec ++ "] -> " ++ toString body ++ ")"
 
         Annotation spec expr_ ->
             "<" ++ Spec.toString spec ++ ">" ++ toString expr_

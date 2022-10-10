@@ -2,20 +2,17 @@ module IR.Spec exposing (..)
 
 import Dict exposing (Dict)
 
+-- TODO: remove maybe from arrow's name
 
 type Spec
-    = Reference Address
-    | Arrow Bool (Maybe String) Spec Spec
-    | Linear Spec
+    = Reference Bool Address
+    | Arrow (Maybe String) Spec Spec
+    | LinearArrow Bool (Maybe String) Spec Spec
     | Unborrow String Spec
 
 
 type alias Address =
     Int
-
-
-type alias Linear =
-    Bool
 
 
 toString : Spec -> String
@@ -34,18 +31,14 @@ type alias ToStringState =
 toStringHelp : Spec -> ToStringState -> ( String, ToStringState )
 toStringHelp spec state =
     case spec of
-        Reference address ->
+        Reference _ address ->
             getVarName address state
 
-        Linear (Arrow linear name argument return) ->
+        Arrow name argument return ->
+            arrowToString False False name argument return state
+
+        LinearArrow linear name argument return ->
             arrowToString True linear name argument return state
-
-        Arrow linear name argument return ->
-            arrowToString False linear name argument return state
-
-
-        Linear subSpec ->
-            toStringHelp subSpec state
 
         Unborrow name subSpec ->
             let
@@ -56,28 +49,10 @@ toStringHelp spec state =
 
 
 arrowToString : Bool -> Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
-arrowToString fatArrow linear maybeName argument return state =
+arrowToString linearSelf linearArg maybeName argument return state =
     let
-        ( argumentString, newState ) =
-            case argument of
-                Arrow _ _ _ _ ->
-                    Tuple.mapFirst wrapParens <| toStringHelp argument state
-
-                _ ->
-                    toStringHelp argument state
-
-        ( returnString, finalState ) =
-            toStringHelp return newState
-
-        arrow =
-            if fatArrow then
-                " => "
-
-            else
-                " -> "
-
-        prefix =
-            if linear then
+        argName =
+            if linearArg then
                 case maybeName of
                     Just name ->
                         "*" ++ name ++ ": "
@@ -92,8 +67,29 @@ arrowToString fatArrow linear maybeName argument return state =
 
                     Nothing ->
                         ""
+
+        ( argumentString, newState ) =
+            case argument of
+                Arrow _ _ _ ->
+                    Tuple.mapFirst wrapParens <| toStringHelp argument state
+
+                LinearArrow _ _ _ _ ->
+                    Tuple.mapFirst wrapParens <| toStringHelp argument state
+
+                _ ->
+                    toStringHelp argument state
+
+        arrow =
+            if linearSelf then
+                " => "
+
+            else
+                " -> "
+
+        ( returnString, finalState ) =
+            toStringHelp return newState
     in
-    ( prefix ++ argumentString ++ arrow ++ returnString, finalState )
+    ( argName ++ argumentString ++ arrow ++ returnString, finalState )
 
 
 wrapParens : String -> String

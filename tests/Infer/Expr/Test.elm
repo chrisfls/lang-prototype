@@ -10,11 +10,11 @@ import Test exposing (..)
 
 
 lam =
-    Expr.Lambda Nothing
+    Expr.Lambda False
 
 
 cls =
-    Expr.Lambda (Just True)
+    Expr.Lambda True
 
 
 var =

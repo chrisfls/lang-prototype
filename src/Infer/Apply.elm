@@ -14,7 +14,7 @@ apply : Spec -> Spec -> Model -> Return
 apply functionSpec argumentSpec state =
     case functionSpec of
         -- TODO: deal with linearity
-        Reference address ->
+        Reference _ address ->
             case State.getAtAddress address state of
                 Just specAtAddress ->
                     contrainWith specAtAddress argumentSpec state
@@ -33,19 +33,23 @@ constrain index argumentSpec state =
             State.nextFreeAddress state
 
         returnReference =
-            Reference returnAddress
+            Reference False returnAddress
     in
-    -- NOTE: having unamed arrows will hurt ability to infer frees...
+    -- TODO: generate named args to help with linear argument inference
+    -- TODO: apply linearity constraints
     Ok
         { spec = returnReference
-        , state = State.insertAtAddress index (Arrow False Nothing argumentSpec returnReference) nextState
+        , state = State.insertAtAddress index (Arrow Nothing argumentSpec returnReference) nextState
         }
 
 
 contrainWith : Spec -> Spec -> Model -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+            constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
+
+        LinearArrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
         spec ->
@@ -55,7 +59,7 @@ contrainWith functionSpec argumentSpec state =
 constrainFunctionWith : Spec -> Spec -> Spec -> Model -> Return
 constrainFunctionWith argumentSpec returnSpec appliedSpec state =
     case appliedSpec of
-        Reference address ->
+        Reference _ address ->
             Ok
                 { spec = returnSpec
                 , state = State.insertAtAddress address argumentSpec state
