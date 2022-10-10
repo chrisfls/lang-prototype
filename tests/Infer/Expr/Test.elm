@@ -80,7 +80,7 @@ suite =
 
 toResult : Expr -> Result String String
 toResult baseExpr =
-    case Expr.toSpecExpr baseExpr State.empty of
+    case Expr.infer baseExpr State.empty of
         Expr.Return expr state ->
             Ok <| Spec.toString <| State.unwrap (SpecExpr.toSpec expr) state
 

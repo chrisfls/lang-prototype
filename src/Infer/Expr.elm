@@ -1,4 +1,4 @@
-module Infer.Expr exposing (Return(..), toSpecExpr)
+module Infer.Expr exposing (Return(..), infer)
 
 import IR.Expr exposing (Expr(..))
 import IR.Spec as Spec exposing (Spec)
@@ -13,9 +13,9 @@ type Return
     | Throw String
 
 
-toSpecExpr : Expr -> Model -> Return
-toSpecExpr expr state =
-    case infer expr False state of
+infer : Expr -> Model -> Return
+infer expr state =
+    case inferExpr expr False state of
         Return specExpr nextState ->
             Return specExpr nextState
 
@@ -23,12 +23,8 @@ toSpecExpr expr state =
             throw
 
 
-infer : Expr -> Bool -> Model -> Return
-infer expr mock model =
-    -- TODO: there are two kinds of linearity,
-    --       lambda linearity and parameter linearity
-    --       every lambda with linear parameters are linear themselves
-    --       but the other way is not always true
+inferExpr : Expr -> Bool -> Model -> Return
+inferExpr expr mock model =
     case expr of
         Variable name ->
             case Model.getAtName name model of
@@ -39,14 +35,10 @@ infer expr mock model =
                     Throw <| "var '" ++ name ++ "' not found"
 
         Lambda linear name body ->
-            if mock then
-                inferLambdaMock (linear || Model.hasLinearNames model) name body model
-
-            else
-                inferLambda (linear || Model.hasLinearNames model) name body model
+            inferLambdaClosure mock (linear || Model.hasLinearNames model) linear name body model
 
         Closure linear name body ->
-            Debug.todo "a"
+            inferLambdaClosure mock True linear name body model
 
         Apply function argument ->
             -- case inferExpr function model of
@@ -87,46 +79,17 @@ infer expr mock model =
             Debug.todo "inferExpr Annotation"
 
 
-inferLambdaMock isLinear name body model =
+inferLambdaClosure mock selfLinear linear name body model =
+    -- TODO: simplify this shite
     let
         ( address, freeAddressModel ) =
             Model.nextFreeAddress model
 
         argumentSpec =
-            Spec.Reference isLinear address
+            Spec.Reference linear address
 
         linearModel =
-            if isLinear then
-                Model.setLinearName name freeAddressModel
-
-            else
-                freeAddressModel
-    in
-    case infer body True <| Model.insertAtName name argumentSpec linearModel of
-        Return bodyInfer bodyModel ->
-            let
-                lambdaState =
-                    Model.removeAtName name bodyModel
-
-                lambdaSpec =
-                    Spec.Arrow (Just name) argumentSpec (SpecExpr.toSpec bodyInfer)
-            in
-            Return (SpecExpr.Lambda lambdaSpec name bodyInfer) lambdaState
-
-        err ->
-            err
-
-
-inferLambda isLinear name body model =
-    let
-        ( address, freeAddressModel ) =
-            Model.nextFreeAddress model
-
-        argumentSpec =
-            Spec.Reference isLinear address
-
-        linearModel =
-            if isLinear then
+            if linear then
                 Model.setLinearName name freeAddressModel
 
             else
@@ -135,31 +98,53 @@ inferLambda isLinear name body model =
         argumentModel =
             Model.insertAtName name argumentSpec linearModel
     in
-    case infer body True argumentModel of
-        Return _ tempModel ->
-            let
-                freshNames =
-                    Model.listFreshNames tempModel
+    case inferExpr body True argumentModel of
+        Return mockInfer mockModel ->
+            if mock then
+                let
+                    returnSpec =
+                        SpecExpr.toSpec mockInfer
 
-                disposedModel =
-                    List.foldl Model.setDisposedName argumentModel freshNames
-            in
-            case infer body False disposedModel of
-                Return bodyInfer bodyState ->
-                    let
-                        lambdaState =
-                            Model.removeAtName name bodyState
+                    justName =
+                        Just name
 
-                        ( returnSpec, bodySpecExpr ) =
-                            unborrow freshNames bodyInfer
+                    specExpr =
+                        if selfLinear then
+                            SpecExpr.Closure (Spec.LinearArrow linear justName argumentSpec returnSpec) linear name mockInfer
 
-                        lambdaSpec =
-                            Spec.Arrow (Just name) argumentSpec returnSpec
-                    in
-                    Return (SpecExpr.Lambda lambdaSpec name bodySpecExpr) lambdaState
+                        else
+                            SpecExpr.Lambda (Spec.Arrow justName argumentSpec returnSpec) name mockInfer
+                in
+                Return specExpr (Model.removeAtName name mockModel)
 
-                err ->
-                    err
+            else
+                let
+                    freshNames =
+                        Model.listFreshNames mockModel
+
+                    disposedModel =
+                        List.foldl Model.setDisposedName argumentModel freshNames
+                in
+                case inferExpr body False disposedModel of
+                    Return bodyInfer bodyModel ->
+                        let
+                            ( returnSpec, bodySpecExpr ) =
+                                unborrow freshNames bodyInfer
+
+                            justName =
+                                Just name
+
+                            specExpr =
+                                if selfLinear then
+                                    SpecExpr.Closure (Spec.LinearArrow linear justName argumentSpec returnSpec) linear name bodySpecExpr
+
+                                else
+                                    SpecExpr.Lambda (Spec.Arrow justName argumentSpec returnSpec) name bodySpecExpr
+                        in
+                        Return specExpr (Model.removeAtName name bodyModel)
+
+                    err ->
+                        err
 
         err ->
             err
