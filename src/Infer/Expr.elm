@@ -26,8 +26,10 @@ toSpecExpr expr state =
 
 infer : Expr -> Model -> Return
 infer expr model =
-    -- TODO: decide if it is worth to inferExpr frees at the user language or here
-    -- it is probably worth to do a free inference step before infering the rest of the expr
+    -- TODO: there are two kinds of linearity,
+    --       lambda linearity and parameter linearity
+    --       every lambda with linear parameters are linear themselves
+    --       but the other way is not always true
     case expr of
         Variable name ->
             case Model.getAtName name model of
