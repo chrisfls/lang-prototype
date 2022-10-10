@@ -3,18 +3,18 @@ module Infer.Expr.Test exposing (suite)
 import Expect
 import IR.Expr as Expr exposing (Expr)
 import IR.Spec as Spec
+import IR.SpecExpr as SpecExpr
 import Infer.Expr as Expr
 import Infer.Model as State
-import IR.SpecExpr as SpecExpr
 import Test exposing (..)
 
 
 lam =
-    Expr.Lambda False
+    Expr.Lambda False False
 
 
 cls =
-    Expr.Lambda True
+    Expr.Lambda True True
 
 
 var =
@@ -48,32 +48,32 @@ suite =
                 \_ ->
                     lam "a" (cls "b" (var "a"))
                         |> toResult
-                        |> Expect.equal (Ok "a: a -> *b: b -> unborrow b => a")
+                        |> Expect.equal (Ok "a: a -> *b: b => b! a")
             , test "\\a b -> a" <|
                 \_ ->
                     lam "a" (lam "b" (var "a"))
                         |> toResult
-                        |> Expect.equal (Ok "a: a -> b: b -> unborrow b => a")
-            , only <| test "\\*a b -> a" <| -- HERE
+                        |> Expect.equal (Ok "a: a -> b: b -> b! a")
+            , test "\\*a b -> a" <|
                 \_ ->
                     cls "a" (lam "b" (var "a"))
                         |> toResult
-                        |> Expect.equal (Ok "*a: a => b: b => [unborrow b] a")
+                        |> Expect.equal (Ok "*a: a => b: b => b! a")
             , test "\\a b -> b" <|
                 \_ ->
                     lam "a" (lam "b" (var "b"))
                         |> toResult
-                        |> Expect.equal (Ok "a: a -> unborrow a => b: b -> b")
+                        |> Expect.equal (Ok "a: a -> a! b: b -> b")
             , test "\\a *b -> b" <|
                 \_ ->
                     lam "a" (cls "b" (var "b"))
                         |> toResult
-                        |> Expect.equal (Ok "a: a -> unborrow a => *b: b -> b")
+                        |> Expect.equal (Ok "a: a -> a! *b: b => b")
             , test "\\*a b -> b" <|
-                    \_ ->
-                        cls "a" (lam "b" (var "b"))
-                            |> toResult
-                            |> Expect.equal (Ok "*a: a -> unborrow a => b: b -> b")
+                \_ ->
+                    cls "a" (lam "b" (var "b"))
+                        |> toResult
+                        |> Expect.equal (Ok "*a: a => a! b: b -> b")
             ]
         ]
 

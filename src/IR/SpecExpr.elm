@@ -47,10 +47,10 @@ toExpr specExpr =
             Expr.Variable name
 
         Lambda _ name body ->
-            Expr.Lambda False name (toExpr body)
+            Expr.Lambda False False name (toExpr body)
 
         Closure _ linear name body ->
-            Expr.Lambda linear name (toExpr body)
+            Expr.Lambda True linear name (toExpr body)
 
         Apply _ function argument ->
             Expr.Apply (toExpr function) (toExpr argument)

@@ -2,12 +2,14 @@ module IR.Spec exposing (..)
 
 import Dict exposing (Dict)
 
+
+
 -- TODO: remove maybe from arrow's name
+
 
 type Spec
     = Reference Bool Address
-    | Arrow (Maybe String) Spec Spec
-    | LinearArrow Bool (Maybe String) Spec Spec
+    | Arrow Bool Bool (Maybe String) Spec Spec
     | Unborrow String Spec
 
 
@@ -34,25 +36,22 @@ toStringHelp spec state =
         Reference _ address ->
             getVarName address state
 
-        Arrow name argument return ->
-            arrowToString False False name argument return state
-
-        LinearArrow linear name argument return ->
-            arrowToString True linear name argument return state
+        Arrow closure linear name argument return ->
+            arrowToString closure linear name argument return state
 
         Unborrow name subSpec ->
             let
                 ( subSpecString, newState ) =
                     toStringHelp subSpec state
             in
-            ( "[unborrow " ++ name ++ "] " ++ subSpecString, newState )
+            ( name ++ "! " ++ subSpecString, newState )
 
 
 arrowToString : Bool -> Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
-arrowToString linearSelf linearArg maybeName argument return state =
+arrowToString closure linear maybeName argument return state =
     let
         argName =
-            if linearArg then
+            if linear then
                 case maybeName of
                     Just name ->
                         "*" ++ name ++ ": "
@@ -70,17 +69,14 @@ arrowToString linearSelf linearArg maybeName argument return state =
 
         ( argumentString, newState ) =
             case argument of
-                Arrow _ _ _ ->
-                    Tuple.mapFirst wrapParens <| toStringHelp argument state
-
-                LinearArrow _ _ _ _ ->
+                Arrow _ _ _ _ _ ->
                     Tuple.mapFirst wrapParens <| toStringHelp argument state
 
                 _ ->
                     toStringHelp argument state
 
         arrow =
-            if linearSelf then
+            if closure then
                 " => "
 
             else

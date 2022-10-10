@@ -9,8 +9,7 @@ import IR.Spec as Spec exposing (Spec)
 
 type Expr
     = Variable String
-    | Lambda Bool String Expr
-    | Closure Bool String Expr
+    | Lambda Bool Bool String Expr
     | Apply Expr Expr
     | Unborrow String Expr
     | Annotation Spec Expr
@@ -22,17 +21,18 @@ toString expr =
         Variable name ->
             name
 
-        Lambda True name body ->
-            toString (Closure True name body)
+        Lambda True True name body ->
+            "(*" ++ name ++ " => " ++ toString body ++ ")"
 
-        Lambda False name body ->
-            "(" ++ name ++ " -> " ++ toString body ++ ")"
-
-        Closure False name body ->
+        Lambda True False name body ->
             "(" ++ name ++ " => " ++ toString body ++ ")"
 
-        Closure True name body ->
-            "(*" ++ name ++ " => " ++ toString body ++ ")"
+        Lambda False True name body ->
+            -- invalid case but gotta cover it
+            "(*" ++ name ++ " -> " ++ toString body ++ ")"
+
+        Lambda False _ name body ->
+            "(" ++ name ++ " -> " ++ toString body ++ ")"
 
         Apply function argument ->
             "(" ++ toString function ++ " " ++ toString argument ++ ")"

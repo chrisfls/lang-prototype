@@ -7,6 +7,8 @@ import Infer.Model as State exposing (Model)
 type alias Return =
     Result String { spec : Spec, state : Model }
 
+
+
 -- TODO: when applying a free the reference should be marked as unborrowed
 
 
@@ -39,17 +41,14 @@ constrain index argumentSpec state =
     -- TODO: apply linearity constraints
     Ok
         { spec = returnReference
-        , state = State.insertAtAddress index (Arrow Nothing argumentSpec returnReference) nextState
+        , state = State.insertAtAddress index (Arrow False False Nothing argumentSpec returnReference) nextState
         }
 
 
 contrainWith : Spec -> Spec -> Model -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
-            constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
-
-        LinearArrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
         spec ->

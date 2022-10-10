@@ -52,9 +52,11 @@ setLinearName : String -> Model -> Model
 setLinearName name state =
     { state | linear = Set.insert name state.linear }
 
+
 hasLinearNames : Model -> Bool
 hasLinearNames model =
     not (Set.isEmpty model.linear)
+
 
 setUsedName : String -> Model -> Model
 setUsedName name state =
@@ -69,9 +71,9 @@ setDisposedName name state =
 removeAtName : String -> Model -> Model
 removeAtName name state =
     { state
-    | scope = Dict.remove name state.scope
-    , linear = Set.remove name state.linear
-    , state = Dict.remove name state.state
+        | scope = Dict.remove name state.scope
+        , linear = Set.remove name state.linear
+        , state = Dict.remove name state.state
     }
 
 
@@ -134,11 +136,8 @@ unwrap spec state =
                 Nothing ->
                     spec
 
-        Arrow name func argm ->
-            Arrow name (unwrap func state) (unwrap argm state)
-
-        LinearArrow linear name func argm ->
-            LinearArrow linear name (unwrap func state) (unwrap argm state)
+        Arrow closure linear name func argm ->
+            Arrow closure linear name (unwrap func state) (unwrap argm state)
 
         Unborrow name subSpec ->
             Unborrow name (unwrap subSpec state)

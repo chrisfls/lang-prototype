@@ -34,11 +34,77 @@ inferExpr expr mock model =
                 Nothing ->
                     Throw <| "var '" ++ name ++ "' not found"
 
-        Lambda linear name body ->
-            inferLambdaClosure mock (linear || Model.hasLinearNames model) linear name body model
+        Lambda closure isLinear name body ->
+            let
+                isClosure =
+                    closure || isLinear || Model.hasLinearNames model
 
-        Closure linear name body ->
-            inferLambdaClosure mock True linear name body model
+                ( address, freeAddressModel ) =
+                    Model.nextFreeAddress model
+
+                argumentSpec =
+                    Spec.Reference isLinear address
+
+                linearModel =
+                    if isLinear then
+                        Model.setLinearName name freeAddressModel
+
+                    else
+                        freeAddressModel
+
+                argumentModel =
+                    Model.insertAtName name argumentSpec linearModel
+            in
+            case inferExpr body True argumentModel of
+                Return mockInfer mockModel ->
+                    if mock then
+                        let
+                            returnSpec =
+                                SpecExpr.toSpec mockInfer
+
+                            justName =
+                                Just name
+
+                            specExpr =
+                                if isClosure then
+                                    SpecExpr.Closure (Spec.Arrow isClosure isLinear justName argumentSpec returnSpec) isLinear name mockInfer
+
+                                else
+                                    SpecExpr.Lambda (Spec.Arrow False False justName argumentSpec returnSpec) name mockInfer
+                        in
+                        Return specExpr (Model.removeAtName name mockModel)
+
+                    else
+                        let
+                            freshNames =
+                                Model.listFreshNames mockModel
+
+                            disposedModel =
+                                List.foldl Model.setDisposedName argumentModel freshNames
+                        in
+                        case inferExpr body False disposedModel of
+                            Return bodyInfer bodyModel ->
+                                let
+                                    ( returnSpec, bodySpecExpr ) =
+                                        unborrow freshNames bodyInfer
+
+                                    justName =
+                                        Just name
+
+                                    specExpr =
+                                        if isClosure then
+                                            SpecExpr.Closure (Spec.Arrow isClosure isLinear justName argumentSpec returnSpec) isLinear name bodySpecExpr
+
+                                        else
+                                            SpecExpr.Lambda (Spec.Arrow False False justName argumentSpec returnSpec) name bodySpecExpr
+                                in
+                                Return specExpr (Model.removeAtName name bodyModel)
+
+                            err ->
+                                err
+
+                err ->
+                    err
 
         Apply function argument ->
             -- case inferExpr function model of
@@ -77,77 +143,6 @@ inferExpr expr mock model =
         Annotation _ _ ->
             -- TODO: typecheck
             Debug.todo "inferExpr Annotation"
-
-
-inferLambdaClosure mock selfLinear linear name body model =
-    -- TODO: simplify this shite
-    let
-        ( address, freeAddressModel ) =
-            Model.nextFreeAddress model
-
-        argumentSpec =
-            Spec.Reference linear address
-
-        linearModel =
-            if linear then
-                Model.setLinearName name freeAddressModel
-
-            else
-                freeAddressModel
-
-        argumentModel =
-            Model.insertAtName name argumentSpec linearModel
-    in
-    case inferExpr body True argumentModel of
-        Return mockInfer mockModel ->
-            if mock then
-                let
-                    returnSpec =
-                        SpecExpr.toSpec mockInfer
-
-                    justName =
-                        Just name
-
-                    specExpr =
-                        if selfLinear then
-                            SpecExpr.Closure (Spec.LinearArrow linear justName argumentSpec returnSpec) linear name mockInfer
-
-                        else
-                            SpecExpr.Lambda (Spec.Arrow justName argumentSpec returnSpec) name mockInfer
-                in
-                Return specExpr (Model.removeAtName name mockModel)
-
-            else
-                let
-                    freshNames =
-                        Model.listFreshNames mockModel
-
-                    disposedModel =
-                        List.foldl Model.setDisposedName argumentModel freshNames
-                in
-                case inferExpr body False disposedModel of
-                    Return bodyInfer bodyModel ->
-                        let
-                            ( returnSpec, bodySpecExpr ) =
-                                unborrow freshNames bodyInfer
-
-                            justName =
-                                Just name
-
-                            specExpr =
-                                if selfLinear then
-                                    SpecExpr.Closure (Spec.LinearArrow linear justName argumentSpec returnSpec) linear name bodySpecExpr
-
-                                else
-                                    SpecExpr.Lambda (Spec.Arrow justName argumentSpec returnSpec) name bodySpecExpr
-                        in
-                        Return specExpr (Model.removeAtName name bodyModel)
-
-                    err ->
-                        err
-
-        err ->
-            err
 
 
 unborrow : List String -> SpecExpr -> ( Spec, SpecExpr )
