@@ -38,10 +38,12 @@ toStringHelp spec state =
             getVarName address state
 
         Arrow name argument return ->
-            arrowToString False name argument return state
+            case argument of
+                Linear _ ->
+                    arrowToString True name argument return state
 
-        Linear (Arrow name argument return) ->
-            arrowToString True name argument return state
+                _ ->
+                    arrowToString False name argument return state
 
         Linear subSpec ->
             toStringHelp subSpec state

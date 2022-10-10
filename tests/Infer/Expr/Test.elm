@@ -44,28 +44,36 @@ suite =
                     lam "f" (lam "a" (lam "b" (app (app (var "f") (var "a")) (var "b"))))
                         |> toResult
                         |> Expect.equal (Ok "f: (a -> b -> c) -> a: a -> b: b -> c")
-            -- , test "\\a *b -> free b in a" <|
-            --     \_ ->
-            --         lam "a" (cls "b" (var "a"))
-            --             |> toResult
-            --             |> Expect.equal (Ok "a: a -> *b: b -> free b => a")
+            , test "\\a *b -> a" <|
+                \_ ->
+                    lam "a" (cls "b" (var "a"))
+                        |> toResult
+                        |> Expect.equal (Ok "a: a -> *b: b -> unborrow b => a")
             , test "\\a b -> a" <|
                 \_ ->
                     lam "a" (lam "b" (var "a"))
                         |> toResult
                         |> Expect.equal (Ok "a: a -> b: b -> unborrow b => a")
-            , only <| test "\\a b -> b" <|
-                -- TODO: find a way to unborrow a early
+            , only <| test "\\*a b -> a" <|
+                \_ ->
+                    cls "a" (lam "b" (var "a"))
+                        |> toResult
+                        |> Expect.equal (Ok "*a: a -> *b: b -> unborrow b => a")
+            , test "\\a b -> b" <|
                 \_ ->
                     lam "a" (lam "b" (var "b"))
                         |> toResult
                         |> Expect.equal (Ok "a: a -> unborrow a => b: b -> b")
-
-            -- , test "\\*a b -> b" <|
-            --         \_ ->
-            --             cls "a" (lam "b" (var "b"))
-            --                 |> toResult
-            --                 |> Expect.equal (Ok "*a: a -> free a => b: b -> b")
+            , test "\\a *b -> b" <|
+                \_ ->
+                    lam "a" (cls "b" (var "b"))
+                        |> toResult
+                        |> Expect.equal (Ok "a: a -> unborrow a => *b: b -> b")
+            , test "\\*a b -> b" <|
+                    \_ ->
+                        cls "a" (lam "b" (var "b"))
+                            |> toResult
+                            |> Expect.equal (Ok "*a: a -> unborrow a => b: b -> b")
             ]
         ]
 

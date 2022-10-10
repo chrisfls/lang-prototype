@@ -10,6 +10,7 @@ type alias Model =
     { graph : Graph
     , count : Int
     , scope : Dict String Spec
+    , linear : Set String
     , state : Dict String State
     }
 
@@ -30,6 +31,8 @@ empty =
     { graph = IntDict.empty
     , count = 0
     , scope = Dict.empty
+    , linear = Set.empty
+
     -- TODO: maybe optimize this into multiple sets
     , state = Dict.empty
     }
@@ -40,10 +43,18 @@ insertAtAddress address spec state =
     { state | graph = IntDict.insert address spec state.graph }
 
 
-insert : String -> Spec -> Model -> Model
-insert name spec state =
+insertAtName : String -> Spec -> Model -> Model
+insertAtName name spec state =
     { state | scope = Dict.insert name spec state.scope, state = Dict.insert name FreshNew state.state }
 
+
+setLinearName : String -> Model -> Model
+setLinearName name state =
+    { state | linear = Set.insert name state.linear }
+
+hasLinearNames : Model -> Bool
+hasLinearNames model =
+    not (Set.isEmpty model.linear)
 
 setUsedName : String -> Model -> Model
 setUsedName name state =
@@ -52,11 +63,16 @@ setUsedName name state =
 
 setDisposedName : String -> Model -> Model
 setDisposedName name state =
-    { state | state = Dict.insert name Disposed state.state }
+    { state | state = Dict.insert name Disposed state.state, linear = Set.remove name state.linear }
+
 
 removeAtName : String -> Model -> Model
 removeAtName name state =
-    { state | scope = Dict.remove name state.scope }
+    { state
+    | scope = Dict.remove name state.scope
+    , linear = Set.remove name state.linear
+    , state = Dict.remove name state.state
+    }
 
 
 nextFreeAddress : Model -> ( Address, Model )
@@ -72,7 +88,14 @@ getAtAddress index state =
 listFreshNames : Model -> List String
 listFreshNames model =
     Dict.toList model.state
-        |> List.filterMap (\(name,state) -> if state == FreshNew then Just name else Nothing)
+        |> List.filterMap
+            (\( name, state ) ->
+                if state == FreshNew then
+                    Just name
+
+                else
+                    Nothing
+            )
 
 
 getAtName : String -> Model -> Maybe Spec

@@ -6,6 +6,7 @@ import IR.SpecExpr as SpecExpr exposing (SpecExpr)
 import Infer.Apply exposing (apply)
 import Infer.Model as Model exposing (Model)
 import Set exposing (Set)
+import Infer.Model exposing (nextFreeAddress)
 
 
 type Return
@@ -15,7 +16,7 @@ type Return
 
 toSpecExpr : Expr -> Model -> Return
 toSpecExpr expr state =
-    case infer expr False state of
+    case infer expr state of
         Return specExpr nextState ->
             Return specExpr nextState
 
@@ -23,8 +24,8 @@ toSpecExpr expr state =
             throw
 
 
-infer : Expr -> Bool -> Model -> Return
-infer expr defaultLinear model =
+infer : Expr -> Model -> Return
+infer expr model =
     -- TODO: decide if it is worth to inferExpr frees at the user language or here
     -- it is probably worth to do a free inference step before infering the rest of the expr
     case expr of
@@ -42,19 +43,23 @@ infer expr defaultLinear model =
                     Model.nextFreeAddress model
 
                 isLinear =
-                    Maybe.withDefault defaultLinear maybeLinear
+                    Maybe.withDefault (Model.hasLinearNames freeAddressModel) maybeLinear
 
-                argumentSpec =
+                ( argumentSpec, linearModel) =
                     if isLinear then
-                        Spec.Linear (Spec.Reference address)
+                        ( Spec.Linear (Spec.Reference address)
+                        , Model.setLinearName name freeAddressModel
+                        )
 
                     else
-                        Spec.Reference address
+                        ( Spec.Reference address
+                        , freeAddressModel
+                        )
 
                 argumentModel =
-                    Model.insert name argumentSpec freeAddressModel
+                    Model.insertAtName name argumentSpec linearModel
             in
-            case inferExpr body isLinear argumentModel of
+            case inferExpr body argumentModel of
                 Return _ tempModel ->
                     let
                         freshNames =
@@ -63,7 +68,7 @@ infer expr defaultLinear model =
                         disposedModel =
                             List.foldl Model.setDisposedName argumentModel freshNames
                     in
-                    case infer body isLinear disposedModel of
+                    case infer body disposedModel of
                         Return bodyInfer bodyState ->
                             let
                                 lambdaState =
@@ -122,8 +127,8 @@ infer expr defaultLinear model =
             Debug.todo "inferExpr Annotation"
 
 
-inferExpr : Expr -> Bool -> Model -> Return
-inferExpr expr defaultLinear model =
+inferExpr : Expr -> Model -> Return
+inferExpr expr model =
     case expr of
         Variable name ->
             case Model.getAtName name model of
@@ -139,19 +144,23 @@ inferExpr expr defaultLinear model =
                     Model.nextFreeAddress model
 
                 isLinear =
-                    Maybe.withDefault defaultLinear maybeLinear
+                    Maybe.withDefault (Model.hasLinearNames freeAddressModel) maybeLinear
 
-                argumentSpec =
+                ( argumentSpec, linearModel) =
                     if isLinear then
-                        Spec.Linear (Spec.Reference address)
+                        ( Spec.Linear (Spec.Reference address)
+                        , Model.setLinearName name freeAddressModel
+                        )
 
                     else
-                        Spec.Reference address
+                        ( Spec.Reference address
+                        , freeAddressModel
+                        )
 
                 argumentModel =
-                    Model.insert name argumentSpec freeAddressModel
+                    Model.insertAtName name argumentSpec linearModel
             in
-            case inferExpr body isLinear argumentModel of
+            case inferExpr body argumentModel of
                 Return bodyInfer bodyModel ->
                     let
                         lambdaState =
