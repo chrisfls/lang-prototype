@@ -9,9 +9,9 @@ import Set exposing (Set)
 type alias Model =
     { graph : Graph
     , count : Int
-    , scope : Dict String Spec
+    , scope : Dict String ( Spec, State )
     , linear : Set String
-    , state : Dict String State
+    , unused : Set String
     }
 
 
@@ -20,8 +20,7 @@ type alias Graph =
 
 
 type State
-    = FreshNew
-    | Required
+    = Available
     | Borrowed
     | Disposed
 
@@ -32,119 +31,150 @@ empty =
     , count = 0
     , scope = Dict.empty
     , linear = Set.empty
-
-    -- TODO: maybe optimize this into multiple sets
-    , state = Dict.empty
+    , unused = Set.empty
     }
-
-
-insertAtAddress : Address -> Spec -> Model -> Model
-insertAtAddress address spec state =
-    { state | graph = IntDict.insert address spec state.graph }
-
-
-insertAtName : String -> Spec -> Model -> Model
-insertAtName name spec state =
-    { state | scope = Dict.insert name spec state.scope, state = Dict.insert name FreshNew state.state }
-
-
-setLinearName : String -> Model -> Model
-setLinearName name state =
-    { state | linear = Set.insert name state.linear }
-
-
-hasLinearNames : Model -> Bool
-hasLinearNames model =
-    not (Set.isEmpty model.linear)
-
-
-setUsedName : String -> Model -> Model
-setUsedName name state =
-    { state | state = Dict.insert name Required state.state }
-
-
-setDisposedName : String -> Model -> Model
-setDisposedName name state =
-    { state | state = Dict.insert name Disposed state.state, linear = Set.remove name state.linear }
-
-
-removeAtName : String -> Model -> Model
-removeAtName name state =
-    { state
-        | scope = Dict.remove name state.scope
-        , linear = Set.remove name state.linear
-        , state = Dict.remove name state.state
-    }
-
-
-nextFreeAddress : Model -> ( Address, Model )
-nextFreeAddress ({ count } as state) =
-    ( count, { state | count = count + 1 } )
 
 
 getAtAddress : Address -> Model -> Maybe Spec
-getAtAddress index state =
-    getHelp index state.graph
+getAtAddress index model =
+    getHelp index model.graph
+
+
+insertAtAddress : Address -> Spec -> Model -> Model
+insertAtAddress address spec model =
+    { model | graph = IntDict.insert address spec model.graph }
+
+
+nextFreeAddress : Model -> ( Address, Model )
+nextFreeAddress ({ count } as model) =
+    ( count, { model | count = count + 1 } )
+
+
+getAtName : String -> Model -> Maybe ( Spec, State )
+getAtName name model =
+    -- TODO: maybe unwrap
+    -- TODO: maybe I shouldn't do this to named specs
+    Dict.get name model.scope
+
+
+insertAtName : String -> Spec -> Model -> Model
+insertAtName name spec model =
+    { model
+        | scope = Dict.insert name ( spec, Available ) model.scope
+        , unused = Set.insert name model.unused
+    }
+
+
+insertLinearAtName : String -> Spec -> Model -> Model
+insertLinearAtName name spec model =
+    { model
+        | scope = Dict.insert name ( spec, Available ) model.scope
+        , linear = Set.insert name model.linear
+        , unused = Set.insert name model.unused
+    }
+
+
+removeAtName : String -> Model -> Model
+removeAtName name model =
+    { model
+        | scope = Dict.remove name model.scope
+        , linear = Set.remove name model.linear
+        , unused = Set.remove name model.unused
+    }
 
 
 listFreshNames : Model -> List String
 listFreshNames model =
-    Dict.toList model.state
-        |> List.filterMap
-            (\( name, state ) ->
-                if state == FreshNew then
-                    Just name
-
-                else
-                    Nothing
-            )
-
-
-getAtName : String -> Model -> Maybe Spec
-getAtName name state =
-    -- TODO: maybe unwrap
-    case Dict.get name state.scope of
-        (Just spec) as justSpec ->
-            case spec of
-                Reference _ address ->
-                    case getAtAddress address state of
-                        (Just _) as justSpec_ ->
-                            justSpec_
-
-                        Nothing ->
-                            justSpec
-
-                _ ->
-                    justSpec
-
-        _ ->
-            Nothing
+    Set.toList model.unused
 
 
 unwrap : Spec -> Model -> Spec
-unwrap spec state =
+unwrap spec model =
     case spec of
         Reference _ address ->
-            case getAtAddress address state of
+            case getAtAddress address model of
                 Just nextSpec ->
                     if spec == nextSpec then
                         spec
 
                     else
-                        unwrap nextSpec state
+                        unwrap nextSpec model
 
                 Nothing ->
                     spec
 
         Arrow closure linear name func argm ->
-            Arrow closure linear name (unwrap func state) (unwrap argm state)
+            Arrow closure linear name (unwrap func model) (unwrap argm model)
 
         Unborrow name subSpec ->
-            Unborrow name (unwrap subSpec state)
+            Unborrow name (unwrap subSpec model)
+
+
+
+-- LINEARITY STATE
+
+
+hasLinearReferences : Model -> Bool
+hasLinearReferences model =
+    not (Set.isEmpty model.linear)
+
+
+
+-- STATE CONTROL
+
+
+setUsedName : String -> Model -> Model
+setUsedName name model =
+    { model | unused = Set.remove name model.unused }
+
+
+setAvailableName : String -> Model -> Model
+setAvailableName name model =
+    { model | scope = Dict.update name updateAvailableName model.scope }
+
+
+setBorrowName : String -> Model -> Model
+setBorrowName name model =
+    { model | scope = Dict.update name updateBorrowedName model.scope }
+
+
+setDisposedName : String -> Model -> Model
+setDisposedName name model =
+    { model | scope = Dict.update name updateDisposedName model.scope, linear = Set.remove name model.linear }
 
 
 
 -- internals
+
+
+updateAvailableName : Maybe ( Spec, State ) -> Maybe ( Spec, State )
+updateAvailableName maybeData =
+    case maybeData of
+        Just ( spec, _ ) ->
+            Just ( spec, Available )
+
+        nothing ->
+            nothing
+
+
+updateBorrowedName : Maybe ( Spec, State ) -> Maybe ( Spec, State )
+updateBorrowedName maybeData =
+    case maybeData of
+        Just ( spec, _ ) ->
+            Just ( spec, Borrowed )
+
+        nothing ->
+            nothing
+
+
+updateDisposedName : Maybe ( Spec, State ) -> Maybe ( Spec, State )
+updateDisposedName maybeData =
+    case maybeData of
+        Just ( spec, _ ) ->
+            Just ( spec, Disposed )
+
+        nothing ->
+            nothing
 
 
 getHelp : Address -> Graph -> Maybe Spec

@@ -2,34 +2,36 @@ module Infer.Expr exposing (Return(..), infer)
 
 import IR.Expr exposing (Expr(..))
 import IR.Spec as Spec exposing (Spec)
-import IR.SpecExpr as SpecExpr exposing (SpecExpr)
-import Infer.Apply exposing (apply)
-import Infer.Model as Model exposing (Model, nextFreeAddress)
-import Set exposing (Set)
+import Infer.Apply as Apply exposing (apply)
+import Infer.Model as Model exposing (Model)
 
 
 type Return
-    = Return SpecExpr Model
+    = Return Spec Model
     | Throw String
 
 
 infer : Expr -> Model -> Return
 infer expr state =
-    case inferExpr expr False state of
-        Return specExpr nextState ->
-            Return specExpr nextState
-
-        throw ->
-            throw
+    inferExpr False expr state
 
 
-inferExpr : Expr -> Bool -> Model -> Return
-inferExpr expr mock model =
+inferExpr : Bool -> Expr -> Model -> Return
+inferExpr mock expr model =
     case expr of
         Variable name ->
+            -- TODO: check if name is available
             case Model.getAtName name model of
-                Just spec ->
-                    Return (SpecExpr.Variable spec name) (Model.setUsedName name model)
+                Just ( spec, state ) ->
+                    case state of
+                        Model.Available ->
+                            Return spec (Model.setUsedName name model)
+
+                        Model.Borrowed ->
+                            Throw <| "var '" ++ name ++ "' previously borrowed"
+
+                        Model.Disposed ->
+                            Throw <| "var '" ++ name ++ "' already disposed"
 
                 Nothing ->
                     Throw <| "var '" ++ name ++ "' not found"
@@ -37,7 +39,7 @@ inferExpr expr mock model =
         Lambda closure isLinear name body ->
             let
                 isClosure =
-                    closure || isLinear || Model.hasLinearNames model
+                    closure || isLinear || Model.hasLinearReferences model
 
                 ( address, freeAddressModel ) =
                     Model.nextFreeAddress model
@@ -45,34 +47,19 @@ inferExpr expr mock model =
                 argumentSpec =
                     Spec.Reference isLinear address
 
-                linearModel =
+                argumentModel =
                     if isLinear then
-                        Model.setLinearName name freeAddressModel
+                        Model.insertLinearAtName name argumentSpec freeAddressModel
 
                     else
-                        freeAddressModel
-
-                argumentModel =
-                    Model.insertAtName name argumentSpec linearModel
+                        Model.insertAtName name argumentSpec freeAddressModel
             in
-            case inferExpr body True argumentModel of
-                Return mockInfer mockModel ->
+            case inferExpr True body argumentModel of
+                Return mockSpec mockModel ->
                     if mock then
-                        let
-                            returnSpec =
-                                SpecExpr.toSpec mockInfer
-
-                            justName =
-                                Just name
-
-                            specExpr =
-                                if isClosure then
-                                    SpecExpr.Closure (Spec.Arrow isClosure isLinear justName argumentSpec returnSpec) isLinear name mockInfer
-
-                                else
-                                    SpecExpr.Lambda (Spec.Arrow False False justName argumentSpec returnSpec) name mockInfer
-                        in
-                        Return specExpr (Model.removeAtName name mockModel)
+                        Return
+                            (Spec.Arrow isClosure isLinear (Just name) argumentSpec mockSpec)
+                            (Model.removeAtName name mockModel)
 
                     else
                         let
@@ -80,25 +67,15 @@ inferExpr expr mock model =
                                 Model.listFreshNames mockModel
 
                             disposedModel =
-                                List.foldl Model.setDisposedName argumentModel freshNames
+                                List.foldl Model.setDisposedName (Model.setUsedName name argumentModel) freshNames
                         in
-                        case inferExpr body False disposedModel of
-                            Return bodyInfer bodyModel ->
-                                let
-                                    ( returnSpec, bodySpecExpr ) =
-                                        unborrow freshNames bodyInfer
-
-                                    justName =
-                                        Just name
-
-                                    specExpr =
-                                        if isClosure then
-                                            SpecExpr.Closure (Spec.Arrow isClosure isLinear justName argumentSpec returnSpec) isLinear name bodySpecExpr
-
-                                        else
-                                            SpecExpr.Lambda (Spec.Arrow False False justName argumentSpec returnSpec) name bodySpecExpr
-                                in
-                                Return specExpr (Model.removeAtName name bodyModel)
+                        case inferExpr False body disposedModel of
+                            Return bodySpec bodyModel ->
+                                Return
+                                    (Spec.Arrow isClosure isLinear (Just name) argumentSpec <|
+                                        List.foldl Spec.Unborrow bodySpec freshNames
+                                    )
+                                    (Model.removeAtName name bodyModel)
 
                             err ->
                                 err
@@ -107,58 +84,32 @@ inferExpr expr mock model =
                     err
 
         Apply function argument ->
-            -- case inferExpr function model of
-            --     Ok functionInfer ->
-            --         case inferExpr argument functionInfer.state of
-            --             Ok argumentInfer ->
-            --                 -- TODO: when applying a lambda that returns a Free type, add the values back to the unborrowed list
-            --                 case apply functionInfer.spec argumentInfer.spec argumentInfer.state of
-            --                     Ok resultInfer ->
-            --                         Ok
-            --                             { expr = Annotation resultInfer.spec expr
-            --                             , spec = resultInfer.spec
-            --                             , state = resultInfer.state
-            --                             }
-            --                     Err msg ->
-            --                         Err msg
-            --             err ->
-            --                 err
-            --     err ->
-            --         err
-            Debug.todo "inferExpr Apply"
+            case infer function model of
+                Return functionSpec functionModel ->
+                    case infer argument functionModel of
+                        Return argumentSpec argumentModel ->
+                            -- TODO: when applying a lambda that returns a Free type, add the values back to the unborrowed list
+                            case apply functionSpec argumentSpec argumentModel of
+                                Apply.Return applySpec applyModel ->
+                                    Return applySpec applyModel
+
+                                Apply.Throw msg ->
+                                    Throw msg
+
+                        err ->
+                            err
+
+                err ->
+                    err
 
         Unborrow name subExpr ->
-            -- case inferExpr subExpr <| Model.removeAtName name state of
-            --     Ok argumentInfer ->
-            --         -- Ok
-            --         --     { expr = Unborrow name argumentInfer.expr
-            --         --     , spec = argumentInfer.spec
-            --         --     , state = argumentInfer.state
-            --         --     }
-            --         Debug.todo "a"
-            --     err ->
-            --         err
-            Debug.todo "inferExpr Unborrow"
+            case infer subExpr <| Model.setDisposedName name <| Model.setUsedName name model of
+                Return bodySpec bodyModel ->
+                    Return (Spec.Unborrow name bodySpec) bodyModel
+
+                err ->
+                    err
 
         Annotation _ _ ->
             -- TODO: typecheck
             Debug.todo "inferExpr Annotation"
-
-
-unborrow : List String -> SpecExpr -> ( Spec, SpecExpr )
-unborrow list specExpr =
-    unborrowHelp list (SpecExpr.toSpec specExpr) specExpr
-
-
-unborrowHelp : List String -> Spec -> SpecExpr -> ( Spec, SpecExpr )
-unborrowHelp list spec specExpr =
-    case list of
-        name :: tail ->
-            let
-                nextSpec =
-                    Spec.Unborrow name (SpecExpr.toSpec specExpr)
-            in
-            unborrowHelp tail nextSpec (SpecExpr.Unborrow nextSpec name specExpr)
-
-        [] ->
-            ( spec, specExpr )

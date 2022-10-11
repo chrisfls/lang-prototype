@@ -1,11 +1,12 @@
-module Infer.Apply exposing (Return, apply)
+module Infer.Apply exposing (Return(..), apply)
 
 import IR.Spec exposing (Spec(..))
 import Infer.Model as State exposing (Model)
 
 
-type alias Return =
-    Result String { spec : Spec, state : Model }
+type Return
+    = Return Spec Model
+    | Throw String
 
 
 
@@ -39,10 +40,7 @@ constrain index argumentSpec state =
     in
     -- TODO: generate named args to help with linear argument inference
     -- TODO: apply linearity constraints
-    Ok
-        { spec = returnReference
-        , state = State.insertAtAddress index (Arrow False False Nothing argumentSpec returnReference) nextState
-        }
+    Return returnReference (State.insertAtAddress index (Arrow False False Nothing argumentSpec returnReference) nextState)
 
 
 contrainWith : Spec -> Spec -> Model -> Return
@@ -59,10 +57,7 @@ constrainFunctionWith : Spec -> Spec -> Spec -> Model -> Return
 constrainFunctionWith argumentSpec returnSpec appliedSpec state =
     case appliedSpec of
         Reference _ address ->
-            Ok
-                { spec = returnSpec
-                , state = State.insertAtAddress address argumentSpec state
-                }
+            Return returnSpec (State.insertAtAddress address argumentSpec state)
 
         spec ->
             Debug.todo <| "constrainFunctionWith " ++ Debug.toString spec
