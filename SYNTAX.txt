@@ -6,17 +6,11 @@ HEREDOC
 
 # borrows are tracked by frees
 # frees are infered as early as possible
-discard
-  (a: a)
-  (b: b) free a
--> b =
+discard : (a: a) -> ~a (b: b) -> b
+discard = \a -> b ->
   b
 
-# if a is linear then the returned (b -> a) is linear too
-always
-  (a: a)
-  (b: b)
--> a free b =
+always (a: a) (b: b) -> a =
   a
 
 # unions and aliases share the same `type` keyword, but unions have | prefixes
@@ -28,7 +22,7 @@ type Maybe x =
 type Id =
   | Id String
 
-# some functions only work with linear types
+# some functions only work with line  ar types
 setJust
   (b: b)
   (*m: Maybe a)

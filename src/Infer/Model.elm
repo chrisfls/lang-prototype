@@ -103,8 +103,8 @@ unwrap spec model =
                 Nothing ->
                     spec
 
-        Arrow closure linear name func argm ->
-            Arrow closure linear name (unwrap func model) (unwrap argm model)
+        Arrow linearity name func argm ->
+            Arrow linearity name (unwrap func model) (unwrap argm model)
 
         Unborrow name subSpec ->
             Unborrow name (unwrap subSpec model)

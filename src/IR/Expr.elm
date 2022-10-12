@@ -1,6 +1,6 @@
 module IR.Expr exposing (..)
 
-import IR.Spec as Spec exposing (Spec)
+import IR.Spec as Spec exposing (Linearity, Spec)
 
 
 
@@ -9,7 +9,7 @@ import IR.Spec as Spec exposing (Spec)
 
 type Expr
     = Variable String
-    | Lambda Bool Bool String Expr
+    | Lambda Linearity String Expr
     | Apply Expr Expr
     | Unborrow String Expr
     | Annotation Spec Expr
@@ -21,17 +21,13 @@ toString expr =
         Variable name ->
             name
 
-        Lambda True True name body ->
+        Lambda Spec.Linear name body ->
             "(*" ++ name ++ " => " ++ toString body ++ ")"
 
-        Lambda True False name body ->
+        Lambda Spec.Closure name body ->
             "(" ++ name ++ " => " ++ toString body ++ ")"
 
-        Lambda False True name body ->
-            -- invalid case but gotta cover it
-            "(*" ++ name ++ " -> " ++ toString body ++ ")"
-
-        Lambda False _ name body ->
+        Lambda Spec.Varying name body ->
             "(" ++ name ++ " -> " ++ toString body ++ ")"
 
         Apply function argument ->

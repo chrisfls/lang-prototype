@@ -1,6 +1,6 @@
 module Infer.Apply exposing (Return(..), apply)
 
-import IR.Spec exposing (Spec(..))
+import IR.Spec as Spec exposing (Spec(..))
 import Infer.Model as State exposing (Model)
 
 
@@ -40,13 +40,13 @@ constrain index argumentSpec state =
     in
     -- TODO: generate named args to help with linear argument inference
     -- TODO: apply linearity constraints
-    Return returnReference (State.insertAtAddress index (Arrow False False Nothing argumentSpec returnReference) nextState)
+    Return returnReference (State.insertAtAddress index (Arrow Spec.Varying Nothing argumentSpec returnReference) nextState)
 
 
 contrainWith : Spec -> Spec -> Model -> Return
 contrainWith functionSpec argumentSpec state =
     case functionSpec of
-        Arrow _ _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
 
         spec ->

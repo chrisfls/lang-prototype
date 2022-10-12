@@ -9,8 +9,14 @@ import Dict exposing (Dict)
 
 type Spec
     = Reference Bool Address
-    | Arrow Bool Bool (Maybe String) Spec Spec
+    | Arrow Linearity (Maybe String) Spec Spec
     | Unborrow String Spec
+
+
+type Linearity
+    = Varying
+    | Closure
+    | Linear
 
 
 type alias Address =
@@ -36,56 +42,58 @@ toStringHelp spec state =
         Reference _ address ->
             getVarName address state
 
-        Arrow closure linear name argument return ->
-            arrowToString closure linear name argument return state
+        Arrow linearity name argument return ->
+            arrowToString linearity name argument return state
 
         Unborrow name subSpec ->
             let
                 ( subSpecString, newState ) =
                     toStringHelp subSpec state
             in
-            ( name ++ "! " ++ subSpecString, newState )
+            ( "~" ++ name ++ " " ++ subSpecString, newState )
 
 
-arrowToString : Bool -> Bool -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
-arrowToString closure linear maybeName argument return state =
+arrowToString : Linearity -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
+arrowToString linearity maybeName argument return state =
     let
-        argName =
-            if linear then
-                case maybeName of
-                    Just name ->
-                        "*" ++ name ++ ": "
-
-                    Nothing ->
-                        "*"
-
-            else
-                case maybeName of
-                    Just name ->
-                        name ++ ": "
-
-                    Nothing ->
-                        ""
-
         ( argumentString, newState ) =
             case argument of
-                Arrow _ _ _ _ _ ->
+                Arrow _ _ _ _ ->
                     Tuple.mapFirst wrapParens <| toStringHelp argument state
 
                 _ ->
                     toStringHelp argument state
 
-        arrow =
-            if closure then
-                " => "
+        argName =
+            case linearity of
+                Linear ->
+                    case maybeName of
+                        Just name ->
+                            "(*" ++ name ++ ": " ++ argumentString ++ ")"
 
-            else
-                " -> "
+                        Nothing ->
+                            "*" ++ argumentString
+
+                _ ->
+                    case maybeName of
+                        Just name ->
+                            "(" ++ name ++ ": " ++ argumentString ++ ")"
+
+                        Nothing ->
+                            argumentString
+
+        arrow =
+            case linearity of
+                Varying ->
+                    " -> "
+
+                _ ->
+                    " => "
 
         ( returnString, finalState ) =
             toStringHelp return newState
     in
-    ( argName ++ argumentString ++ arrow ++ returnString, finalState )
+    ( argName ++ arrow ++ returnString, finalState )
 
 
 wrapParens : String -> String

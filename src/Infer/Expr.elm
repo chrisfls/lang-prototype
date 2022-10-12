@@ -36,10 +36,17 @@ inferExpr mock expr model =
                 Nothing ->
                     Throw <| "var '" ++ name ++ "' not found"
 
-        Lambda closure isLinear name body ->
+        Lambda defaultLinearity name body ->
             let
-                isClosure =
-                    closure || isLinear || Model.hasLinearReferences model
+                linearity =
+                    if defaultLinearity == Spec.Varying && Model.hasLinearReferences model then
+                        Spec.Closure
+
+                    else
+                        defaultLinearity
+
+                isLinear =
+                    linearity == Spec.Linear
 
                 ( address, freeAddressModel ) =
                     Model.nextFreeAddress model
@@ -58,7 +65,7 @@ inferExpr mock expr model =
                 Return mockSpec mockModel ->
                     if mock then
                         Return
-                            (Spec.Arrow isClosure isLinear (Just name) argumentSpec mockSpec)
+                            (Spec.Arrow linearity (Just name) argumentSpec mockSpec)
                             (Model.removeAtName name mockModel)
 
                     else
@@ -72,7 +79,7 @@ inferExpr mock expr model =
                         case inferExpr False body disposedModel of
                             Return bodySpec bodyModel ->
                                 Return
-                                    (Spec.Arrow isClosure isLinear (Just name) argumentSpec <|
+                                    (Spec.Arrow linearity (Just name) argumentSpec <|
                                         List.foldl Spec.Unborrow bodySpec freshNames
                                     )
                                     (Model.removeAtName name bodyModel)
