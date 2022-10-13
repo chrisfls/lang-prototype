@@ -69,25 +69,7 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec model =
                         _ =
                             Debug.log "argumentLinearity " argumentLinearity
                     in
-                    constrainFunctionWith nestedReturnSpec returnSpec (unborrow appliedReturnSpec) <| Model.insertAtAddress address appliedArgumentSpec model
+                    constrainFunctionWith nestedReturnSpec returnSpec appliedReturnSpec <| Model.insertAtAddress address appliedArgumentSpec model
 
                 spec ->
                     Debug.todo <| "constrainFunctionWith 1" ++ Debug.toString spec
-
-        _ ->
-            case Model.unwrap argumentSpec model of
-                Reference _ address ->
-                    -- (f a) when f's argument is free = constrain f's argument to a
-                    Return returnSpec (Model.insertAtAddress address appliedSpec model)
-
-                spec ->
-                    Debug.todo <| "constrainFunctionWith 2" ++ Debug.toString spec
-
-unborrow : Spec -> Spec
-unborrow spec =
-    case spec of
-        Unborrow _ nextSpec ->
-            nextSpec
-
-        _ ->
-            spec

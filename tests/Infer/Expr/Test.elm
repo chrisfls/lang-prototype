@@ -30,7 +30,7 @@ basicInference =
             \_ ->
                 -- \a b -> a
                 lam "a" (lam "b" (var "a"))
-                    |> expectInfer "(a: a) -> (b: b) -> ~b a"
+                    |> expectInfer "(a: a) -> (b: b) -> a"
         , test "compose" <|
             \_ ->
                 -- \f g a -> g (f a)
@@ -63,9 +63,56 @@ uniqueness : Test
 uniqueness =
     describe "uniqueness"
         [ closureCasting
-        , borrowChecking
-        , unborrowInference
         ]
+
+
+
+-- TODO: refactor this into checking that var was used
+-- borrowChecking : Test
+-- borrowChecking =
+--     describe "borrow checking"
+--         [ test "when unborrowing a varying argument" <|
+--             \_ ->
+--                 -- \a -> free a in \b -> b
+--                 lam "a" (unb "a" (lam "b" (var "b")))
+--                     |> expectInfer "(a: a) -> (b: b) -> b"
+--         , test "not when using an unborrowed varying argument" <|
+--             \_ ->
+--                 -- \a -> free a in \b -> a
+--                 lam "a" (unb "a" (lam "b" (var "a")))
+--                     |> expectInfer "var 'a' already disposed"
+--         , test "when unborrowing a varying argument in a closure" <|
+--             \_ ->
+--                 -- \a => free a in \b -> b
+--                 cls "a" (unb "a" (lam "b" (var "b")))
+--                     |> expectInfer "(a: a) => (b: b) -> b"
+--         , test "not when using an unborrowed varying argument in a closure" <|
+--             \_ ->
+--                 -- \a => free a in \b -> a
+--                 cls "a" (unb "a" (lam "b" (var "a")))
+--                     |> expectInfer "var 'a' already disposed"
+--         , test "when unborrowing a linear argument" <|
+--             \_ ->
+--                 -- \*a => free a in \b -> b
+--                 lin "a" (unb "a" (lam "b" (var "b")))
+--                     |> expectInfer "(*a: a) => (b: b) -> b"
+--         , test "not when using an unborrowed linear argument" <|
+--             \_ ->
+--                 -- \*a => free a in \b -> a
+--                 lin "a" (unb "a" (lam "b" (var "a")))
+--                     |> expectInfer "var 'a' already disposed"
+--         , only <|
+--             test "apply twice always" <|
+--                 \_ ->
+--                     -- (\f a -> f a a) (\*a b => a)
+--                     app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (cls "a" (lam "b" (var "a")))
+--                         |> expectInfer "(a: a) -> a"
+--         -- , only <| test "pamonha" <|
+--         --     \_ ->
+--         --         -- (\a => b -> a) (\a -> a)
+--         --         (app (cls "a" (lam "b" (var "a"))) (lin "a" (var "a")))
+--         --             |> expectInfer "(b: a) -> (a: b) -> b"
+--         ]
 
 
 closureCasting : Test
@@ -75,118 +122,22 @@ closureCasting =
             \_ ->
                 -- \a b c -> a
                 lam "a" (lam "b" (var "a"))
-                    |> expectInfer "(a: a) -> (b: b) -> ~b a"
+                    |> expectInfer "(a: a) -> (b: b) -> a"
         , test "not when depends on a higher varying argument in a closure" <|
             \_ ->
                 -- \a => \b c -> a
                 cls "a" (lam "b" (var "a"))
-                    |> expectInfer "(a: a) => (b: b) -> ~b a"
+                    |> expectInfer "(a: a) => (b: b) -> a"
         , test "when depends on a higher linear argument" <|
             \_ ->
                 -- \*a => \b -> a
                 lin "a" (lam "b" (var "a"))
-                    |> expectInfer "(*a: a) => (b: b) => ~b a"
+                    |> expectInfer "(*a: a) => (b: b) => a"
         , test "when deeply depends on a higher linear argument" <|
             \_ ->
                 -- \*a => \b c -> a
                 lin "a" (lam "b" (lam "c" (var "a")))
-                    |> expectInfer "(*a: a) => (b: b) => ~b (c: c) => ~c a"
-        ]
-
-
-borrowChecking : Test
-borrowChecking =
-    describe "borrow checking"
-        [ test "when unborrowing a varying argument" <|
-            \_ ->
-                -- \a -> free a in \b -> b
-                lam "a" (unb "a" (lam "b" (var "b")))
-                    |> expectInfer "(a: a) -> ~a (b: b) -> b"
-        , test "not when using an unborrowed varying argument" <|
-            \_ ->
-                -- \a -> free a in \b -> a
-                lam "a" (unb "a" (lam "b" (var "a")))
-                    |> expectInfer "var 'a' already disposed"
-        , test "when unborrowing a varying argument in a closure" <|
-            \_ ->
-                -- \a => free a in \b -> b
-                cls "a" (unb "a" (lam "b" (var "b")))
-                    |> expectInfer "(a: a) => ~a (b: b) -> b"
-        , test "not when using an unborrowed varying argument in a closure" <|
-            \_ ->
-                -- \a => free a in \b -> a
-                cls "a" (unb "a" (lam "b" (var "a")))
-                    |> expectInfer "var 'a' already disposed"
-        , test "when unborrowing a linear argument" <|
-            \_ ->
-                -- \*a => free a in \b -> b
-                lin "a" (unb "a" (lam "b" (var "b")))
-                    |> expectInfer "(*a: a) => ~a (b: b) -> b"
-        , test "not when using an unborrowed linear argument" <|
-            \_ ->
-                -- \*a => free a in \b -> a
-                lin "a" (unb "a" (lam "b" (var "a")))
-                    |> expectInfer "var 'a' already disposed"
-
-        , only <| test "apply twice always" <|
-            \_ ->
-                -- (\f a -> f a a) (\*a b => a)
-                app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (cls "a" (lam "b" (var "a")))
-                    |> expectInfer "(a: a) -> a"
-        -- , only <| test "pamonha" <|
-        --     \_ ->
-        --         -- (\a => b -> a) (\a -> a)
-        --         (app (cls "a" (lam "b" (var "a"))) (lin "a" (var "a")))
-        --             |> expectInfer "(b: a) -> ~b (a: b) -> b"
-        ]
-
-
-unborrowInference : Test
-unborrowInference =
-    describe "unborrow inference"
-        [ test "when not using a varying first argument" <|
-            \_ ->
-                -- \a b -> a
-                lam "a" (lam "b" (var "b"))
-                    |> expectInfer "(a: a) -> ~a (b: b) -> b"
-        , test "when not using a varying second argument" <|
-            \_ ->
-                -- \a b -> a
-                lam "a" (lam "b" (var "a"))
-                    |> expectInfer "(a: a) -> (b: b) -> ~b a"
-        , test "when not using a varying first argument in a closure" <|
-            \_ ->
-                -- \a => \b -> a
-                cls "a" (lam "b" (var "b"))
-                    |> expectInfer "(a: a) => ~a (b: b) -> b"
-        , test "when not using a varying second argumen in a closure" <|
-            \_ ->
-                -- \a -> \b => a
-                lam "a" (cls "b" (var "a"))
-                    |> expectInfer "(a: a) -> (b: b) => ~b a"
-        , test "when not using a linear first argument" <|
-            \_ ->
-                -- \*a => \b -> a
-                lin "a" (lam "b" (var "b"))
-                    |> expectInfer "(*a: a) => ~a (b: b) -> b"
-
-        -- , test "when not using a linear second argument" <|
-        --     \_ ->
-        --         -- \a => \*b -> a
-        --         lam "a" (lin "b" (var "a"))
-        --             |> expectInfer "(a: a) -> (*b: b) => ~b a"
-        -- , only <|
-        --     test "pamonha" <|
-        --         \_ ->
-        --             app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a"))))
-        --                 (cls "a" (var "a"))
-        --                 |> expectInfer ""
-        -- , only <|
-        --     test "pamonha" <|
-        --         \_ ->
-        --             (app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (lam "a" (var "a")))
-        --                 -- (cls "a" (var "a"))
-        --                 |> expectInfer ""
+                    |> expectInfer "(*a: a) => (b: b) => (c: c) => a"
         ]
 
 
@@ -217,11 +168,6 @@ var =
 app : Expr -> Expr -> Expr
 app =
     Expr.Apply
-
-
-unb : String -> Expr -> Expr
-unb =
-    Expr.Unborrow
 
 
 expectInfer : String -> Expr -> Expectation

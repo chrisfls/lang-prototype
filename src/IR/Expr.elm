@@ -11,7 +11,6 @@ type Expr
     = Variable String
     | Lambda Linearity String Expr
     | Apply Expr Expr
-    | Unborrow String Expr
     | Annotation Spec Expr
 
 
@@ -32,9 +31,6 @@ toString expr =
 
         Apply function argument ->
             "(" ++ toString function ++ " " ++ toString argument ++ ")"
-
-        Unborrow name body ->
-            "unborrow " ++ name ++ " in " ++ toString body
 
         Annotation spec expr_ ->
             "<" ++ Spec.toString spec ++ ">" ++ toString expr_

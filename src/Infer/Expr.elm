@@ -12,26 +12,16 @@ type Return
 
 
 infer : Expr -> Model -> Return
-infer expr state =
-    inferExpr False expr state
-
-
-inferExpr : Bool -> Expr -> Model -> Return
-inferExpr mock expr model =
+infer expr model =
     case expr of
         Variable name ->
-            -- TODO: check if name is available
             case Model.getAtName name model of
-                Just ( spec, state ) ->
-                    case state of
-                        Model.Available ->
-                            Return spec (Model.setUsedName name model)
+                Just spec ->
+                    if Model.isAvailable name model then
+                        Return spec (Model.setUsedName name model)
 
-                        Model.Borrowed ->
-                            Throw <| "var '" ++ name ++ "' previously borrowed"
-
-                        Model.Disposed ->
-                            Throw <| "var '" ++ name ++ "' already disposed"
+                    else
+                        Throw <| "var '" ++ name ++ "' previously used"
 
                 Nothing ->
                     Throw <| "var '" ++ name ++ "' not found"
@@ -61,31 +51,11 @@ inferExpr mock expr model =
                     else
                         Model.insertAtName name argumentSpec freeAddressModel
             in
-            case inferExpr True body argumentModel of
-                Return mockSpec mockModel ->
-                    if mock then
-                        Return
-                            (Spec.Arrow linearity (Just name) argumentSpec mockSpec)
-                            (Model.removeAtName name mockModel)
-
-                    else
-                        let
-                            freshNames =
-                                Model.listFreshNames mockModel
-
-                            disposedModel =
-                                List.foldl Model.setDisposedName (Model.setUsedName name argumentModel) freshNames
-                        in
-                        case inferExpr False body disposedModel of
-                            Return bodySpec bodyModel ->
-                                Return
-                                    (Spec.Arrow linearity (Just name) argumentSpec <|
-                                        List.foldl Spec.Unborrow bodySpec freshNames
-                                    )
-                                    (Model.removeAtName name bodyModel)
-
-                            err ->
-                                err
+            case infer body argumentModel of
+                Return bodySpec bodyModel ->
+                    Return
+                        (Spec.Arrow linearity (Just name) argumentSpec bodySpec)
+                        (Model.removeAtName name bodyModel)
 
                 err ->
                     err
@@ -105,14 +75,6 @@ inferExpr mock expr model =
 
                         err ->
                             err
-
-                err ->
-                    err
-
-        Unborrow name subExpr ->
-            case infer subExpr <| Model.setDisposedName name <| Model.setUsedName name model of
-                Return bodySpec bodyModel ->
-                    Return (Spec.Unborrow name bodySpec) bodyModel
 
                 err ->
                     err

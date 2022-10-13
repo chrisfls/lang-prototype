@@ -10,7 +10,6 @@ import Dict exposing (Dict)
 type Spec
     = Reference Bool Address
     | Arrow Linearity (Maybe String) Spec Spec
-    | Unborrow String Spec
 
 
 type Linearity
@@ -21,8 +20,6 @@ type Linearity
 
 type alias Address =
     Int
-
-
 
 
 toString : Spec -> String
@@ -46,13 +43,6 @@ toStringHelp spec state =
 
         Arrow linearity name argument return ->
             arrowToString linearity name argument return state
-
-        Unborrow name subSpec ->
-            let
-                ( subSpecString, newState ) =
-                    toStringHelp subSpec state
-            in
-            ( "~" ++ name ++ " " ++ subSpecString, newState )
 
 
 arrowToString : Linearity -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
