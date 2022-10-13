@@ -9,7 +9,7 @@ import Dict exposing (Dict)
 
 type Spec
     = Reference Bool Address
-    | Arrow Linearity (Maybe String) Spec Spec
+    | Arrow Linearity Spec Spec
 
 
 type Linearity
@@ -38,41 +38,23 @@ type alias ToStringState =
 toStringHelp : Spec -> ToStringState -> ( String, ToStringState )
 toStringHelp spec state =
     case spec of
-        Reference _ address ->
-            getVarName address state
+        Reference linear address ->
+            getVarName linear address state
 
-        Arrow linearity name argument return ->
-            arrowToString linearity name argument return state
+        Arrow linearity argument return ->
+            arrowToString linearity argument return state
 
 
-arrowToString : Linearity -> Maybe String -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
-arrowToString linearity maybeName argument return state =
+arrowToString : Linearity -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
+arrowToString linearity argument return state =
     let
         ( argumentString, newState ) =
             case argument of
-                Arrow _ _ _ _ ->
+                Arrow _ _ _ ->
                     Tuple.mapFirst wrapParens <| toStringHelp argument state
 
                 _ ->
                     toStringHelp argument state
-
-        argName =
-            case linearity of
-                Linear ->
-                    case maybeName of
-                        Just name ->
-                            "(*" ++ name ++ ": " ++ argumentString ++ ")"
-
-                        Nothing ->
-                            "*" ++ argumentString
-
-                _ ->
-                    case maybeName of
-                        Just name ->
-                            "(" ++ name ++ ": " ++ argumentString ++ ")"
-
-                        Nothing ->
-                            argumentString
 
         arrow =
             case linearity of
@@ -85,7 +67,7 @@ arrowToString linearity maybeName argument return state =
         ( returnString, finalState ) =
             toStringHelp return newState
     in
-    ( argName ++ arrow ++ returnString, finalState )
+    ( argumentString ++ arrow ++ returnString, finalState )
 
 
 wrapParens : String -> String
@@ -93,8 +75,8 @@ wrapParens str =
     "(" ++ str ++ ")"
 
 
-getVarName : Address -> ToStringState -> ( String, ToStringState )
-getVarName address state =
+getVarName : Bool -> Address -> ToStringState -> ( String, ToStringState )
+getVarName linear address state =
     case Dict.get address state.cache of
         Just name ->
             ( name, state )
@@ -105,7 +87,11 @@ getVarName address state =
                     state
 
                 name =
-                    getVarNameHelp count
+                    if linear then
+                        "*" ++ getVarNameHelp count
+
+                    else
+                        getVarNameHelp count
             in
             ( name, { count = count + 1, cache = Dict.insert address name cache } )
 

@@ -54,7 +54,7 @@ infer expr model =
             case infer body argumentModel of
                 Return bodySpec bodyModel ->
                     Return
-                        (Spec.Arrow linearity (Just name) argumentSpec bodySpec)
+                        (Spec.Arrow linearity argumentSpec bodySpec)
                         (Model.removeAtName name bodyModel)
 
                 err ->
@@ -65,7 +65,6 @@ infer expr model =
                 Return functionSpec functionModel ->
                     case infer argument functionModel of
                         Return argumentSpec argumentModel ->
-                            -- TODO: when applying a lambda that returns a Free type, add the values back to the unborrowed list
                             case apply functionSpec argumentSpec argumentModel of
                                 Apply.Return applySpec applyModel ->
                                     Return applySpec applyModel

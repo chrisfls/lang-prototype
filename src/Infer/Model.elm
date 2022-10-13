@@ -92,8 +92,8 @@ unwrap spec model =
                 Nothing ->
                     spec
 
-        Arrow linearity name func argm ->
-            Arrow linearity name (unwrap func model) (unwrap argm model)
+        Arrow linearity func argm ->
+            Arrow linearity (unwrap func model) (unwrap argm model)
 
 
 isAvailable : String -> Model -> Bool

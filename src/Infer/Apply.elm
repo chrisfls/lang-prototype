@@ -40,13 +40,13 @@ constrain index argumentSpec model =
     in
     -- TODO: generate named args to help with linear argument inference
     -- TODO: apply linearity constraints
-    Return returnReference (Model.insertAtAddress index (Arrow Spec.Varying Nothing argumentSpec returnReference) nextModel)
+    Return returnReference (Model.insertAtAddress index (Arrow Spec.Varying argumentSpec returnReference) nextModel)
 
 
 contrainWith : Spec -> Spec -> Model -> Return
 contrainWith functionSpec argumentSpec model =
     case functionSpec of
-        Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
+        Arrow _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
             constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec model
 
         spec ->
@@ -60,16 +60,17 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec model =
             -- (f a) when a is free = constrain a to f's argument
             Return returnSpec (Model.insertAtAddress address argumentSpec model)
 
-        Arrow applyLinearity _ appliedArgumentSpec appliedReturnSpec ->
+        Arrow applyLinearity appliedArgumentSpec appliedReturnSpec ->
             -- (f a) when a and f are functions = constrain each argument to themselves
             case Model.unwrap argumentSpec model of
-                Arrow argumentLinearity _ (Reference _ address) nestedReturnSpec ->
-                    -- linearity is enforced at the function side, not parameter, parameter only checks for unborrows
-                    let
-                        _ =
-                            Debug.log "argumentLinearity " argumentLinearity
-                    in
-                    constrainFunctionWith nestedReturnSpec returnSpec appliedReturnSpec <| Model.insertAtAddress address appliedArgumentSpec model
+                Arrow argumentLinearity (Reference _ address) nestedReturnSpec ->
+                    -- linearity is enforced at the function side, not parameter
+                    if argumentLinearity /= Spec.Linear || applyLinearity == Spec.Linear then
+                        -- TODO: check if appliedArgumentSpec is compatible with nestedArgumentSpec when it is not a Reference
+                        constrainFunctionWith nestedReturnSpec returnSpec appliedReturnSpec <| Model.insertAtAddress address appliedArgumentSpec model
+
+                    else
+                        Throw <| "Expected " ++ Debug.toString argumentLinearity ++ " but found " ++ Debug.toString applyLinearity
 
                 spec ->
-                    Debug.todo <| "constrainFunctionWith 1" ++ Debug.toString spec
+                    Debug.todo <| "constrainFunctionWith" ++ Debug.toString spec
