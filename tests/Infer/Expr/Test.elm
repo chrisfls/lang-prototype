@@ -51,12 +51,11 @@ basicInference =
                 -- (\f a -> f a a)
                 lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))
                     |> expectInfer "(f: (a -> a -> b)) -> (a: a) -> b"
-        , skip <|
-            test "apply twice always" <|
-                \_ ->
-                    -- (\f a -> f a a) (\a b -> a)
-                    app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (lam "a" (lam "b" (var "a")))
-                        |> expectInfer "(a: a) -> a"
+        , test "apply twice always" <|
+            \_ ->
+                -- (\f a -> f a a) (\a b -> a)
+                app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (lam "a" (lam "b" (var "a")))
+                    |> expectInfer "(a: a) -> a"
         ]
 
 
@@ -129,6 +128,11 @@ borrowChecking =
                 lin "a" (unb "a" (lam "b" (var "a")))
                     |> expectInfer "var 'a' already disposed"
 
+        , only <| test "apply twice always" <|
+            \_ ->
+                -- (\f a -> f a a) (\*a b => a)
+                app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (cls "a" (lam "b" (var "a")))
+                    |> expectInfer "(a: a) -> a"
         -- , only <| test "pamonha" <|
         --     \_ ->
         --         -- (\a => b -> a) (\a -> a)

@@ -60,11 +60,16 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec model =
             -- (f a) when a is free = constrain a to f's argument
             Return returnSpec (Model.insertAtAddress address argumentSpec model)
 
-        Arrow _ _ appliedArgumentSpec appliedReturnSpec ->
+        Arrow applyLinearity _ appliedArgumentSpec appliedReturnSpec ->
             -- (f a) when a and f are functions = constrain each argument to themselves
             case Model.unwrap argumentSpec model of
-                Arrow _ _ (Reference _ address) nestedReturnSpec ->
-                    constrainFunctionWith nestedReturnSpec returnSpec appliedReturnSpec <| Model.insertAtAddress address appliedArgumentSpec model
+                Arrow argumentLinearity _ (Reference _ address) nestedReturnSpec ->
+                    -- linearity is enforced at the function side, not parameter, parameter only checks for unborrows
+                    let
+                        _ =
+                            Debug.log "argumentLinearity " argumentLinearity
+                    in
+                    constrainFunctionWith nestedReturnSpec returnSpec (unborrow appliedReturnSpec) <| Model.insertAtAddress address appliedArgumentSpec model
 
                 spec ->
                     Debug.todo <| "constrainFunctionWith 1" ++ Debug.toString spec
@@ -77,3 +82,12 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec model =
 
                 spec ->
                     Debug.todo <| "constrainFunctionWith 2" ++ Debug.toString spec
+
+unborrow : Spec -> Spec
+unborrow spec =
+    case spec of
+        Unborrow _ nextSpec ->
+            nextSpec
+
+        _ ->
+            spec
