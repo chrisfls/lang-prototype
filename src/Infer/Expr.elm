@@ -1,8 +1,10 @@
 module Infer.Expr exposing (Return(..), infer)
 
+import Dict exposing (Dict)
 import IR.Expr exposing (Expr(..))
 import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
+import Infer.Compare exposing (compareAnnotation)
 import Infer.Model as Model exposing (Model)
 
 
@@ -78,6 +80,18 @@ infer expr model =
                 err ->
                     err
 
-        Annotation _ _ ->
-            -- TODO: typecheck
-            Debug.todo "inferExpr Annotation"
+        Annotation annotation subExpr ->
+            case infer subExpr model of
+                Return spec nextModel ->
+                    case compareAnnotation annotation spec of
+                        Just err ->
+                            Throw err
+
+                        Nothing ->
+                            -- TODO: instead adopt original spec
+                            Return spec nextModel
+
+                err ->
+                    err
+
+

@@ -1,5 +1,6 @@
 module Infer.Apply exposing (Return(..), apply)
 
+import IR.Expr as Expr
 import IR.Spec as Spec exposing (Spec(..))
 import Infer.Model as Model exposing (Model)
 

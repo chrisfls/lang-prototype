@@ -1,6 +1,6 @@
 module IR.Expr exposing (..)
 
-import IR.Spec as Spec exposing (Linearity, Spec)
+import IR.Spec as Spec exposing (Linearity)
 
 
 
@@ -11,7 +11,12 @@ type Expr
     = Variable String
     | Lambda Linearity String Expr
     | Apply Expr Expr
-    | Annotation Spec Expr
+    | Annotation Annotation Expr
+
+
+type Annotation
+    = Reference Bool String
+    | Arrow Spec.Linearity Annotation Annotation
 
 
 toString : Expr -> String
@@ -33,4 +38,4 @@ toString expr =
             "(" ++ toString function ++ " " ++ toString argument ++ ")"
 
         Annotation spec expr_ ->
-            "<" ++ Spec.toString spec ++ ">" ++ toString expr_
+            "<" ++ Debug.toString spec ++ ">" ++ toString expr_

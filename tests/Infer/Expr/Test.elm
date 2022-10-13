@@ -1,6 +1,7 @@
 module Infer.Expr.Test exposing (suite)
 
 import Expect exposing (Expectation)
+import Html exposing (b)
 import IR.Expr as Expr exposing (Expr)
 import IR.Spec as Spec
 import Infer.Expr as Expr
@@ -13,6 +14,7 @@ suite =
     describe "Infer.Expr"
         [ describe "infer"
             [ basicInference
+            , typechecking
             , uniqueness
             ]
         ]
@@ -56,6 +58,22 @@ basicInference =
                 -- (\f a -> f a a) (\a b -> a)
                 app (lam "f" (lam "a" (app (app (var "f") (var "a")) (var "a")))) (lam "a" (lam "b" (var "a")))
                     |> expectInfer "a -> a"
+        ]
+
+
+typechecking : Test
+typechecking =
+    describe "typechecking"
+        [ test "when annotation is correct" <|
+            \_ ->
+                -- assert (a -> a) in \a -> a
+                ann (arr (ref "a") (ref "a")) (lam "a" (var "a"))
+                    |> expectInfer "a -> a"
+        , test "when annotation is wrong" <|
+            \_ ->
+                -- assert (a -> b) in \a -> a
+                ann (arr (ref "a") (ref "b")) (lam "a" (var "a"))
+                    |> expectInfer "expected another variable"
         ]
 
 
@@ -141,6 +159,21 @@ var =
 app : Expr -> Expr -> Expr
 app =
     Expr.Apply
+
+
+ann : Expr.Annotation -> Expr -> Expr
+ann =
+    Expr.Annotation
+
+
+ref : String -> Expr.Annotation
+ref =
+    Expr.Reference False
+
+
+arr : Expr.Annotation -> Expr.Annotation -> Expr.Annotation
+arr =
+    Expr.Arrow Spec.Varying
 
 
 expectInfer : String -> Expr -> Expectation

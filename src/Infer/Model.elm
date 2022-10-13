@@ -46,8 +46,6 @@ nextFreeAddress ({ count } as model) =
 
 getAtName : String -> Model -> Maybe Spec
 getAtName name model =
-    -- TODO: maybe unwrap
-    -- TODO: maybe I shouldn't do this to named specs
     Dict.get name model.scope
 
 
