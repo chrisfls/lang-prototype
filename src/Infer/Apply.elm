@@ -1,7 +1,7 @@
 module Infer.Apply exposing (Return(..), apply)
 
 import IR.Spec as Spec exposing (Spec(..))
-import Infer.Model as State exposing (Model)
+import Infer.Model as Model exposing (Model)
 
 
 type Return
@@ -14,50 +14,66 @@ type Return
 
 
 apply : Spec -> Spec -> Model -> Return
-apply functionSpec argumentSpec state =
+apply functionSpec argumentSpec model =
     case functionSpec of
         -- TODO: deal with linearity
         Reference _ address ->
-            case State.getAtAddress address state of
+            case Model.getAtAddress address model of
                 Just specAtAddress ->
-                    contrainWith specAtAddress argumentSpec state
+                    contrainWith specAtAddress argumentSpec model
 
                 Nothing ->
-                    constrain address argumentSpec state
+                    constrain address argumentSpec model
 
         _ ->
-            contrainWith functionSpec argumentSpec state
+            contrainWith functionSpec argumentSpec model
 
 
 constrain : Int -> Spec -> Model -> Return
-constrain index argumentSpec state =
+constrain index argumentSpec model =
     let
-        ( returnAddress, nextState ) =
-            State.nextFreeAddress state
+        ( returnAddress, nextModel ) =
+            Model.nextFreeAddress model
 
         returnReference =
             Reference False returnAddress
     in
     -- TODO: generate named args to help with linear argument inference
     -- TODO: apply linearity constraints
-    Return returnReference (State.insertAtAddress index (Arrow Spec.Varying Nothing argumentSpec returnReference) nextState)
+    Return returnReference (Model.insertAtAddress index (Arrow Spec.Varying Nothing argumentSpec returnReference) nextModel)
 
 
 contrainWith : Spec -> Spec -> Model -> Return
-contrainWith functionSpec argumentSpec state =
+contrainWith functionSpec argumentSpec model =
     case functionSpec of
         Arrow _ _ innerFunctionArgumentSpec innerFunctionReturnSpec ->
-            constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec state
+            constrainFunctionWith innerFunctionArgumentSpec innerFunctionReturnSpec argumentSpec model
 
         spec ->
             Debug.todo <| "contrainWith " ++ Debug.toString spec
 
 
 constrainFunctionWith : Spec -> Spec -> Spec -> Model -> Return
-constrainFunctionWith argumentSpec returnSpec appliedSpec state =
+constrainFunctionWith argumentSpec returnSpec appliedSpec model =
     case appliedSpec of
         Reference _ address ->
-            Return returnSpec (State.insertAtAddress address argumentSpec state)
+            -- (f a) when a is free = constrain a to f's argument
+            Return returnSpec (Model.insertAtAddress address argumentSpec model)
 
-        spec ->
-            Debug.todo <| "constrainFunctionWith " ++ Debug.toString spec
+        Arrow _ _ appliedArgumentSpec appliedReturnSpec ->
+            -- (f a) when a and f are functions = constrain each argument to themselves
+            case Model.unwrap argumentSpec model of
+                Arrow _ _ (Reference _ address) nestedReturnSpec ->
+                    constrainFunctionWith nestedReturnSpec returnSpec appliedReturnSpec <| Model.insertAtAddress address appliedArgumentSpec model
+
+                spec ->
+                    Debug.todo <| "constrainFunctionWith 1" ++ Debug.toString spec
+
+        _ ->
+            case Model.unwrap argumentSpec model of
+                Reference _ address ->
+                    -- (f a) when f's argument is free = constrain f's argument to a
+                    Return returnSpec (Model.insertAtAddress address appliedSpec model)
+
+                spec ->
+                    Debug.todo <| "constrainFunctionWith 2" ++ Debug.toString spec
