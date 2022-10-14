@@ -77,4 +77,4 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec model =
                     Debug.todo <| "constrainFunctionWith" ++ Debug.toString spec
 
         _ ->
-            Debug.todo ""
+            Debug.todo "constrain Module / SpecAt"

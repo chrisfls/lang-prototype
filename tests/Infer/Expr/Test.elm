@@ -10,6 +10,34 @@ import Infer.Model as Model
 import Test exposing (..)
 
 
+
+{-
+
+   TODO:
+
+   - rewrite annotations in compare
+   - infer module body
+   - infer module
+   - add basic codegen
+   - add more spec types
+       - builtin types
+       - union types
+       - record types
+       - tuple types
+   - add mutation expressions
+   - add FFI module
+   - add language parser
+   - add import support
+   - add compiler api
+
+   ...
+
+   - bootstrap
+   - add borrow checker
+
+-}
+
+
 suite : Test
 suite =
     describe "Infer.Expr"

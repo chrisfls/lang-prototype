@@ -4,6 +4,10 @@ import Dict exposing (Dict)
 import IR.Linearity as Linearity exposing (Linearity)
 
 
+
+-- TODO: start sourcemaps
+
+
 type Spec
     = Reference Bool Int
     | Arrow Linearity Spec Spec
@@ -44,7 +48,7 @@ toStringHelp spec state =
             arrowToString linearity argument return state
 
         _ ->
-            Debug.todo ""
+            Debug.todo "stringify Module / SpecAt"
 
 
 arrowToString : Linearity -> Spec -> Spec -> ToStringState -> ( String, ToStringState )

@@ -48,7 +48,7 @@ compareAnnotationHelp annotation spec state =
                     Err "expected reference, got arrow"
 
                 _ ->
-                    Debug.todo ""
+                    Debug.todo "Compare Module / SpecAt"
 
         Annotation.Arrow expectedLinearity expectedArgument expectedReturn ->
             case spec of
@@ -73,7 +73,7 @@ compareAnnotationHelp annotation spec state =
                     Err "expected arrow, got reference"
 
                 _ ->
-                    Debug.todo ""
+                    Debug.todo "Compare Module / SpecAt"
 
 
 getNameAddress : String -> CompareState -> ( Int, CompareState )

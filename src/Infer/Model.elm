@@ -122,4 +122,4 @@ unwrapSpecHelp spec specs store =
             Arrow linearity (unwrapSpecHelp func specs store) (unwrapSpecHelp argm specs store)
 
         _ ->
-            Debug.todo ""
+            Debug.todo "unwrap Module / SpecAt"
