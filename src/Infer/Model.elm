@@ -5,7 +5,6 @@ module Infer.Model exposing
     , getExpr
     , hasAnyLinearExpr
     , insertExpr
-    , insertLinearExpr
     , insertSpecPtr
     , isExprAvailable
     , nextFreeSpecAddress
@@ -38,16 +37,13 @@ empty =
     }
 
 
-insertExpr : String -> Spec -> Model -> Model
-insertExpr name spec model =
-    -- TODO: add linear argument
-    { model | exprs = Bindings.insert name spec model.exprs }
+insertExpr : String -> Bool -> Spec -> Model -> Model
+insertExpr name linear spec model =
+    if linear then
+        { model | exprs = Bindings.insert name spec model.exprs, ownership = Ownership.insert name model.ownership }
 
-
-insertLinearExpr : String -> Spec -> Model -> Model
-insertLinearExpr name spec model =
-    -- TODO: deprecate
-    { model | exprs = Bindings.insert name spec model.exprs, ownership = Ownership.insert name model.ownership }
+    else
+        { model | exprs = Bindings.insert name spec model.exprs }
 
 
 useExpr : String -> Model -> Model
@@ -55,10 +51,13 @@ useExpr name model =
     { model | ownership = Ownership.use name model.ownership }
 
 
-removeExpr : String -> Model -> Model
-removeExpr name model =
-    -- TODO: add linear argument
-    { model | exprs = Bindings.remove name model.exprs, ownership = Ownership.remove name model.ownership }
+removeExpr : String -> Bool -> Model -> Model
+removeExpr name linear model =
+    if linear then
+        { model | exprs = Bindings.remove name model.exprs, ownership = Ownership.remove name model.ownership }
+
+    else
+        { model | exprs = Bindings.remove name model.exprs }
 
 
 getExpr : String -> Model -> Maybe Spec

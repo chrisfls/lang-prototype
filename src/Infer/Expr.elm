@@ -1,6 +1,5 @@
 module Infer.Expr exposing (Return(..), infer)
 
-import Dict exposing (Dict)
 import IR.Expr exposing (Expr(..))
 import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
@@ -47,17 +46,13 @@ infer expr model =
                     Spec.Reference isLinear address
 
                 argumentModel =
-                    if isLinear then
-                        Model.insertLinearExpr name argumentSpec freeAddressModel
-
-                    else
-                        Model.insertExpr name argumentSpec freeAddressModel
+                    Model.insertExpr name isLinear argumentSpec freeAddressModel
             in
             case infer body argumentModel of
                 Return bodySpec bodyModel ->
                     Return
                         (Spec.Arrow linearity argumentSpec bodySpec)
-                        (Model.removeExpr name bodyModel)
+                        (Model.removeExpr name isLinear bodyModel)
 
                 err ->
                     err
@@ -93,5 +88,3 @@ infer expr model =
 
                 err ->
                     err
-
-
