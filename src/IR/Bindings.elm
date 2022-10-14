@@ -1,7 +1,7 @@
-module Infer.Model.Bindings exposing (Bindings, empty, get, insert, remove)
+module IR.Bindings exposing (Bindings, empty, get, insert, remove)
 
-import Dict exposing (Dict)
-import IR.Spec exposing (Spec)
+import Dict
+import IR.Spec as Spec exposing (Spec)
 
 
 
@@ -9,7 +9,7 @@ import IR.Spec exposing (Spec)
 
 
 type alias Bindings =
-    Dict String Spec
+    Spec.Bindings
 
 
 empty : Bindings

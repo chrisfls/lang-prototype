@@ -16,8 +16,8 @@ module Infer.Model exposing
     , useExpr
     )
 
+import IR.Bindings as Bindings exposing (Bindings)
 import IR.Spec exposing (Spec(..))
-import Infer.Model.Bindings as Bindings exposing (Bindings)
 import Infer.Model.Graph as Graph exposing (Graph)
 import Infer.Model.Ownership as Ownership exposing (Ownership)
 import IntDict exposing (IntDict)

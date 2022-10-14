@@ -6,6 +6,7 @@ import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
 import Infer.Compare exposing (compareAnnotation)
 import Infer.Model as Model exposing (Model)
+import Infer.ModuleBody as ModuleBody
 
 
 type Return
@@ -81,4 +82,9 @@ infer expr model =
             Debug.todo "IfEquals"
 
         Module body ->
-            Debug.todo "Module"
+            case ModuleBody.infer body model of
+                ModuleBody.Return members moduleModel ->
+                    Return (Spec.Module members) moduleModel
+
+                ModuleBody.Throw err ->
+                    Throw err

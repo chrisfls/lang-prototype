@@ -11,17 +11,17 @@ import IR.Linearity as Linearity exposing (Linearity)
 type Spec
     = Reference Bool Int
     | Arrow Linearity Spec Spec
-    | Module ModuleMembers
+    | Module Members
     | SpecAt String
 
 
-type alias ModuleMembers =
-    { exprs : Members
-    , specs : Members
+type alias Members =
+    { exprs : Bindings
+    , specs : Bindings
     }
 
 
-type alias Members =
+type alias Bindings =
     Dict String Spec
 
 
