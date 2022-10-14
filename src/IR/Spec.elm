@@ -5,12 +5,20 @@ import IR.Linearity as Linearity exposing (Linearity)
 
 
 type Spec
-    = Reference Bool Address
+    = Reference Bool Int
     | Arrow Linearity Spec Spec
+    | Module ModuleMembers
+    | SpecAt String
 
 
-type alias Address =
-    Int
+type alias ModuleMembers =
+    { exprs : Members
+    , specs : Members
+    }
+
+
+type alias Members =
+    Dict String Spec
 
 
 toString : Spec -> String
@@ -34,6 +42,9 @@ toStringHelp spec state =
 
         Arrow linearity argument return ->
             arrowToString linearity argument return state
+
+        _ ->
+            Debug.todo ""
 
 
 arrowToString : Linearity -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
@@ -66,7 +77,7 @@ wrapParens str =
     "(" ++ str ++ ")"
 
 
-getVarName : Bool -> Address -> ToStringState -> ( String, ToStringState )
+getVarName : Bool -> Int -> ToStringState -> ( String, ToStringState )
 getVarName linear address state =
     case Dict.get address state.cache of
         Just name ->
@@ -87,7 +98,7 @@ getVarName linear address state =
             ( name, { count = count + 1, cache = Dict.insert address name cache } )
 
 
-getVarNameHelp : Address -> String
+getVarNameHelp : Int -> String
 getVarNameHelp address =
     case address of
         0 ->

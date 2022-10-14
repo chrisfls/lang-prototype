@@ -1,6 +1,6 @@
 module Infer.Model.Graph exposing (Graph, empty, get, insert, nextFreeAddress, toIntDict)
 
-import IR.Spec exposing (Address, Spec(..))
+import IR.Spec exposing (Spec(..))
 import IntDict exposing (IntDict)
 
 
@@ -17,19 +17,19 @@ empty =
     }
 
 
-insert : Address -> Spec -> Graph -> Graph
+insert : Int -> Spec -> Graph -> Graph
 insert address spec graph =
     { store = IntDict.insert address spec graph.store
     , count = graph.count
     }
 
 
-get : Address -> Graph -> Maybe Spec
+get : Int -> Graph -> Maybe Spec
 get address graph =
     getHelp address graph.store
 
 
-nextFreeAddress : Graph -> ( Address, Graph )
+nextFreeAddress : Graph -> ( Int, Graph )
 nextFreeAddress { store, count } =
     ( count
     , { store = store
@@ -47,7 +47,7 @@ toIntDict { store } =
 -- internals
 
 
-getHelp : Address -> IntDict Spec -> Maybe Spec
+getHelp : Int -> IntDict Spec -> Maybe Spec
 getHelp address store =
     case IntDict.get address store of
         (Just spec) as justSpec ->

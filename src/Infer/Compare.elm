@@ -47,6 +47,9 @@ compareAnnotationHelp annotation spec state =
                 Spec.Arrow _ _ _ ->
                     Err "expected reference, got arrow"
 
+                _ ->
+                    Debug.todo ""
+
         Annotation.Arrow expectedLinearity expectedArgument expectedReturn ->
             case spec of
                 Spec.Arrow gotLinearity gotArgument gotReturn ->
@@ -68,6 +71,9 @@ compareAnnotationHelp annotation spec state =
 
                 Spec.Reference _ _ ->
                     Err "expected arrow, got reference"
+
+                _ ->
+                    Debug.todo ""
 
 
 getNameAddress : String -> CompareState -> ( Int, CompareState )

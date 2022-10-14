@@ -13,7 +13,7 @@ module Infer.Model exposing
     , useExpr
     )
 
-import IR.Spec exposing (Address, Spec(..))
+import IR.Spec exposing (Spec(..))
 import Infer.Model.Bindings as Bindings exposing (Bindings)
 import Infer.Model.Graph as Graph exposing (Graph)
 import Infer.Model.Ownership as Ownership exposing (Ownership)
@@ -75,17 +75,17 @@ hasAnyLinearExpr { ownership } =
     Ownership.hasAny ownership
 
 
-insertSpecPtr : Address -> Spec -> Model -> Model
+insertSpecPtr : Int -> Spec -> Model -> Model
 insertSpecPtr address spec model =
     { model | graph = Graph.insert address spec model.graph }
 
 
-derefSpec : Address -> Model -> Maybe Spec
+derefSpec : Int -> Model -> Maybe Spec
 derefSpec address { graph } =
     Graph.get address graph
 
 
-nextFreeSpecAddress : Model -> ( Address, Model )
+nextFreeSpecAddress : Model -> ( Int, Model )
 nextFreeSpecAddress model =
     let
         ( address, graph ) =
@@ -120,3 +120,6 @@ unwrapSpecHelp spec specs store =
 
         Arrow linearity func argm ->
             Arrow linearity (unwrapSpecHelp func specs store) (unwrapSpecHelp argm specs store)
+
+        _ ->
+            Debug.todo ""
