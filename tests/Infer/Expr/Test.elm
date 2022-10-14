@@ -32,8 +32,9 @@ import Test exposing (..)
 
    ...
 
-   - bootstrap
+   - use inference to optimize codegen
    - add borrow checker
+   - bootstrap
 
 -}
 
