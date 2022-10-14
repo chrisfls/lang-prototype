@@ -8,7 +8,7 @@ type Module
     = Variable String
     | Lambda String Module
     | Apply Module Module
-    | Annotation Annotation
+    | Annotation Annotation Module
     | IfEquals String String Module Module
     | Module ModuleBody
 
