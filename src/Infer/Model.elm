@@ -1,145 +1,123 @@
-module Infer.Model exposing (..)
+module Infer.Model exposing
+    ( Model
+    , derefSpec
+    , empty
+    , getExpr
+    , hasAnyLinearExpr
+    , insertExpr
+    , insertLinearExpr
+    , insertSpecPtr
+    , isExprAvailable
+    , nextFreeSpecAddress
+    , removeExpr
+    , unwrapSpec
+    , useExpr
+    )
 
-import Dict exposing (Dict)
 import IR.Spec exposing (Address, Spec(..))
+import Infer.Model.Bindings as Bindings exposing (Bindings)
+import Infer.Model.Graph as Graph exposing (Graph)
+import Infer.Model.Ownership as Ownership exposing (Ownership)
 import IntDict exposing (IntDict)
-import Set exposing (Set)
 
 
 type alias Model =
-    { graph : Graph
-    , count : Int
-    , scope : Dict String Spec
-    , linear : Set String
-    , unused : Set String
+    { exprs : Bindings
+    , specs : Bindings
+    , graph : Graph
+    , ownership : Ownership
     }
-
-
-type alias Graph =
-    IntDict Spec
 
 
 empty : Model
 empty =
-    { graph = IntDict.empty
-    , count = 0
-    , scope = Dict.empty
-    , linear = Set.empty
-    , unused = Set.empty
+    { exprs = Bindings.empty
+    , specs = Bindings.empty
+    , graph = Graph.empty
+    , ownership = Ownership.empty
     }
 
 
-getAtAddress : Address -> Model -> Maybe Spec
-getAtAddress index model =
-    getHelp index model.graph
+insertExpr : String -> Spec -> Model -> Model
+insertExpr name spec model =
+    -- TODO: add linear argument
+    { model | exprs = Bindings.insert name spec model.exprs }
 
 
-insertAtAddress : Address -> Spec -> Model -> Model
-insertAtAddress address spec model =
-    { model | graph = IntDict.insert address spec model.graph }
+insertLinearExpr : String -> Spec -> Model -> Model
+insertLinearExpr name spec model =
+    -- TODO: deprecate
+    { model | exprs = Bindings.insert name spec model.exprs, ownership = Ownership.insert name model.ownership }
 
 
-nextFreeAddress : Model -> ( Address, Model )
-nextFreeAddress ({ count } as model) =
-    ( count, { model | count = count + 1 } )
+useExpr : String -> Model -> Model
+useExpr name model =
+    { model | ownership = Ownership.use name model.ownership }
 
 
-getAtName : String -> Model -> Maybe Spec
-getAtName name model =
-    Dict.get name model.scope
+removeExpr : String -> Model -> Model
+removeExpr name model =
+    -- TODO: add linear argument
+    { model | exprs = Bindings.remove name model.exprs, ownership = Ownership.remove name model.ownership }
 
 
-insertAtName : String -> Spec -> Model -> Model
-insertAtName name spec model =
-    { model
-        | scope = Dict.insert name spec model.scope
-        , unused = Set.insert name model.unused
-    }
+getExpr : String -> Model -> Maybe Spec
+getExpr name { exprs } =
+    Bindings.get name exprs
 
 
-insertLinearAtName : String -> Spec -> Model -> Model
-insertLinearAtName name spec model =
-    { model
-        | scope = Dict.insert name spec model.scope
-        , linear = Set.insert name model.linear
-        , unused = Set.insert name model.unused
-    }
+isExprAvailable : String -> Model -> Bool
+isExprAvailable name { ownership } =
+    Ownership.isAvailable name ownership
 
 
-removeAtName : String -> Model -> Model
-removeAtName name model =
-    { model
-        | scope = Dict.remove name model.scope
-        , linear = Set.remove name model.linear
-        , unused = Set.remove name model.unused
-    }
+hasAnyLinearExpr : Model -> Bool
+hasAnyLinearExpr { ownership } =
+    Ownership.hasAny ownership
 
 
-unwrap : Spec -> Model -> Spec
-unwrap spec model =
-    case spec of
-        Reference _ address ->
-            case getAtAddress address model of
-                Just nextSpec ->
-                    if spec == nextSpec then
-                        spec
-
-                    else
-                        unwrap nextSpec model
-
-                Nothing ->
-                    spec
-
-        Arrow linearity func argm ->
-            Arrow linearity (unwrap func model) (unwrap argm model)
+insertSpecPtr : Address -> Spec -> Model -> Model
+insertSpecPtr address spec model =
+    { model | graph = Graph.insert address spec model.graph }
 
 
-isAvailable : String -> Model -> Bool
-isAvailable name model =
-    if Set.member name model.linear then
-        Set.member name model.unused
-
-    else
-        True
+derefSpec : Address -> Model -> Maybe Spec
+derefSpec address { graph } =
+    Graph.get address graph
 
 
-
--- LINEARITY STATE
-
-
-hasLinearReferences : Model -> Bool
-hasLinearReferences model =
-    not (Set.isEmpty model.linear)
-
-
-
--- STATE CONTROL
+nextFreeSpecAddress : Model -> ( Address, Model )
+nextFreeSpecAddress model =
+    let
+        ( address, graph ) =
+            Graph.nextFreeAddress model.graph
+    in
+    ( address, { model | graph = graph } )
 
 
-setUsedName : String -> Model -> Model
-setUsedName name model =
-    { model | unused = Set.remove name model.unused }
+unwrapSpec : Spec -> Model -> Spec
+unwrapSpec spec { specs, graph } =
+    unwrapSpecHelp spec specs (Graph.toIntDict graph)
 
 
 
 -- internals
 
 
-getHelp : Address -> Graph -> Maybe Spec
-getHelp address graph =
-    case IntDict.get address graph of
-        (Just spec) as justSpec ->
-            case spec of
-                Reference _ nextAddress ->
-                    case getHelp nextAddress graph of
-                        (Just _) as justSpec_ ->
-                            justSpec_
+unwrapSpecHelp : Spec -> Bindings -> IntDict Spec -> Spec
+unwrapSpecHelp spec specs store =
+    case spec of
+        Reference _ address ->
+            case IntDict.get address store of
+                Just nextSpec ->
+                    if spec == nextSpec then
+                        spec
 
-                        Nothing ->
-                            justSpec
+                    else
+                        unwrapSpecHelp nextSpec specs store
 
-                _ ->
-                    justSpec
+                Nothing ->
+                    spec
 
-        nothing ->
-            nothing
+        Arrow linearity func argm ->
+            Arrow linearity (unwrapSpecHelp func specs store) (unwrapSpecHelp argm specs store)

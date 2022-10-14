@@ -17,10 +17,10 @@ infer : Expr -> Model -> Return
 infer expr model =
     case expr of
         Variable name ->
-            case Model.getAtName name model of
+            case Model.getExpr name model of
                 Just spec ->
-                    if Model.isAvailable name model then
-                        Return spec (Model.setUsedName name model)
+                    if Model.isExprAvailable name model then
+                        Return spec (Model.useExpr name model)
 
                     else
                         Throw <| "var '" ++ name ++ "' previously used"
@@ -31,7 +31,7 @@ infer expr model =
         Lambda defaultLinearity name body ->
             let
                 linearity =
-                    if defaultLinearity == Spec.Varying && Model.hasLinearReferences model then
+                    if defaultLinearity == Spec.Varying && Model.hasAnyLinearExpr model then
                         Spec.Closure
 
                     else
@@ -41,23 +41,23 @@ infer expr model =
                     linearity == Spec.Linear
 
                 ( address, freeAddressModel ) =
-                    Model.nextFreeAddress model
+                    Model.nextFreeSpecAddress model
 
                 argumentSpec =
                     Spec.Reference isLinear address
 
                 argumentModel =
                     if isLinear then
-                        Model.insertLinearAtName name argumentSpec freeAddressModel
+                        Model.insertLinearExpr name argumentSpec freeAddressModel
 
                     else
-                        Model.insertAtName name argumentSpec freeAddressModel
+                        Model.insertExpr name argumentSpec freeAddressModel
             in
             case infer body argumentModel of
                 Return bodySpec bodyModel ->
                     Return
                         (Spec.Arrow linearity argumentSpec bodySpec)
-                        (Model.removeAtName name bodyModel)
+                        (Model.removeExpr name bodyModel)
 
                 err ->
                     err

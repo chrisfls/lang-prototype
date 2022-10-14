@@ -5,7 +5,7 @@ import Html exposing (b)
 import IR.Expr as Expr exposing (Expr)
 import IR.Spec as Spec
 import Infer.Expr as Expr
-import Infer.Model as State
+import Infer.Model as Model
 import Test exposing (..)
 
 
@@ -179,9 +179,9 @@ arr =
 expectInfer : String -> Expr -> Expectation
 expectInfer msg baseExpr =
     Expect.equal msg <|
-        case Expr.infer baseExpr State.empty of
+        case Expr.infer baseExpr Model.empty of
             Expr.Return spec state ->
-                Spec.toString <| State.unwrap spec state
+                Spec.toString <| Model.unwrapSpec spec state
 
             Expr.Throw err ->
                 err
