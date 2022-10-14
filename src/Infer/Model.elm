@@ -3,12 +3,15 @@ module Infer.Model exposing
     , derefSpec
     , empty
     , getExpr
+    , getModule
     , hasAnyLinearExpr
     , insertExpr
+    , insertModule
     , insertSpecPtr
     , isExprAvailable
     , nextFreeSpecAddress
     , removeExpr
+    , removeModule
     , unwrapSpec
     , useExpr
     )
@@ -21,7 +24,8 @@ import IntDict exposing (IntDict)
 
 
 type alias Model =
-    { exprs : Bindings
+    { modules : Bindings
+    , exprs : Bindings
     , specs : Bindings
     , graph : Graph
     , ownership : Ownership
@@ -30,11 +34,35 @@ type alias Model =
 
 empty : Model
 empty =
-    { exprs = Bindings.empty
+    { modules = Bindings.empty
+    , exprs = Bindings.empty
     , specs = Bindings.empty
     , graph = Graph.empty
     , ownership = Ownership.empty
     }
+
+
+
+-- Modules
+
+
+insertModule : String -> Spec -> Model -> Model
+insertModule name spec model =
+    { model | modules = Bindings.insert name spec model.modules }
+
+
+removeModule : String -> Model -> Model
+removeModule name model =
+    { model | modules = Bindings.remove name model.modules }
+
+
+getModule : String -> Model -> Maybe Spec
+getModule name { modules } =
+    Bindings.get name modules
+
+
+
+-- Expr
 
 
 insertExpr : String -> Bool -> Spec -> Model -> Model
@@ -73,6 +101,10 @@ isExprAvailable name { ownership } =
 hasAnyLinearExpr : Model -> Bool
 hasAnyLinearExpr { ownership } =
     Ownership.hasAny ownership
+
+
+
+-- Spec
 
 
 insertSpecPtr : Int -> Spec -> Model -> Model
