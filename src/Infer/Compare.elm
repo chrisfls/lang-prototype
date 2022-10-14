@@ -1,12 +1,17 @@
 module Infer.Compare exposing (compareAnnotation)
 
 import Dict exposing (Dict)
-import IR.Expr as Expr exposing (Expr(..))
+import IR.Annotation as Annotation exposing (Annotation)
+import IR.Expr exposing (Expr(..))
+import IR.Linearity as Linearity
 import IR.Spec as Spec exposing (Spec)
+
+
 
 -- TODO: add better mapping to where issue happened
 
-compareAnnotation : Expr.Annotation -> Spec -> Maybe String
+
+compareAnnotation : Annotation -> Spec -> Maybe String
 compareAnnotation annotation spec =
     case compareAnnotationHelp annotation spec empty of
         Ok _ ->
@@ -16,10 +21,10 @@ compareAnnotation annotation spec =
             Just err
 
 
-compareAnnotationHelp : Expr.Annotation -> Spec -> CompareState -> Result String CompareState
+compareAnnotationHelp : Annotation -> Spec -> CompareState -> Result String CompareState
 compareAnnotationHelp annotation spec state =
     case annotation of
-        Expr.Reference expectedLinearity name ->
+        Annotation.Reference expectedLinearity name ->
             case spec of
                 Spec.Reference gotLinearity address ->
                     if not expectedLinearity || gotLinearity then
@@ -42,10 +47,10 @@ compareAnnotationHelp annotation spec state =
                 Spec.Arrow _ _ _ ->
                     Err "expected reference, got arrow"
 
-        Expr.Arrow expectedLinearity expectedArgument expectedReturn ->
+        Annotation.Arrow expectedLinearity expectedArgument expectedReturn ->
             case spec of
                 Spec.Arrow gotLinearity gotArgument gotReturn ->
-                    if expectedLinearity /= Spec.Linear || gotLinearity == Spec.Linear then
+                    if expectedLinearity /= Linearity.Linear || gotLinearity == Linearity.Linear then
                         case compareAnnotationHelp expectedArgument gotArgument state of
                             Ok functionState ->
                                 case compareAnnotationHelp expectedReturn gotReturn functionState of

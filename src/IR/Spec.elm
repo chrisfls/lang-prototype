@@ -1,21 +1,12 @@
 module IR.Spec exposing (..)
 
 import Dict exposing (Dict)
-
-
-
--- TODO: remove maybe from arrow's name
+import IR.Linearity as Linearity exposing (Linearity)
 
 
 type Spec
     = Reference Bool Address
     | Arrow Linearity Spec Spec
-
-
-type Linearity
-    = Varying
-    | Closure
-    | Linear
 
 
 type alias Address =
@@ -58,7 +49,7 @@ arrowToString linearity argument return state =
 
         arrow =
             case linearity of
-                Varying ->
+                Linearity.Varying ->
                     " -> "
 
                 _ ->

@@ -1,10 +1,7 @@
 module IR.Expr exposing (..)
 
-import IR.Spec as Spec exposing (Linearity)
-
-
-
--- TODO: perhaps decorate every tag with a spec
+import IR.Annotation exposing (Annotation)
+import IR.Linearity as Linearity exposing (Linearity)
 
 
 type Expr
@@ -14,24 +11,19 @@ type Expr
     | Annotation Annotation Expr
 
 
-type Annotation
-    = Reference Bool String
-    | Arrow Spec.Linearity Annotation Annotation
-
-
 toString : Expr -> String
 toString expr =
     case expr of
         Variable name ->
             name
 
-        Lambda Spec.Linear name body ->
+        Lambda Linearity.Linear name body ->
             "(*" ++ name ++ " => " ++ toString body ++ ")"
 
-        Lambda Spec.Closure name body ->
+        Lambda Linearity.Closure name body ->
             "(" ++ name ++ " => " ++ toString body ++ ")"
 
-        Lambda Spec.Varying name body ->
+        Lambda Linearity.Varying name body ->
             "(" ++ name ++ " -> " ++ toString body ++ ")"
 
         Apply function argument ->

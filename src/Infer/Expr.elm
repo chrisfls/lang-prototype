@@ -1,6 +1,7 @@
 module Infer.Expr exposing (Return(..), infer)
 
 import IR.Expr exposing (Expr(..))
+import IR.Linearity as Linearity
 import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
 import Infer.Compare exposing (compareAnnotation)
@@ -30,14 +31,14 @@ infer expr model =
         Lambda defaultLinearity name body ->
             let
                 linearity =
-                    if defaultLinearity == Spec.Varying && Model.hasAnyLinearExpr model then
-                        Spec.Closure
+                    if defaultLinearity == Linearity.Varying && Model.hasAnyLinearExpr model then
+                        Linearity.Closure
 
                     else
                         defaultLinearity
 
                 isLinear =
-                    linearity == Spec.Linear
+                    linearity == Linearity.Linear
 
                 ( address, freeAddressModel ) =
                     Model.nextFreeSpecAddress model

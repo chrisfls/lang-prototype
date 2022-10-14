@@ -1,8 +1,9 @@
 module Infer.Expr.Test exposing (suite)
 
 import Expect exposing (Expectation)
-import Html exposing (b)
+import IR.Annotation as Annotation exposing (Annotation)
 import IR.Expr as Expr exposing (Expr)
+import IR.Linearity as Linearity
 import IR.Spec as Spec
 import Infer.Expr as Expr
 import Infer.Model as Model
@@ -138,17 +139,17 @@ linearChecking =
 
 lam : String -> Expr -> Expr
 lam =
-    Expr.Lambda Spec.Varying
+    Expr.Lambda Linearity.Varying
 
 
 cls : String -> Expr -> Expr
 cls =
-    Expr.Lambda Spec.Closure
+    Expr.Lambda Linearity.Closure
 
 
 lin : String -> Expr -> Expr
 lin =
-    Expr.Lambda Spec.Linear
+    Expr.Lambda Linearity.Linear
 
 
 var : String -> Expr
@@ -161,19 +162,19 @@ app =
     Expr.Apply
 
 
-ann : Expr.Annotation -> Expr -> Expr
+ann : Annotation -> Expr -> Expr
 ann =
     Expr.Annotation
 
 
-ref : String -> Expr.Annotation
+ref : String -> Annotation
 ref =
-    Expr.Reference False
+    Annotation.Reference False
 
 
-arr : Expr.Annotation -> Expr.Annotation -> Expr.Annotation
+arr : Annotation -> Annotation -> Annotation
 arr =
-    Expr.Arrow Spec.Varying
+    Annotation.Arrow Linearity.Varying
 
 
 expectInfer : String -> Expr -> Expectation

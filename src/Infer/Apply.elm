@@ -1,7 +1,7 @@
 module Infer.Apply exposing (Return(..), apply)
 
-import IR.Expr as Expr
-import IR.Spec as Spec exposing (Spec(..))
+import IR.Linearity as Linearity
+import IR.Spec exposing (Spec(..))
 import Infer.Model as Model exposing (Model)
 
 
@@ -41,7 +41,7 @@ constrain index argumentSpec model =
     in
     -- TODO: generate named args to help with linear argument inference
     -- TODO: apply linearity constraints
-    Return returnReference (Model.insertSpecPtr index (Arrow Spec.Varying argumentSpec returnReference) nextModel)
+    Return returnReference (Model.insertSpecPtr index (Arrow Linearity.Varying argumentSpec returnReference) nextModel)
 
 
 contrainWith : Spec -> Spec -> Model -> Return
@@ -66,7 +66,7 @@ constrainFunctionWith argumentSpec returnSpec appliedSpec model =
             case Model.unwrapSpec argumentSpec model of
                 Arrow argumentLinearity (Reference _ address) nestedReturnSpec ->
                     -- linearity is enforced at the function side, not parameter
-                    if argumentLinearity /= Spec.Linear || applyLinearity == Spec.Linear then
+                    if argumentLinearity /= Linearity.Linear || applyLinearity == Linearity.Linear then
                         -- TODO: check if appliedArgumentSpec is compatible with nestedArgumentSpec when it is not a Reference
                         constrainFunctionWith nestedReturnSpec returnSpec appliedReturnSpec <| Model.insertSpecPtr address appliedArgumentSpec model
 
