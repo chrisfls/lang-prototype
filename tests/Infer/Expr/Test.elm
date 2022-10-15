@@ -15,26 +15,27 @@ import Test exposing (..)
 
    TODO:
 
-   - rewrite annotations in compare
-   - infer module body
-   - infer module
-   - add basic codegen
-   - add more spec types
-       - builtin types
-       - union types
-       - record types
-       - tuple types
-   - add mutation expressions
-   - add FFI module
-   - add language parser
-   - add import support
-   - add compiler api
+   - [ ] rewrite annotations in compare
+   - [\] infer module body
+   - [\] infer module
+   - [ ] add basic codegen
+   - [ ] add more spec types
+       - [ ] builtin types
+       - [ ] union types
+       - [ ] record types
+       - [ ] tuple types
+   - [ ] add pattern matching
+   - [ ] add FFI module
+   - [ ] add mutation expressions
+   - [ ] add language parser
+   - [ ] add import support
+   - [ ] add compiler api
 
    ...
 
-   - use inference to optimize codegen
-   - add borrow checker
-   - bootstrap
+   - [ ] use inference to optimize codegen
+   - [ ] add borrow checker
+   - [ ] bootstrap
 
 -}
 
