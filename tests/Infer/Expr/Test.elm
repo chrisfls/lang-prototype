@@ -15,11 +15,14 @@ import Test exposing (..)
 
    TODO:
 
-   - [ ] rewrite annotations in compare
-   - [\] infer module body
-   - [\] infer module
-   - [ ] add basic codegen
-   - [ ] add more spec types
+   - [!] infer module body [PRIORITY]
+            mostly ready, need a strat for
+            inserting bindings
+   - [\] infer module [TESTING]
+            pending if equals and imports
+   - [\] add basic codegen [TESTING]
+            pending some testing and Module.IfEquals
+   - [ ] add more spec types [PRIORITY]
        - [ ] builtin types
        - [ ] union types
        - [ ] record types
