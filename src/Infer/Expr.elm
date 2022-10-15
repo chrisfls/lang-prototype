@@ -5,6 +5,7 @@ import IR.Linearity as Linearity
 import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
 import Infer.Compare exposing (compareAnnotation)
+import Infer.Convert exposing (convert)
 import Infer.Model as Model exposing (Model)
 
 
@@ -78,14 +79,17 @@ infer expr model =
 
         Annotation annotation subExpr ->
             case infer subExpr model of
-                Return spec nextModel ->
+                Return spec _ ->
                     case compareAnnotation annotation spec of
                         Just err ->
                             Throw err
 
                         Nothing ->
-                            -- TODO: instead adopt original spec
-                            Return spec nextModel
+                            let
+                                ( convertedSpec, nextModel ) =
+                                    convert annotation model
+                            in
+                            Return convertedSpec nextModel
 
                 err ->
                     err
