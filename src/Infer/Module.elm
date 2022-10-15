@@ -5,6 +5,7 @@ import IR.Module exposing (Module(..))
 import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
 import Infer.Compare exposing (compareAnnotation)
+import Infer.Convert exposing (convert)
 import Infer.Model as Model exposing (Model)
 import Infer.ModuleBody as ModuleBody
 
@@ -65,14 +66,17 @@ infer expr model =
 
         Annotation annotation subModule ->
             case infer subModule model of
-                Return spec nextModel ->
+                Return spec _ ->
                     case compareAnnotation annotation spec of
                         Just err ->
                             Throw err
 
                         Nothing ->
-                            -- TODO: instead adopt original spec
-                            Return spec nextModel
+                            let
+                                ( convertedSpec, nextModel ) =
+                                    convert annotation model
+                            in
+                            Return convertedSpec nextModel
 
                 err ->
                     err
