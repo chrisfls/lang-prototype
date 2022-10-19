@@ -1,41 +1,55 @@
 ```elm
 
-# single line comment
+module {
 
-###
-multiple line comment
-###
+  # single line comment
 
-# basic function
-identity = \a ->
-  a
+  ###
+  multiple line comment
+  ###
 
-# type annotated function
-always : a -> b -> a
-always = \a b ->
-  a
+  # basic function
+  identity = \a ->
+    a
 
-# linear function
-discard : a -> *b -> a
-discard = \a *b ->
-  a
+  # type annotated function
+  always : a -> b -> a
+  always = \a b ->
+    a
 
-# type alias 
-type Address =
-  Int
+  # linear function
+  discard : a -> *b -> a
+  discard = \a *b ->
+    a
 
-# side effecting function
-logAddress : Address -> *IO -> *IO
-logAddress = \addr *io ->
-  IO.log (String.fromInt addr) io
+  # type alias 
+  type Address =
+    Int
 
-# union type
-type Maybe x =
-  | Some x
-  | None
+  # side effecting function
+  logAddress : Address -> *IO -> *IO
+  logAddress = \addr *io ->
+    IO.log (String.fromInt addr) io
 
-# opaque type
-type Id =
-  | Id String
+  # union type
+  type Maybe x =
+    | Some x
+    | None
+
+  # opaque type
+  type Id =
+    | Id String
+
+}
+
+a = import "xyz"
+b = import "xyz"
+c = import "xyz"
+if a == b then
+  module : a -> b -> _
+  module a b c {
+
+  }
+else
 
 ```
