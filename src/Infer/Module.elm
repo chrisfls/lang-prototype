@@ -85,7 +85,7 @@ infer expr model =
             -- TODO: assert that then and else have the same type
             Debug.todo "IfEquals"
 
-        Module body ->
+        Module _ body ->
             case ModuleBody.infer body model of
                 ModuleBody.Return members moduleModel ->
                     Return (Spec.Module members) moduleModel

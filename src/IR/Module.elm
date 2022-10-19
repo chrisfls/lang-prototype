@@ -10,8 +10,7 @@ type Module
     | Apply Module Module
     | Annotation Annotation Module
     | IfEquals String String Module Module
-    | Module ModuleBody
-
+    | Module String ModuleBody
 
 type ModuleBody
     = CloseModule
