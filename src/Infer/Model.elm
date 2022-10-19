@@ -3,6 +3,7 @@ module Infer.Model exposing
     , derefSpec
     , empty
     , getExpr
+    , insertSpec
     , getModule
     , hasAnyLinearExpr
     , insertExpr
@@ -105,6 +106,10 @@ hasAnyLinearExpr { ownership } =
 
 
 -- Spec
+
+insertSpec : String -> Spec -> Model -> Model
+insertSpec name spec model =
+    { model | specs = Bindings.insert name spec model.specs }
 
 
 insertSpecPtr : Int -> Spec -> Model -> Model
