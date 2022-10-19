@@ -39,8 +39,8 @@ generateModule modul =
         Module.IfEquals _ _ _ _ ->
             Debug.todo "Generate IfEquals"
 
-        Module.Module body ->
-            "(() => {const $exports={};" ++ generateModuleBody body ++ "})()"
+        Module.Module name body ->
+            "(() => {/*" ++ name ++ "*/const $exports={};" ++ generateModuleBody body ++ "})()"
 
 
 generateModuleBody : ModuleBody -> String
