@@ -3,6 +3,7 @@ module Codegen.ShittyJS exposing (generate)
 import IR.Expr as Expr exposing (Expr)
 import IR.Module as Module exposing (Module, ModuleBody, ModuleExpr)
 
+-- this is the worst possible output for this IR, but it should be good enough for my initial use
 
 runtime : String
 runtime =

@@ -15,17 +15,20 @@ import Test exposing (..)
 
    TODO:
 
+    YOU ONLY LIVE ONCE:
+
+   - [ ] add language parser
+
    - [\] infer module body
 
         pending:
 
-            - [ ] tests
+            - [\] tests
 
    - [\] infer module
 
         pending:
 
-            - [ ] if equals
             - [ ] imports
             - [ ] tests
 
@@ -33,10 +36,7 @@ import Test exposing (..)
 
         pending:
 
-            - [ ] if equals
             - [ ] tests
-
-   - [ ] add language parser
 
    - [ ] add more spec types [PRIORITY]
        - [ ] builtin types

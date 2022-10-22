@@ -23,6 +23,7 @@ import Infer.Model.Graph as Graph exposing (Graph)
 import Infer.Model.Ownership as Ownership exposing (Ownership)
 import IntDict exposing (IntDict)
 
+-- TODO: store privacy info for bindings (insert public members here during Infer.Module)
 
 type alias Model =
     { modules : Bindings
