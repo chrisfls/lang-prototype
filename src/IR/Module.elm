@@ -1,23 +1,22 @@
-module IR.Module exposing (Module(..), ModuleBody(..), Privacy(..))
+module IR.Module exposing (Module(..), ModuleBody(..), ModuleExpr(..))
 
 import IR.Annotation exposing (Annotation)
 import IR.Expr exposing (Expr)
 
 
 type Module
+    = Param String Annotation Module
+    | Let String ModuleExpr Module
+    | ModuleBody ModuleBody
+
+
+type ModuleExpr
     = Variable String
-    | Lambda String Module
-    | Apply Module Module
-    | Annotation Annotation Module
-    | IfEquals String String Module Module
-    | Module String ModuleBody
+    | Apply ModuleExpr ModuleExpr
+    | Import String
+
 
 type ModuleBody
-    = CloseModule
-    | DefSpec Privacy String Annotation ModuleBody
-    | DefExpr Privacy String Expr ModuleBody
-
-
-type Privacy
-    = Private
-    | Public
+    = ReturnModule
+    | DefSpec String Annotation ModuleBody
+    | DefExpr String Expr ModuleBody

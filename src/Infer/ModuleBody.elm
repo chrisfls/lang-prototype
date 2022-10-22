@@ -1,7 +1,7 @@
 module Infer.ModuleBody exposing (Return(..), infer)
 
 import IR.Members as Members
-import IR.Module exposing (ModuleBody(..), Privacy(..))
+import IR.Module exposing (ModuleBody(..))
 import IR.Spec exposing (Members)
 import Infer.Convert exposing (convert)
 import Infer.Expr as Expr
@@ -21,10 +21,10 @@ infer =
 inferHelp : Members -> ModuleBody -> Model -> Return
 inferHelp members body model =
     case body of
-        CloseModule ->
+        ReturnModule ->
             Return members model
 
-        DefSpec privacy name annotation nextBody ->
+        DefSpec name annotation nextBody ->
             let
                 ( convertedSpec, unwrapModel ) =
                     convert annotation model
@@ -35,14 +35,9 @@ inferHelp members body model =
                 nextModel =
                     Model.insertSpec name spec model
             in
-            case privacy of
-                Public ->
-                    inferHelp (Members.insertSpec name spec members) nextBody nextModel
+            inferHelp (Members.insertSpec name spec members) nextBody nextModel
 
-                Private ->
-                    inferHelp members nextBody nextModel
-
-        DefExpr privacy name expr nextBody ->
+        DefExpr name expr nextBody ->
             case Expr.infer expr model of
                 Expr.Return inferedSpec unwrapModel ->
                     let
@@ -52,12 +47,7 @@ inferHelp members body model =
                         nextModel =
                             Model.insertExpr name False spec model
                     in
-                    case privacy of
-                        Public ->
-                            inferHelp (Members.insertExpr name spec members) nextBody nextModel
-
-                        Private ->
-                            inferHelp members nextBody nextModel
+                    inferHelp (Members.insertExpr name spec members) nextBody nextModel
 
                 Expr.Throw err ->
                     Throw err

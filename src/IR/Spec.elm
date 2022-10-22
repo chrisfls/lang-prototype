@@ -6,6 +6,8 @@ import IR.Linearity as Linearity exposing (Linearity)
 
 
 -- TODO: start sourcemaps
+-- TODO: add struct {} for module format assert
+-- TODO: add module() for exposing assert
 
 
 type Spec
@@ -47,8 +49,11 @@ toStringHelp spec state =
         Arrow linearity argument return ->
             arrowToString linearity argument return state
 
-        _ ->
-            Debug.todo "stringify Module / SpecAt"
+        SpecAt _ ->
+            Debug.todo "SpecAt"
+
+        Module members ->
+            membersToString members state
 
 
 arrowToString : Linearity -> Spec -> Spec -> ToStringState -> ( String, ToStringState )
@@ -74,6 +79,35 @@ arrowToString linearity argument return state =
             toStringHelp return newState
     in
     ( argumentString ++ arrow ++ returnString, finalState )
+
+
+membersToString : Members -> ToStringState -> ( String, ToStringState )
+membersToString members state =
+    let
+        ( exprs, exprState ) =
+            bindingsToString " : " (Dict.toList members.exprs) state
+
+        ( specs, lastState ) =
+            bindingsToString " : type" (Dict.toList members.specs) exprState
+
+        bindings =
+            String.join ", " <| List.sort (exprs ++ specs)
+    in
+    ( "module { " ++ bindings ++ " }", lastState )
+
+
+bindingsToString : String -> List ( String, Spec ) -> ToStringState -> ( List String, ToStringState )
+bindingsToString separator bindings state =
+    List.foldl
+        (\( name, binding ) ( xs, thisState ) ->
+            let
+                ( str, nextState ) =
+                    toStringHelp binding thisState
+            in
+            ( (name ++ separator ++ str) :: xs, nextState )
+        )
+        ( [], state )
+        bindings
 
 
 wrapParens : String -> String

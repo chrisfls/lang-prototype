@@ -1,11 +1,9 @@
-module Infer.Module exposing (Return(..), infer)
+module Infer.Module exposing (..)
 
 import IR.Linearity as Linearity
-import IR.Module exposing (Module(..))
+import IR.Module exposing (Module(..), ModuleExpr(..))
 import IR.Spec as Spec exposing (Spec)
 import Infer.Apply as Apply exposing (apply)
-import Infer.Compare exposing (compareAnnotation)
-import Infer.Convert exposing (convert)
 import Infer.Model as Model exposing (Model)
 import Infer.ModuleBody as ModuleBody
 
@@ -16,17 +14,9 @@ type Return
 
 
 infer : Module -> Model -> Return
-infer expr model =
-    case expr of
-        Variable name ->
-            case Model.getModule name model of
-                Just spec ->
-                    Return spec model
-
-                Nothing ->
-                    Throw <| "module '" ++ name ++ "' not found"
-
-        Lambda name body ->
+infer modl model =
+    case modl of
+        Param name _ body ->
             let
                 ( address, freeAddressModel ) =
                     Model.nextFreeSpecAddress model
@@ -46,10 +36,39 @@ infer expr model =
                 err ->
                     err
 
+        Let name expr body ->
+            case inferExpr expr model of
+                Return spec unwrapModel ->
+                    Model.insertModule name (Model.unwrapSpec spec unwrapModel) model
+                        |> infer body
+
+                throw ->
+                    throw
+
+        ModuleBody body ->
+            case ModuleBody.infer body model of
+                ModuleBody.Return members moduleModel ->
+                    Return (Spec.Module members) moduleModel
+
+                ModuleBody.Throw err ->
+                    Throw err
+
+
+inferExpr : ModuleExpr -> Model -> Return
+inferExpr expr model =
+    case expr of
+        Variable name ->
+            case Model.getModule name model of
+                Just spec ->
+                    Return spec model
+
+                Nothing ->
+                    Throw <| "module '" ++ name ++ "' not found"
+
         Apply function argument ->
-            case infer function model of
+            case inferExpr function model of
                 Return functionSpec functionModel ->
-                    case infer argument functionModel of
+                    case inferExpr argument functionModel of
                         Return argumentSpec argumentModel ->
                             case apply functionSpec argumentSpec argumentModel of
                                 Apply.Return applySpec applyModel ->
@@ -64,31 +83,5 @@ infer expr model =
                 err ->
                     err
 
-        Annotation annotation subModule ->
-            case infer subModule model of
-                Return spec _ ->
-                    case compareAnnotation annotation spec of
-                        Just err ->
-                            Throw err
-
-                        Nothing ->
-                            let
-                                ( convertedSpec, nextModel ) =
-                                    convert annotation model
-                            in
-                            Return convertedSpec nextModel
-
-                err ->
-                    err
-
-        IfEquals _ _ _ _ ->
-            -- TODO: assert that then and else have the same type
-            Debug.todo "IfEquals"
-
-        Module _ body ->
-            case ModuleBody.infer body model of
-                ModuleBody.Return members moduleModel ->
-                    Return (Spec.Module members) moduleModel
-
-                ModuleBody.Throw err ->
-                    Throw err
+        _ ->
+            Debug.todo ""

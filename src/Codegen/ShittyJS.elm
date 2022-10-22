@@ -1,7 +1,7 @@
 module Codegen.ShittyJS exposing (generate)
 
 import IR.Expr as Expr exposing (Expr)
-import IR.Module as Module exposing (Module, ModuleBody)
+import IR.Module as Module exposing (Module, ModuleBody, ModuleExpr)
 
 
 runtime : String
@@ -17,52 +17,47 @@ generate modul =
 generateModule : Module -> String
 generateModule modul =
     case modul of
+        Module.Param name _ subExpr ->
+            "$DeclareModuleFactory((" ++ name ++ ")=>(" ++ generateModule subExpr ++ "))"
+
+        Module.Let name subExpr nextModule ->
+            "const " ++ name ++ "=" ++ generateModuleExpr subExpr ++ generateModule nextModule
+
+        Module.ModuleBody body ->
+            "(() => {const $exports={};" ++ generateModuleBody body ++ "})()"
+
+
+generateModuleExpr : ModuleExpr -> String
+generateModuleExpr expr =
+    case expr of
         Module.Variable name ->
             name
-
-        Module.Lambda name subExpr ->
-            "$DeclareModuleFactory((" ++ name ++ ")=>(" ++ generateModule subExpr ++ "))"
 
         Module.Apply function argument ->
             let
                 functionStr =
-                    generateModule function
+                    generateModuleExpr function
 
                 argumentStr =
-                    generateModule argument
+                    generateModuleExpr argument
             in
             "(" ++ functionStr ++ ")" ++ "(" ++ argumentStr ++ ")"
 
-        Module.Annotation _ subExpr ->
-            generateModule subExpr
-
-        Module.IfEquals _ _ _ _ ->
-            Debug.todo "Generate IfEquals"
-
-        Module.Module name body ->
-            "(() => {/*" ++ name ++ "*/const $exports={};" ++ generateModuleBody body ++ "})()"
+        Module.Import _ ->
+            Debug.todo "Module.Import"
 
 
 generateModuleBody : ModuleBody -> String
 generateModuleBody body =
     case body of
-        Module.CloseModule ->
+        Module.ReturnModule ->
             ";$exports.main?.();return $exports"
 
-        Module.DefSpec _ _ _ nextBody ->
+        Module.DefSpec _ _ nextBody ->
             generateModuleBody nextBody
 
-        Module.DefExpr privacy name expr nextBody ->
-            let
-                expose =
-                    case privacy of
-                        Module.Public ->
-                            "=$exports." ++ name ++ "="
-
-                        Module.Private ->
-                            "="
-            in
-            "const " ++ name ++ expose ++ generateExpr expr ++ ";" ++ generateModuleBody nextBody
+        Module.DefExpr name expr nextBody ->
+            "const " ++ name ++ "=$exports." ++ name ++ "=" ++ generateExpr expr ++ ";" ++ generateModuleBody nextBody
 
 
 generateExpr : Expr -> String
