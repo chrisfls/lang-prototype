@@ -6,14 +6,14 @@ import IR.Expr exposing (Expr)
 
 type Module
     = Param String Annotation Module
-    | DefModule String ModuleExpr
+    | Let String ModuleExpr Module
     | ModuleBody ModuleBody
 
 
 type ModuleExpr
-    = Import String
-    | Variable String
+    = Variable String
     | Apply ModuleExpr ModuleExpr
+    | Import String
 
 
 type ModuleBody
