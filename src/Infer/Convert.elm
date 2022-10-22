@@ -7,6 +7,8 @@ import IR.Spec as Spec exposing (Spec)
 import Infer.Model as Model exposing (Model)
 
 
+-- to make this work with type holes I neeed to merge this into compare
+
 convert : Annotation -> Model -> ( Spec, Model )
 convert annotation model =
     let

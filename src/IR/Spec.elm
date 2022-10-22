@@ -6,8 +6,6 @@ import IR.Linearity as Linearity exposing (Linearity)
 
 
 -- TODO: start sourcemaps
--- TODO: add struct {} for module format assert
--- TODO: add module() for exposing assert
 
 
 type Spec

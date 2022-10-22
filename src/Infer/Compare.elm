@@ -9,6 +9,7 @@ import IR.Spec as Spec exposing (Spec)
 
 
 -- TODO: add better mapping to where issue happened
+-- TODO: merge this with convert
 
 
 compareAnnotation : Annotation -> Spec -> Maybe String
