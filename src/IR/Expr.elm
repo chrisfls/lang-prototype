@@ -8,6 +8,7 @@ import IR.Linearity as Linearity exposing (Linearity)
 -- TODO: start sourcemaps
 -- TODO: InfixApply
 
+
 type Expr
     = Variable String
     | Lambda Linearity String Expr

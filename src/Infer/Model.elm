@@ -3,11 +3,11 @@ module Infer.Model exposing
     , derefSpec
     , empty
     , getExpr
-    , insertSpec
     , getModule
     , hasAnyLinearExpr
     , insertExpr
     , insertModule
+    , insertSpec
     , insertSpecPtr
     , isExprAvailable
     , nextFreeSpecAddress
@@ -106,6 +106,7 @@ hasAnyLinearExpr { ownership } =
 
 
 -- Spec
+
 
 insertSpec : String -> Spec -> Model -> Model
 insertSpec name spec model =
