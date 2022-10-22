@@ -15,13 +15,29 @@ import Test exposing (..)
 
    TODO:
 
-   - [!] infer module body [PRIORITY]
-            mostly ready, need a strat for
-            inserting bindings
-   - [\] infer module [TESTING]
-            pending if equals and imports
-   - [\] add basic codegen [TESTING]
-            pending some testing and Module.IfEquals
+   - [\] infer module body
+
+        pending:
+
+            - [ ] tests
+
+   - [\] infer module
+
+        pending:
+
+            - [ ] if equals
+            - [ ] imports
+            - [ ] tests
+
+   - [\] add basic codegen
+
+        pending:
+
+            - [ ] if equals
+            - [ ] tests
+
+   - [ ] add language parser
+
    - [ ] add more spec types [PRIORITY]
        - [ ] builtin types
        - [ ] union types
@@ -30,7 +46,6 @@ import Test exposing (..)
    - [ ] add pattern matching
    - [ ] add FFI module
    - [ ] add mutation expressions
-   - [ ] add language parser
    - [ ] add import support
    - [ ] add compiler api
 
