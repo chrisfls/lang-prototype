@@ -1,4 +1,4 @@
-module IR.Module2 exposing (Condition(..), Module(..), ModuleBody(..), ModuleExpr(..))
+module IR.Module2 exposing (Module(..), ModuleBody(..), ModuleExpr(..))
 
 import IR.Annotation exposing (Annotation)
 import IR.Expr exposing (Expr)
@@ -8,11 +8,6 @@ type Module
     = Param String Annotation Module
     | DefModule String ModuleExpr
     | ModuleBody ModuleBody
-
-
-type Condition
-    = Equals ModuleExpr ModuleExpr
-    | Not Condition
 
 
 type ModuleExpr
