@@ -19,7 +19,7 @@ suite =
                 defExpr "identity"
                     (lam "a" (var "a"))
                     return
-                    |> expectInfer "module { identity : a -> a }"
+                    |> expectInfer "struct { identity : a -> a }"
         ]
 
 
@@ -72,7 +72,7 @@ expectInfer msg baseModule =
     Expect.equal msg <|
         case ModuleBody.infer baseModule Model.empty of
             ModuleBody.Return spec _ ->
-                Spec.toString <| Spec.Module spec
+                Spec.toString <| Spec.Struct spec
 
             ModuleBody.Throw err ->
                 err

@@ -13,7 +13,7 @@ import IR.Linearity as Linearity exposing (Linearity)
 type Spec
     = Reference Bool Int
     | Arrow Linearity Spec Spec
-    | Module Members
+    | Struct Members
     | SpecAt String
 
 
@@ -52,7 +52,7 @@ toStringHelp spec state =
         SpecAt _ ->
             Debug.todo "SpecAt"
 
-        Module members ->
+        Struct members ->
             membersToString members state
 
 
@@ -93,7 +93,7 @@ membersToString members state =
         bindings =
             String.join ", " <| List.sort (exprs ++ specs)
     in
-    ( "module { " ++ bindings ++ " }", lastState )
+    ( "struct { " ++ bindings ++ " }", lastState )
 
 
 bindingsToString : String -> List ( String, Spec ) -> ToStringState -> ( List String, ToStringState )

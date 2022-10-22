@@ -48,7 +48,7 @@ infer modl model =
         ModuleBody body ->
             case ModuleBody.infer body model of
                 ModuleBody.Return members moduleModel ->
-                    Return (Spec.Module members) moduleModel
+                    Return (Spec.Struct members) moduleModel
 
                 ModuleBody.Throw err ->
                     Throw err
