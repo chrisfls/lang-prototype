@@ -12,10 +12,7 @@ param c
 
 apply a = Dict A
 
-ifEq a b then
-  ifEq
-
-module where
+module (..) where
 
 # single line comment
 
@@ -54,8 +51,5 @@ type Maybe x =
 # opaque type
 type Id =
   | Id String
-
-
-
 
 ```
