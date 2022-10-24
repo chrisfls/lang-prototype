@@ -12,7 +12,7 @@ annotation =
         annotationWithoutArrow
 
 
-toArrow : Annotation -> List (Linearity, Annotation) -> Annotation
+toArrow : Annotation -> List ( Linearity, Annotation ) -> Annotation
 toArrow left xs =
     case xs of
         [] ->
@@ -25,7 +25,7 @@ toArrow left xs =
             Annotation.Arrow linearity left (toArrowHelp right rest)
 
 
-toArrowHelp : Annotation -> List (Linearity, Annotation) -> Annotation
+toArrowHelp : Annotation -> List ( Linearity, Annotation ) -> Annotation
 toArrowHelp right entries =
     case entries of
         ( linearity, left ) :: rest ->
@@ -57,13 +57,32 @@ annotationWithoutArrow =
     Parser.oneOf
         [ linearReference
         , varyingReference
-        , Parser.succeed identity
-            |. Parser.symbol "("
-            |. Parser.spaces
-            |= Parser.lazy (\_ -> annotation)
-            |. Parser.spaces
-            |. Parser.symbol ")"
+        , tuple
         ]
+
+
+tuple : Parser Annotation
+tuple =
+    Parser.sequence
+        { start = "("
+        , separator = ","
+        , end = ")"
+        , spaces = Parser.spaces
+        , item = Parser.lazy (\_ -> annotation)
+        , trailing = Parser.Forbidden
+        }
+        |> Parser.map
+            (\entries ->
+                case entries of
+                    [] ->
+                        Annotation.Unit
+
+                    [ spec ] ->
+                        spec
+
+                    _ ->
+                        Annotation.Tuple entries
+            )
 
 
 varyingReference : Parser Annotation
@@ -98,6 +117,6 @@ arrowLinearity =
     Parser.oneOf
         [ Parser.succeed Linearity.Varying
             |. Parser.symbol "->"
-        , Parser.succeed Linearity.Linear
+        , Parser.succeed Linearity.Closure
             |. Parser.symbol "=>"
         ]

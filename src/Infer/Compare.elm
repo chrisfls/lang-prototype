@@ -76,7 +76,11 @@ compareAnnotationHelp annotation spec state =
                 _ ->
                     Debug.todo "Compare Module / SpecAt"
 
+        Annotation.Tuple _ ->
+            Debug.todo "Annotation.Tuple"
 
+        Annotation.Unit ->
+            Debug.todo "Annotation.Unit"
 getNameAddress : String -> CompareState -> ( Int, CompareState )
 getNameAddress name state =
     case Dict.get name state.cache1 of

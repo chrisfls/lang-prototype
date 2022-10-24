@@ -10,7 +10,9 @@ import IR.Linearity exposing (Linearity)
 -- TODO: add type holes
 --
 
+
 type Annotation
     = Reference Bool String
     | Arrow Linearity Annotation Annotation
-
+    | Tuple (List Annotation)
+    | Unit

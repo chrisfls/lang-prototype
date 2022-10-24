@@ -49,6 +49,11 @@ convertHelp annotation model state =
             in
             ( Spec.Arrow linearity argumentSpec returnSpec, returnModel, returnState )
 
+        Annotation.Tuple _ ->
+            Debug.todo "Annotation.Tuple"
+
+        Annotation.Unit ->
+            Debug.todo "Annotation.Unit"
 
 type alias State =
     Dict String Int

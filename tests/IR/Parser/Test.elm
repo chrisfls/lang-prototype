@@ -22,38 +22,31 @@ bindings =
     describe "bindings"
         [ test "lowercase start" <|
             \_ ->
-                Parser.run Expr.var
-                    "a"
+                Parser.run Expr.var "a"
                     |> Expect.equal (Ok "a")
         , test "underscore start" <|
             \_ ->
-                Parser.run Expr.var
-                    "_a"
+                Parser.run Expr.var "_a"
                     |> Expect.equal (Ok "_a")
         , test "uppercase start" <|
             \_ ->
-                Parser.run Expr.var
-                    "A"
+                Parser.run Expr.var "A"
                     |> Expect.err
         , test "number start" <|
             \_ ->
-                Parser.run Expr.var
-                    "1"
+                Parser.run Expr.var "1"
                     |> Expect.err
         , test "single tick end" <|
             \_ ->
-                Parser.run Expr.var
-                    "a'"
+                Parser.run Expr.var "a'"
                     |> Expect.equal (Ok "a'")
         , test "multi tick end" <|
             \_ ->
-                Parser.run Expr.var
-                    "a''"
+                Parser.run Expr.var "a''"
                     |> Expect.equal (Ok "a''")
         , test "complex name" <|
             \_ ->
-                Parser.run Expr.var
-                    "aB_xy_''"
+                Parser.run Expr.var "aB_xy_''"
                     |> Expect.equal (Ok "aB_xy_''")
         ]
 
@@ -64,6 +57,8 @@ annotations =
         [ varyingReference
         , linearReference
         , arrows
+        , unit
+        , tuples
         ]
 
 
@@ -134,6 +129,14 @@ linearReference =
 arrows : Test
 arrows =
     describe "arrows"
+        [ lambdaArrows
+        , closureArrows
+        ]
+
+
+lambdaArrows : Test
+lambdaArrows =
+    describe "lambda"
         [ test "single param" <|
             \_ ->
                 Parser.run Spec.annotation "a -> b"
@@ -149,6 +152,95 @@ arrows =
                 Parser.run Spec.annotation "a -> b -> c -> d"
                     |> Expect.equal
                         (Ok (lam (var "a") (lam (var "b") (lam (var "c") (var "d")))))
+        , test "single param outer parens" <|
+            \_ ->
+                Parser.run Spec.annotation "(a -> b)"
+                    |> Expect.equal (Parser.run Spec.annotation "a -> b")
+        , test "single param parens" <|
+            \_ ->
+                Parser.run Spec.annotation "a -> (b)"
+                    |> Expect.equal (Parser.run Spec.annotation "a -> b")
+        , test "two param parens" <|
+            \_ ->
+                Parser.run Spec.annotation "a -> (b -> c)"
+                    |> Expect.equal (Parser.run Spec.annotation "a -> b -> (c)")
+        , test "three params parens" <|
+            \_ ->
+                Parser.run Spec.annotation "a -> (b -> (c -> d))"
+                    |> Expect.equal (Parser.run Spec.annotation "a -> b -> c -> d")
+        , test "lambda in between" <|
+            \_ ->
+                Parser.run Spec.annotation "(a -> b) -> c"
+                    |> Expect.equal
+                        (Ok (lam (lam (var "a") (var "b")) (var "c")))
+        ]
+
+
+closureArrows : Test
+closureArrows =
+    describe "closure"
+        [ test "single param" <|
+            \_ ->
+                Parser.run Spec.annotation "a => b"
+                    |> Expect.equal
+                        (Ok (cls (var "a") (var "b")))
+        , test "two params" <|
+            \_ ->
+                Parser.run Spec.annotation "a => b => c"
+                    |> Expect.equal
+                        (Ok (cls (var "a") (cls (var "b") (var "c"))))
+        , test "three params" <|
+            \_ ->
+                Parser.run Spec.annotation "a => b => c => d"
+                    |> Expect.equal
+                        (Ok (cls (var "a") (cls (var "b") (cls (var "c") (var "d")))))
+        , test "single param outer parens" <|
+            \_ ->
+                Parser.run Spec.annotation "(a => b)"
+                    |> Expect.equal (Parser.run Spec.annotation "a => b")
+        , test "single param parens" <|
+            \_ ->
+                Parser.run Spec.annotation "a => (b)"
+                    |> Expect.equal (Parser.run Spec.annotation "a => b")
+        , test "two param parens" <|
+            \_ ->
+                Parser.run Spec.annotation "a => (b => c)"
+                    |> Expect.equal (Parser.run Spec.annotation "a => b => (c)")
+        , test "three params parens" <|
+            \_ ->
+                Parser.run Spec.annotation "a => (b => (c => d))"
+                    |> Expect.equal (Parser.run Spec.annotation "a => b => c => d")
+        , test "lambda in between" <|
+            \_ ->
+                Parser.run Spec.annotation "(a => b) => c"
+                    |> Expect.equal
+                        (Ok (cls (cls (var "a") (var "b")) (var "c")))
+        ]
+
+
+unit : Test
+unit =
+    test "unit" <|
+        \_ ->
+            Parser.run Spec.annotation "()"
+                |> Expect.equal (Ok Annotation.Unit)
+
+
+tuples : Test
+tuples =
+    describe "tuples"
+        [ test "no single element" <|
+            \_ ->
+                Parser.run Spec.annotation "(a)"
+                    |> Expect.equal (Ok (var "a"))
+        , test "two elements" <|
+            \_ ->
+                Parser.run Spec.annotation "(a, b)"
+                    |> Expect.equal (Ok (tuple [ var "a", var "b" ]))
+        , test "three elements" <|
+            \_ ->
+                Parser.run Spec.annotation "(a, b, c)"
+                    |> Expect.equal (Ok (tuple [ var "a", var "b", var "c" ]))
         ]
 
 
@@ -174,3 +266,8 @@ var =
 ref : String -> Annotation
 ref =
     Annotation.Reference True
+
+
+tuple : List Annotation -> Annotation
+tuple =
+    Annotation.Tuple
