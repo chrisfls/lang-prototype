@@ -7,7 +7,9 @@ import IR.Spec as Spec exposing (Spec)
 import Infer.Model as Model exposing (Model)
 
 
+
 -- to make this work with type holes I neeed to merge this into compare
+
 
 convert : Annotation -> Model -> ( Spec, Model )
 convert annotation model =
@@ -54,6 +56,10 @@ convertHelp annotation model state =
 
         Annotation.Unit ->
             Debug.todo "Annotation.Unit"
+
+        Annotation.Record _ _ ->
+            Debug.todo "Annotation..Record"
+
 
 type alias State =
     Dict String Int

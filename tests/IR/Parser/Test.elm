@@ -1,5 +1,6 @@
 module IR.Parser.Test exposing (suite)
 
+import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import IR.Annotation as Annotation exposing (Annotation)
 import IR.Linearity as Linearity
@@ -59,6 +60,7 @@ annotations =
         , arrows
         , unit
         , tuples
+        , records
         ]
 
 
@@ -244,6 +246,20 @@ tuples =
         ]
 
 
+records : Test
+records =
+    describe "records"
+        [ test "empty" <|
+            \_ ->
+                Parser.run Spec.annotation "{}"
+                    |> Expect.equal (Ok (record Nothing []))
+        , test "single field" <|
+            \_ ->
+                Parser.run Spec.annotation "{ a : b }"
+                    |> Expect.equal (Ok (record Nothing [ ( "a", var "b" ) ]))
+        ]
+
+
 
 -- support
 
@@ -271,3 +287,8 @@ ref =
 tuple : List Annotation -> Annotation
 tuple =
     Annotation.Tuple
+
+
+record : Maybe String -> List ( String, Annotation ) -> Annotation
+record ext xs =
+    Annotation.Record ext (Dict.fromList xs)

@@ -81,6 +81,10 @@ compareAnnotationHelp annotation spec state =
 
         Annotation.Unit ->
             Debug.todo "Annotation.Unit"
+
+        Annotation.Record _ _ ->
+            Debug.todo "Annotation..Record"
+
 getNameAddress : String -> CompareState -> ( Int, CompareState )
 getNameAddress name state =
     case Dict.get name state.cache1 of

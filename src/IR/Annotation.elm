@@ -1,7 +1,7 @@
 module IR.Annotation exposing (Annotation(..))
 
 import IR.Linearity exposing (Linearity)
-
+import Dict exposing (Dict)
 
 
 -- TODO: start sourcemaps
@@ -15,4 +15,5 @@ type Annotation
     = Reference Bool String
     | Arrow Linearity Annotation Annotation
     | Tuple (List Annotation)
+    | Record (Maybe String) (Dict String Annotation)
     | Unit

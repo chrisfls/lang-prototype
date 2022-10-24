@@ -1,7 +1,9 @@
 module IR.Parser.Spec exposing (..)
 
+import Dict exposing (Dict)
 import IR.Annotation as Annotation exposing (Annotation)
 import IR.Linearity as Linearity exposing (Linearity)
+import IR.Parser.Name as Name
 import Parser exposing ((|.), (|=), Parser)
 
 
@@ -58,6 +60,7 @@ annotationWithoutArrow =
         [ linearReference
         , varyingReference
         , tuple
+        , record
         ]
 
 
@@ -83,6 +86,69 @@ tuple =
                     _ ->
                         Annotation.Tuple entries
             )
+
+
+type Record
+    = EmptyRecord
+    | ExtensibleRecord String
+    | PlainRecord String
+
+
+record : Parser Annotation
+record =
+    Parser.succeed identity
+        |. Parser.symbol "{"
+        |= Parser.oneOf
+            [ Parser.succeed EmptyRecord
+                |. Parser.symbol "}"
+            , Parser.succeed (\name fn -> fn name)
+                |= Name.fieldName
+                |. Parser.spaces
+                |= Parser.oneOf
+                    [ Parser.succeed ExtensibleRecord
+                        |. Parser.symbol "|"
+                    , Parser.succeed PlainRecord
+                        |. Parser.symbol ":"
+                    ]
+            ]
+        |> Parser.andThen
+            (\shape ->
+                case shape of
+                    EmptyRecord ->
+                        Parser.succeed (Annotation.Record Nothing Dict.empty)
+
+                    ExtensibleRecord name ->
+                        Parser.succeed (Annotation.Record (Just name))
+                            |= recordDict
+
+                    PlainRecord name ->
+                        Parser.succeed (\spec dict -> Annotation.Record Nothing (Dict.insert name spec dict))
+                            |= Parser.lazy (\_ -> annotation)
+                            |= recordDict
+            )
+
+
+recordDict : Parser (Dict String Annotation)
+recordDict =
+    Parser.loop Dict.empty recordDictHelp
+
+
+recordDictHelp : Dict String Annotation -> Parser (Parser.Step (Dict String Annotation) (Dict String Annotation))
+recordDictHelp dict =
+    Parser.oneOf
+        [ Parser.succeed (\name spec -> Parser.Loop (Dict.insert name spec dict))
+            |. Parser.spaces
+            |. Parser.symbol ","
+            |. Parser.spaces
+            |= Name.fieldName
+            |. Parser.spaces
+            |. Parser.symbol ":"
+            |. Parser.spaces
+            |= Parser.lazy (\_ -> annotation)
+        , Parser.succeed (Parser.Done dict)
+            |. Parser.spaces
+            |. Parser.symbol "}"
+        ]
 
 
 varyingReference : Parser Annotation
