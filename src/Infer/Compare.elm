@@ -83,7 +83,13 @@ compareAnnotationHelp annotation spec state =
             Debug.todo "Annotation.Unit"
 
         Annotation.Record _ _ ->
-            Debug.todo "Annotation..Record"
+            Debug.todo "Annotation.Record"
+
+        Annotation.DotAccess _ _ ->
+            Debug.todo "Annotation.DotAccess"
+
+        Annotation.Apply _ _ ->
+            Debug.todo "Annotation.Apply"
 
 getNameAddress : String -> CompareState -> ( Int, CompareState )
 getNameAddress name state =

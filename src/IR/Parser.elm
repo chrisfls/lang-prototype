@@ -1,3 +1,4 @@
 module IR.Parser exposing (..)
 
-a = ()
+a =
+    ()

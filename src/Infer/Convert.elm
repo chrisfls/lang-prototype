@@ -58,8 +58,13 @@ convertHelp annotation model state =
             Debug.todo "Annotation.Unit"
 
         Annotation.Record _ _ ->
-            Debug.todo "Annotation..Record"
+            Debug.todo "Annotation.Record"
 
+        Annotation.DotAccess _ _ ->
+            Debug.todo "Annotation.DotAccess"
+
+        Annotation.Apply _ _ ->
+            Debug.todo "Annotation.Apply"
 
 type alias State =
     Dict String Int

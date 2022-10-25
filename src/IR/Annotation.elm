@@ -1,7 +1,8 @@
 module IR.Annotation exposing (Annotation(..))
 
-import IR.Linearity exposing (Linearity)
 import Dict exposing (Dict)
+import IR.Linearity exposing (Linearity)
+
 
 
 -- TODO: start sourcemaps
@@ -17,3 +18,5 @@ type Annotation
     | Tuple (List Annotation)
     | Record (Maybe String) (Dict String Annotation)
     | Unit
+    | DotAccess Annotation String
+    | Apply String (List Annotation)

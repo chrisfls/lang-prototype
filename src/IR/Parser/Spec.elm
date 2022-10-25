@@ -177,6 +177,70 @@ linearReference =
         |= variableName
 
 
+
+
+
+-- dot : Parser Annotation
+-- dot =
+--     Parser.andThen
+--         (\argm -> Parser.map (toArrow argm) arrowList)
+--         specReference
+
+
+-- dotAccess : Annotation -> List ( Linearity, Annotation ) -> Annotation
+-- dotAccess left xs =
+--     case xs of
+--         [] ->
+--             left
+
+--         [ right ] ->
+--             Annotation.DotAccess left right
+
+--         ( linearity, right ) :: rest ->
+--             Annotation.Arrow linearity left (toArrowHelp right rest)
+
+
+-- dotAccessHelp : Annotation -> List ( Linearity, Annotation ) -> Annotation
+-- dotAccessHelp right entries =
+--     case entries of
+--         ( linearity, left ) :: rest ->
+--             toArrowHelp (Annotation.Arrow linearity left right) rest
+
+--         [] ->
+--             right
+
+-- dotAccess: Parser Annotation
+-- dotAccess =
+--     Parser.succeed Tuple.pair
+--         |= capitalizedName
+--         |= Parser.oneOf
+--             [ Parser.succeed True
+--                 |. Parser.symbol "."
+--             , Parser.succeed False
+--                 |. Parser.spaces
+--             ]
+--         |> Parser.andThen
+
+
+
+-- dotAccessHelp1 : Annotation -> Parser Annotation
+-- dotAccessHelp1 start =
+--     Parser.loop start dotAccessHelp2
+
+
+-- dotAccessHelp2 : Annotation -> Parser (Parser.Step Annotation Annotation)
+-- dotAccessHelp2 left =
+--     Parser.oneOf
+--         [ Parser.succeed (\right -> Parser.Loop (Annotation.DotAccess left right))
+--             |. Parser.symbol "."
+--             |. Parser.spaces
+--             |= variableName
+--             |. Parser.spaces
+--         , Parser.succeed (Parser.Done left)
+--         ]
+
+
+
 variableName : Parser String
 variableName =
     Parser.getChompedString <|
@@ -184,6 +248,14 @@ variableName =
             |. Parser.chompIf (\c -> Char.isLower c)
             |. Parser.chompWhile (\c -> Char.isAlphaNum c)
             |. Parser.chompWhile (\c -> c == '\'')
+
+
+capitalizedName : Parser String
+capitalizedName =
+    Parser.getChompedString <|
+        Parser.succeed ()
+            |. Parser.chompIf (\c -> Char.isUpper c)
+            |. Parser.chompWhile (\c -> Char.isAlphaNum c)
 
 
 

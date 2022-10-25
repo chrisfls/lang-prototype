@@ -6,6 +6,7 @@ import IR.Annotation as Annotation exposing (Annotation)
 import IR.Linearity as Linearity
 import IR.Parser.Expr as Expr
 import IR.Parser.Spec as Spec
+import IR.Parser.Spec2 as Spec2
 import Parser
 import Test exposing (..)
 
