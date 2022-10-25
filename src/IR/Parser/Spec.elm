@@ -39,17 +39,19 @@ toArrowHelp right entries =
 
 arrowList : Parser (List ( Linearity, Annotation ))
 arrowList =
-    Parser.loop [] arrowListHelp
+    Parser.succeed identity
+        |. Parser.spaces
+        |= Parser.loop [] arrowListHelp
 
 
 arrowListHelp : List ( Linearity, Annotation ) -> Parser (Parser.Step (List ( Linearity, Annotation )) (List ( Linearity, Annotation )))
 arrowListHelp xs =
     Parser.oneOf
         [ Parser.succeed (\linearity right -> Parser.Loop (( linearity, right ) :: xs))
-            |. Parser.spaces
             |= arrowLinearity
             |. Parser.spaces
             |= annotationWithoutArrow
+            |. Parser.spaces
         , Parser.succeed (Parser.Done xs)
         ]
 
@@ -98,6 +100,7 @@ record : Parser Annotation
 record =
     Parser.succeed identity
         |. Parser.symbol "{"
+        |. Parser.spaces
         |= Parser.oneOf
             [ Parser.succeed EmptyRecord
                 |. Parser.symbol "}"
@@ -118,12 +121,22 @@ record =
                         Parser.succeed (Annotation.Record Nothing Dict.empty)
 
                     ExtensibleRecord name ->
-                        Parser.succeed (Annotation.Record (Just name))
+                        Parser.succeed (\field spec dict -> Annotation.Record (Just name) (Dict.insert field spec dict))
+                            |. Parser.spaces
+                            |= Name.fieldName
+                            |. Parser.spaces
+                            |. Parser.symbol ":"
+                            |. Parser.spaces
+                            |= Parser.lazy (\_ -> annotation)
+                            |. Parser.spaces
+                            |. Parser.spaces
                             |= recordDict
 
                     PlainRecord name ->
                         Parser.succeed (\spec dict -> Annotation.Record Nothing (Dict.insert name spec dict))
+                            |. Parser.spaces
                             |= Parser.lazy (\_ -> annotation)
+                            |. Parser.spaces
                             |= recordDict
             )
 
@@ -137,7 +150,6 @@ recordDictHelp : Dict String Annotation -> Parser (Parser.Step (Dict String Anno
 recordDictHelp dict =
     Parser.oneOf
         [ Parser.succeed (\name spec -> Parser.Loop (Dict.insert name spec dict))
-            |. Parser.spaces
             |. Parser.symbol ","
             |. Parser.spaces
             |= Name.fieldName
@@ -145,8 +157,8 @@ recordDictHelp dict =
             |. Parser.symbol ":"
             |. Parser.spaces
             |= Parser.lazy (\_ -> annotation)
-        , Parser.succeed (Parser.Done dict)
             |. Parser.spaces
+        , Parser.succeed (Parser.Done dict)
             |. Parser.symbol "}"
         ]
 

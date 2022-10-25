@@ -257,6 +257,34 @@ records =
             \_ ->
                 Parser.run Spec.annotation "{ a : b }"
                     |> Expect.equal (Ok (record Nothing [ ( "a", var "b" ) ]))
+        , test "two fields" <|
+            \_ ->
+                Parser.run Spec.annotation "{ a : b, c : d }"
+                    |> Expect.equal (Ok (record Nothing [ ( "a", var "b" ), ( "c", var "d" ) ]))
+        , test "three fields" <|
+            \_ ->
+                Parser.run Spec.annotation "{ a : b, c : d, e : f }"
+                    |> Expect.equal (Ok (record Nothing [ ( "a", var "b" ), ( "c", var "d" ), ( "e", var "f" ) ]))
+        , test "extensible single field" <|
+            \_ ->
+                Parser.run Spec.annotation "{ ext | a : b }"
+                    |> Expect.equal (Ok (record (Just "ext") [ ( "a", var "b" ) ]))
+        , test "extensible two fields" <|
+            \_ ->
+                Parser.run Spec.annotation "{ ext | a : b, c : d }"
+                    |> Expect.equal (Ok (record (Just "ext") [ ( "a", var "b" ), ( "c", var "d" ) ]))
+        , test "extensible three fields" <|
+            \_ ->
+                Parser.run Spec.annotation "{ ext | a : b, c : d, e : f }"
+                    |> Expect.equal (Ok (record (Just "ext") [ ( "a", var "b" ), ( "c", var "d" ), ( "e", var "f" ) ]))
+        , test "nested records" <|
+            \_ ->
+                Parser.run Spec.annotation "{ a : { b : c } }"
+                    |> Expect.equal (Ok (record Nothing [ ( "a", record Nothing [ ( "b", var "c" ) ] ) ]))
+        , test "nested records trimmed" <|
+            \_ ->
+                Parser.run Spec.annotation "{a :{b:c}}"
+                    |> Expect.equal (Ok (record Nothing [ ( "a", record Nothing [ ( "b", var "c" ) ] ) ]))
         ]
 
 
