@@ -1,21 +1,46 @@
-module Formatter exposing (..)
+module Formatter exposing (Entries, entry, format, group, wrap)
 
 
 type Entries
     = Entry String
-    | Group (Maybe Wrap) (List Entries)
+    | Group (Maybe Wrapper) (List Entries)
 
 
-type alias Wrap =
+type alias Wrapper =
     { start : String
     , separator : String
     , end : String
     }
 
 
+entry : String -> Entries
+entry =
+    Entry
+
+
+group : List Entries -> Entries
+group =
+    Group Nothing
+
+
+wrap : Wrapper -> List Entries -> Entries
+wrap wrapper =
+    Group (Just wrapper)
+
+
+format : Int -> Entries -> Maybe String
+format max entries =
+    case formatHelp max "" 0 0 entries of
+        Just ( text, _ ) ->
+            Just text
+
+        _ ->
+            Nothing
+
+
 formatHelp : Int -> String -> Int -> Int -> Entries -> Maybe ( String, Int )
-formatHelp max buffer column indent entry =
-    case entry of
+formatHelp max buffer column indent item =
+    case item of
         Entry text ->
             let
                 length =
@@ -28,26 +53,55 @@ formatHelp max buffer column indent entry =
                 Nothing
 
         Group Nothing xs ->
-            formatInlineRecur True max buffer column indent xs
+            case xs of
+                fst :: rest1 ->
+                    case formatInlineRecur True max buffer column indent [ fst ] of
+                        Just ( nextBuffer1, nextColumn1 ) ->
+                            case rest1 of
+                                snd :: rest2 ->
+                                    case formatInlineRecur False max nextBuffer1 nextColumn1 indent [ snd ] of
+                                        Just ( nextBuffer2, nextColumn2 ) ->
+                                            formatRecur max nextBuffer2 nextColumn2 (indent + 1) rest2
 
-        Group (Just wrap) xs ->
-            formatWrapInlineRecur True max buffer column indent wrap xs
+                                        Nothing ->
+                                            formatRecur max nextBuffer1 nextColumn1 (indent + 1) rest1
+
+                                [] ->
+                                    Just ( nextBuffer1, nextColumn1 )
+
+                        Nothing ->
+                            formatRecur max buffer column (indent + 1) xs
+
+                [] ->
+                    Just ( buffer, column )
+
+        Group (Just wrapper) xs ->
+            case formatWrapInlineRecur True max buffer column indent wrapper xs of
+                Just ok ->
+                    Just ok
+
+                Nothing ->
+                    formatWrapRecur True max buffer (indent + 1) wrapper xs
+
+
+
+-- inline
 
 
 formatInlineRecur : Bool -> Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
 formatInlineRecur first max buffer column indent entries =
     case ( first, entries ) of
-        ( True, entry :: nextEntries ) ->
-            case formatHelp max buffer column indent entry of
+        ( True, item :: nextEntries ) ->
+            case formatHelp max buffer column indent item of
                 Just ( nextBuffer, nextColumn ) ->
                     formatInlineRecur False max nextBuffer nextColumn indent nextEntries
 
                 nothing ->
                     nothing
 
-        ( False, entry :: nextEntries ) ->
+        ( False, item :: nextEntries ) ->
             if column + 1 < max then
-                case formatHelp max (buffer ++ " ") (column + 1) indent entry of
+                case formatHelp max (buffer ++ " ") (column + 1) indent item of
                     Just ( nextBuffer, nextColumn2 ) ->
                         formatInlineRecur False max nextBuffer nextColumn2 indent nextEntries
 
@@ -61,18 +115,18 @@ formatInlineRecur first max buffer column indent entries =
             Just ( buffer, column )
 
 
-formatWrapInlineRecur : Bool -> Int -> String -> Int -> Int -> Wrap -> List Entries -> Maybe ( String, Int )
-formatWrapInlineRecur first max buffer column indent wrap entries =
+formatWrapInlineRecur : Bool -> Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
+formatWrapInlineRecur first max buffer column indent wrapper entries =
     case ( first, entries ) of
-        ( True, entry :: nextEntries ) ->
+        ( True, item :: nextEntries ) ->
             let
                 nextColumn1 =
-                    column + String.length wrap.start
+                    column + String.length wrapper.start
             in
             if nextColumn1 < max then
-                case formatHelp max (buffer ++ wrap.start) nextColumn1 indent entry of
+                case formatHelp max (buffer ++ wrapper.start) nextColumn1 indent item of
                     Just ( nextBuffer, nextColumn2 ) ->
-                        formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrap nextEntries
+                        formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrapper nextEntries
 
                     nothing ->
                         nothing
@@ -80,15 +134,15 @@ formatWrapInlineRecur first max buffer column indent wrap entries =
             else
                 Nothing
 
-        ( False, entry :: nextEntries ) ->
+        ( False, item :: nextEntries ) ->
             let
                 nextColumn1 =
-                    column + String.length wrap.separator
+                    column + String.length wrapper.separator
             in
             if nextColumn1 < max then
-                case formatHelp max (buffer ++ wrap.separator) nextColumn1 indent entry of
+                case formatHelp max (buffer ++ wrapper.separator) nextColumn1 indent item of
                     Just ( nextBuffer, nextColumn2 ) ->
-                        formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrap nextEntries
+                        formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrapper nextEntries
 
                     nothing ->
                         nothing
@@ -99,76 +153,62 @@ formatWrapInlineRecur first max buffer column indent wrap entries =
         ( _, [] ) ->
             let
                 nextColumn =
-                    column + String.length wrap.end
+                    column + String.length wrapper.end
             in
             if nextColumn < max then
-                Just ( buffer ++ wrap.end, nextColumn )
+                Just ( buffer ++ wrapper.end, nextColumn )
 
             else
                 Nothing
 
 
-formatRecur : Bool -> Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
-formatRecur first max buffer column indent entries =
-    case ( first, entries ) of
-        ( True, entry :: nextEntries ) ->
-            case formatHelp max buffer column indent entry of
-                Just ( nextBuffer, nextColumn ) ->
-                    formatRecur False max nextBuffer nextColumn indent nextEntries
 
-                Nothing ->
-                    formatRecurHelp max buffer indent entry nextEntries
+-- spread
 
-        ( False, entry :: nextEntries ) ->
-            formatRecurHelp max buffer indent entry nextEntries
 
-        ( _, [] ) ->
+formatRecur : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
+formatRecur max buffer column indent entries =
+    case entries of
+        item :: nextEntries ->
+            let
+                nextBuffer1 =
+                    buffer ++ newline indent
+
+                nextColumn1 =
+                    2 * indent
+            in
+            case formatHelp max nextBuffer1 nextColumn1 indent item of
+                Just ( nextBuffer2, nextColumn2 ) ->
+                    formatRecur max nextBuffer2 nextColumn2 indent nextEntries
+
+                nothing ->
+                    nothing
+
+        [] ->
             Just ( buffer, column )
 
 
-formatRecurHelp : Int -> String -> Int -> Entries -> List Entries -> Maybe ( String, Int )
-formatRecurHelp max buffer indent entry entries =
-    let
-        nextBuffer1 =
-            buffer ++ newline indent
-
-        nextColumn =
-            2 * indent
-    in
-    case formatHelp max nextBuffer1 nextColumn indent entry of
-        Just ( nextBuffer2, nextColumn2 ) ->
-            case entries of
-                entry_ :: entries_ ->
-                    formatRecurHelp max nextBuffer2 indent entry_ entries_
-
-                [] ->
-                    Just ( nextBuffer2, nextColumn2 )
-
-        nothing ->
-            nothing
-
-
-formatWrapRecur : Bool -> Int -> String -> Int -> Wrap -> List Entries -> Maybe ( String, Int )
-formatWrapRecur first max buffer indent wrap entries =
+formatWrapRecur : Bool -> Int -> String -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
+formatWrapRecur first max buffer indent wrapper entries =
     case entries of
-        entry :: nextEntries ->
+        item :: nextEntries ->
             let
-                wrapper =
+                prefix =
                     if first then
-                        wrap.start
+                        wrapper.start
 
                     else
-                        wrap.separator
+                        wrapper.separator
 
                 nextBuffer1 =
-                    buffer ++ newline indent ++ wrapper
+                    buffer ++ newline indent ++ prefix
 
                 nextColumn1 =
-                    (2 * indent) + String.length wrapper
+                    (2 * indent) + String.length prefix
             in
-            case formatHelp max nextBuffer1 nextColumn1 indent entry of
+            case formatHelp max nextBuffer1 nextColumn1 indent item of
                 Just ( nextBuffer2, _ ) ->
-                    formatWrapRecur False max nextBuffer2 indent wrap nextEntries
+                    formatWrapRecur False max nextBuffer2 indent wrapper nextEntries
 
                 nothing ->
                     nothing
@@ -176,10 +216,10 @@ formatWrapRecur first max buffer indent wrap entries =
         [] ->
             let
                 nextColumn =
-                    (2 * indent) + String.length wrap.end
+                    (2 * indent) + String.length wrapper.end
             in
             if nextColumn < max then
-                Just ( buffer ++ newline indent ++ wrap.end, nextColumn )
+                Just ( buffer ++ newline indent ++ wrapper.end, nextColumn )
 
             else
                 Nothing
