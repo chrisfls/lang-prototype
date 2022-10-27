@@ -1,18 +1,20 @@
 ```elm
 
-import a from "xyz"
-import b from "xyz"
-import c from "xyz"
+module Name
+  (@X : Annotation)
+  (@Y : b)
+  (@Z : c)
+exposing (..)
 
-param a : Annotation
+import @X from "xyz"
+import @Y from "xyz"
+import @Z from "xyz"
 
-# params can have annotation
-param b
-param c
 
-apply a = Dict A
+# uppercase = without types affect modules
+A = Dict A
 
-module (..) where
+
 
 # single line comment
 
