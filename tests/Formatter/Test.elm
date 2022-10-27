@@ -7,17 +7,17 @@ import Test exposing (..)
 
 parens : List Entries -> Entries
 parens =
-    wrap { start = "(", separator = " ", end = ")" }
+    wrap { start = "(", separator = "", end = ")" }
 
 
 brackets : List Entries -> Entries
 brackets =
-    wrap { start = "[", separator = ", ", end = "]" }
+    wrap { start = "[", separator = ",", end = "]" }
 
 
 braces : List Entries -> Entries
 braces =
-    wrap { start = "{", separator = ", ", end = "}" }
+    wrap { start = "{", separator = ",", end = "}" }
 
 
 suite : Test
@@ -25,7 +25,15 @@ suite =
     describe "Formatter"
         [ test "span" <|
             \_ ->
-                expectFormat "function [v, a, i]\n    {s, e}\n    [ f\n    , [u, d, []]\n    , (e r)\n    ]" <|
+                expectFormat
+                    [ "function [v, a, i]"
+                    , "  {s, e}"
+                    , "  [ f"
+                    , "  , [u, d, []]"
+                    , "  , (e r)"
+                    , "  ]"
+                    ]
+                <|
                     span
                         [ text "function"
                         , brackets
@@ -49,10 +57,10 @@ suite =
                         ]
         , test "text" <|
             \_ ->
-                expectFormat "pamonha" (text "pamonha")
+                expectFormat [ "pamonha" ] (text "pamonha")
         ]
 
 
-expectFormat : String -> Entries -> Expect.Expectation
+expectFormat : List String -> Entries -> Expect.Expectation
 expectFormat expect entries =
-    Expect.equal expect (Maybe.withDefault "" <| format 20 entries)
+    Expect.equal expect (String.split "\n" <| Maybe.withDefault "" <| format 20 entries)

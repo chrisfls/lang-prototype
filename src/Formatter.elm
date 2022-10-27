@@ -3,7 +3,8 @@ module Formatter exposing (Entries, format, span, text, wrap)
 
 type Entries
     = Text String
-    | Span (Maybe Wrapper) (List Entries)
+    | Span (List Entries)
+    | Wrap Wrapper (List Entries)
 
 
 type alias Wrapper =
@@ -20,12 +21,12 @@ text =
 
 span : List Entries -> Entries
 span =
-    Span Nothing
+    Span
 
 
 wrap : Wrapper -> List Entries -> Entries
-wrap wrapper =
-    Span (Just wrapper)
+wrap =
+    Wrap
 
 
 format : Int -> Entries -> Maybe String
@@ -52,7 +53,7 @@ formatHelp max buffer column indent entry =
             else
                 Nothing
 
-        Span Nothing xs ->
+        Span xs ->
             case xs of
                 fst :: rest1 ->
                     case formatInlineRecur True max buffer column indent [ fst ] of
@@ -75,7 +76,7 @@ formatHelp max buffer column indent entry =
                 [] ->
                     Just ( buffer, column )
 
-        Span (Just wrapper) xs ->
+        Wrap wrapper xs ->
             case formatWrapInlineRecur True max buffer column indent wrapper xs of
                 Just ok ->
                     Just ok
@@ -137,10 +138,10 @@ formatWrapInlineRecur first max buffer column indent wrapper entries =
         ( False, entry :: nextEntries ) ->
             let
                 nextColumn1 =
-                    column + String.length wrapper.separator
+                    column + String.length wrapper.separator + 1
             in
             if nextColumn1 < max then
-                case formatHelp max (buffer ++ wrapper.separator) nextColumn1 indent entry of
+                case formatHelp max (buffer ++ wrapper.separator ++ " ") nextColumn1 indent entry of
                     Just ( nextBuffer, nextColumn2 ) ->
                         formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrapper nextEntries
 
@@ -212,10 +213,10 @@ formatWrapRecur first max buffer indent wrapper entries =
                         wrapper.separator
 
                 nextBuffer1 =
-                    buffer ++ newline indent ++ prefix
+                    buffer ++ newline indent ++ prefix ++ " "
 
                 nextColumn1 =
-                    (2 * indent) + String.length prefix
+                    (2 * indent) + String.length prefix + 1
             in
             case formatHelp max nextBuffer1 nextColumn1 indent entry of
                 Just ( nextBuffer2, _ ) ->
