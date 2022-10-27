@@ -1,7 +1,7 @@
 module IR.Parser.Test exposing (suite)
 
-import Dict exposing (Dict)
-import Expect exposing (Expectation)
+import Dict
+import Expect
 import IR.Annotation as Annotation exposing (Annotation)
 import IR.Linearity as Linearity
 import IR.Parser.Expr as Expr

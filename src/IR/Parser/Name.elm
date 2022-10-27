@@ -1,7 +1,5 @@
 module IR.Parser.Name exposing (..)
 
-import IR.Annotation as Annotation exposing (Annotation)
-import IR.Linearity as Linearity exposing (Linearity)
 import Parser exposing ((|.), (|=), Parser)
 
 

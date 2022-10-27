@@ -1,7 +1,6 @@
 module Infer.ModuleBody.Test exposing (suite)
 
 import Expect exposing (Expectation)
-import IR.Annotation as Annotation exposing (Annotation)
 import IR.Expr as Expr exposing (Expr)
 import IR.Linearity as Linearity
 import IR.Module as Module exposing (ModuleBody)
@@ -27,23 +26,8 @@ suite =
 -- support
 
 
-defSpec : String -> Annotation -> ModuleBody -> ModuleBody
-defSpec =
-    Module.DefSpec
-
-
-defpSpec : String -> Annotation -> ModuleBody -> ModuleBody
-defpSpec =
-    Module.DefSpec
-
-
 defExpr : String -> Expr -> ModuleBody -> ModuleBody
 defExpr =
-    Module.DefExpr
-
-
-defpExpr : String -> Expr -> ModuleBody -> ModuleBody
-defpExpr =
     Module.DefExpr
 
 
@@ -60,11 +44,6 @@ lam =
 var : String -> Expr
 var =
     Expr.Variable
-
-
-app : Expr -> Expr -> Expr
-app =
-    Expr.Apply
 
 
 expectInfer : String -> ModuleBody -> Expectation
