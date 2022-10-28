@@ -9,11 +9,6 @@ brackets : List Entries -> Entries
 brackets =
     wrap { start = "[", separator = ",", end = "]", span = False }
 
-parens : List Entries -> Entries
-parens =
-    wrap { start = "(", separator = ",", end = ")", span = True }
-
-
 
 suite : Test
 suite =
@@ -53,6 +48,17 @@ suite =
                     , "  f"
                     ]
                     (span [ text "Lor.em", text "a", text "b", span [ text "yuck", text "c", text "d", text "e" ], text "f" ])
+        , test "3-depth span" <|
+            \_ ->
+                expectFormat
+                    [ "Lor.em a"
+                    , "  yuck b"
+                    , "    puck c"
+                    , "      d"
+                    , "    e"
+                    , "  f"
+                    ]
+                    (span [ text "Lor.em", text "a", span [ text "yuck", text "b", span [ text "puck", text "c", text "d" ], text "e" ], text "f" ])
         , test "empty wrap" <|
             \_ ->
                 expectFormat [ "[]" ] (brackets [])
@@ -114,18 +120,6 @@ suite =
                         ]
                     )
         ]
-
-
-a =
-    [ "[ a"
-    , ", [ b"
-    , "  , c"
-    , "  ]"
-    , ", d"
-    , ", [ e ]"
-    , ", []"
-    , "]"
-    ]
 
 
 expectFormat : List String -> Entries -> Expect.Expectation
