@@ -5,65 +5,49 @@ import Formatter exposing (..)
 import Test exposing (..)
 
 
-parens : List Entries -> Entries
-parens =
-    wrap { start = "(", separator = "", end = ")" }
-
-
 brackets : List Entries -> Entries
 brackets =
     wrap { start = "[", separator = ",", end = "]" }
 
 
-braces : List Entries -> Entries
-braces =
-    wrap { start = "{", separator = ",", end = "}" }
-
-
 suite : Test
 suite =
     describe "Formatter"
-        [ skip <|
-            test "span" <|
-                \_ ->
-                    expectFormat
-                        [ "function [v, a, i]"
-                        , "  {s, e}"
-
-                        -- , "  [f, [u, d, []], "
-                        -- , "    ( e"
-                        -- , "     r"
-                        -- , "    )]"
-                        , "  [ f"
-                        , "  , [u, d, []]"
-                        , "  , (e r)"
-                        , "  ]"
-                        ]
-                    <|
-                        span
-                            [ text "function"
-                            , brackets
-                                [ text "v"
-                                , text "a"
-                                , text "i"
-                                ]
-                            , braces
-                                [ text "s"
-                                , text "e"
-                                ]
-                            , brackets
-                                [ text "f"
-                                , brackets
-                                    [ text "u"
-                                    , text "d"
-                                    , brackets []
-                                    ]
-                                , parens [ text "e", text "r" ]
-                                ]
-                            ]
-        , test "text" <|
+        [ test "text" <|
             \_ ->
                 expectFormat [ "text" ] (text "text")
+        , test "empty span" <|
+            \_ ->
+                expectFormat [ "" ] (span [])
+        , test "1-element span" <|
+            \_ ->
+                expectFormat [ "a" ] (span [ text "a" ])
+        , test "2-element span" <|
+            \_ ->
+                expectFormat [ "a b" ] (span [ text "a", text "b" ])
+        , test "3-element span" <|
+            \_ ->
+                expectFormat [ "a b c" ] (span [ text "a", text "b", text "c" ])
+        , test "1-depth span" <|
+            \_ ->
+                expectFormat
+                    [ "Lor.em a"
+                    , "  b"
+                    , "  c"
+                    , "  d"
+                    ]
+                    (span [ text "Lor.em", text "a", text "b", text "c", text "d" ])
+        , test "2-depth span" <|
+            \_ ->
+                expectFormat
+                    [ "Lor.em a"
+                    , "  b"
+                    , "  yuck c"
+                    , "    d"
+                    , "    e"
+                    , "  f"
+                    ]
+                    (span [ text "Lor.em", text "a", text "b", span [ text "yuck", text "c", text "d", text "e" ], text "f" ])
         , test "empty wrap" <|
             \_ ->
                 expectFormat [ "[]" ] (brackets [])

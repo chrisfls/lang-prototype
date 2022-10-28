@@ -59,58 +59,38 @@ fit max buffer column level entry =
 
 fitSpan : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
 fitSpan max buffer column level entries =
-    -- case entries of
-    --     fst :: fstEntries ->
-    --         -- try to inline the first element
-    --         case inline max buffer column fst of
-    --             (Just ( fstBuffer, fstColumn )) as fstJust ->
-    --                 case fstEntries of
-    --                     snd :: sndEntries ->
-    --                         if fstColumn + 1 < max then
-    --                             -- try to inline the second element
-    --                             case inline max (fstBuffer ++ " ") (fstColumn + 1) snd of
-    --                                 Just ( sndBuffer, sndColumn ) ->
-    --                                     if sndColumn + 1 < max then
-    --                                         -- try to inline the rest
-    --                                         case inlineSpan max (sndBuffer ++ " ") (sndColumn + 1) sndEntries of
-    --                                             Nothing ->
-    --                                                 -- no space to inline the rest, spread them
-    --                                                 spreadSpan max sndBuffer sndColumn (level + 1) sndEntries
-    --                                             just ->
-    --                                                 just
-    --                                     else
-    --                                         -- no space to inline the rest, spread them
-    --                                         spreadSpan max sndBuffer sndColumn (level + 1) sndEntries
-    --                                 Nothing ->
-    --                                     -- no space to inline the second element, spread it along with the rest
-    --                                     spreadSpan max fstBuffer fstColumn (level + 1) fstEntries
-    --                         else
-    --                             -- no space to inline the second element, spread it along with the rest
-    --                             spreadSpan max fstBuffer fstColumn (level + 1) fstEntries
-    --                     [] ->
-    --                         -- no additional entries
-    --                         fstJust
-    --             Nothing ->
-    --                 -- no space to inline the first element, so spread all
-    --                 spreadSpan max buffer column (level + 1) entries
-    --     [] ->
-    --         Just ( buffer, column )
-    Nothing
+    fitSpanHelp 1 max buffer column level entries
 
 
+fitSpanHelp : Int -> Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
+fitSpanHelp till max buffer column level entries =
+    if till > 0 then
+        case entries of
+            entry :: nextEntries ->
+                case inline max buffer column entry of
+                    (Just ( entryBuffer, entryColumn )) as just ->
+                        if List.isEmpty nextEntries then
+                            just
 
--- fitSpanHelp till max buffer column level entries =
---     if till > 0 then
---         case entries of
---             entries :: nextEntries ->
---             [] ->
---                 Just ( buffer, column )
---     else
---         let
---             ( indentBuffer, indentColumn ) =
---                 indent level buffer
---         in
---         spreadSpan max indentBuffer indentColumn (level + 1) entries
+                        else if entryColumn + 1 < max then
+                            fitSpanHelp (till - 1) max (entryBuffer ++ " ") (entryColumn + 1) level nextEntries
+
+                        else
+                            spreadSpan max buffer column level entries
+
+                    Nothing ->
+                        spreadSpan max buffer column level entries
+
+            [] ->
+                Just ( buffer, column )
+
+    else
+        case inlineSpan max buffer column entries of
+            Nothing ->
+                spreadSpan max buffer column (level + 1) entries
+
+            just ->
+                just
 
 
 fitWrap : Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
@@ -240,13 +220,17 @@ spreadSpan : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int 
 spreadSpan max buffer column level entries =
     case entries of
         entry :: nextEntries ->
-            case fit max buffer column level entry of
-                Just ( fitBuffer, _ ) ->
-                    let
-                        ( indentBuffer, indentColumn ) =
-                            indent level fitBuffer
-                    in
-                    spreadSpan max indentBuffer indentColumn level nextEntries
+            case fit max buffer column (level + 1) entry of
+                (Just ( fitBuffer, _ )) as just ->
+                    if List.isEmpty nextEntries then
+                        just
+
+                    else
+                        let
+                            ( indentBuffer, indentColumn ) =
+                                indent level fitBuffer
+                        in
+                        spreadSpan max indentBuffer indentColumn level nextEntries
 
                 nothing ->
                     nothing
