@@ -53,41 +53,47 @@ fit max buffer column level entry =
         Span entries ->
             case entries of
                 fst :: fstEntries ->
-                    -- try to inline first element
+                    -- try to inline the first element
                     case inline max buffer column fst of
                         (Just ( fstBuffer, fstColumn )) as fstJust ->
                             case fstEntries of
                                 snd :: sndEntries ->
-                                    -- try to inline second element
-                                    case inline max fstBuffer fstColumn snd of
-                                        Just ( sndBuffer, sndColumn ) ->
-                                            -- try to inline the rest after the second element
-                                            case inlineSpan max sndBuffer sndColumn sndEntries of
-                                                Nothing ->
+                                    if fstColumn + 1 < max then
+                                        -- try to inline the second element
+                                        case inline max (fstBuffer ++ " ") (fstColumn + 1) snd of
+                                            Just ( sndBuffer, sndColumn ) ->
+                                                if sndColumn + 1 < max then
+                                                    -- try to inline the rest
+                                                    case inlineSpan max (sndBuffer ++ " ") (sndColumn + 1) sndEntries of
+                                                        Nothing ->
+                                                            -- no space to inline the rest, spread them
+                                                            spreadSpan max sndBuffer sndColumn (level + 1) sndEntries
+
+                                                        just ->
+                                                            just
+
+                                                else
+                                                    -- no space to inline the rest, spread them
                                                     spreadSpan max sndBuffer sndColumn (level + 1) sndEntries
 
-                                                just ->
-                                                    just
+                                            Nothing ->
+                                                -- no space to inline the second element, spread it along with the rest
+                                                spreadSpan max fstBuffer fstColumn (level + 1) fstEntries
 
-                                        Nothing ->
-                                            -- no space to inline the second element, try to spread the tail of the first element
-                                            spreadSpan max fstBuffer fstColumn (level + 1) fstEntries
+                                    else
+                                        -- no space to inline the second element, spread it along with the rest
+                                        spreadSpan max fstBuffer fstColumn (level + 1) fstEntries
 
                                 [] ->
-                                    -- there's no tail after the first element
+                                    -- no additional entries
                                     fstJust
 
                         Nothing ->
-                            -- no space to inline the first element, try to spread everything
+                            -- no space to inline the first element, so spread all
                             spreadSpan max buffer column (level + 1) entries
 
                 [] ->
-                    case inline max buffer column entry of
-                        Nothing ->
-                            spreadSpan max buffer column (level + 1) entries
-
-                        just ->
-                            just
+                    Just ( buffer, column )
 
         Wrap wrapper entries ->
             case inlineWrap True max buffer level wrapper entries of
