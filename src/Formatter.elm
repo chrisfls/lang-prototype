@@ -63,6 +63,10 @@ fitSpan max buffer column level entries =
     fitSpanHelp 1 max buffer column level entries
 
 
+
+-- TODO: check if code from wrap and span are similar
+
+
 fitSpanHelp : Int -> Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
 fitSpanHelp till max buffer column level entries =
     if till > 0 then
@@ -92,6 +96,10 @@ fitSpanHelp till max buffer column level entries =
 
             just ->
                 just
+
+
+
+-- TODO: check if wrap has span: true, if it has, use fitWrapHelp
 
 
 fitWrap : Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
@@ -238,6 +246,10 @@ spreadSpan max buffer column level entries =
 
         [] ->
             Just ( buffer, column )
+
+
+
+-- TODO: copy paste from wrap into span
 
 
 spreadWrap : Bool -> Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
