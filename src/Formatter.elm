@@ -270,21 +270,16 @@ spreadWrap first max buffer column level wrapper entries =
                 probColumn =
                     column + String.length prefix + 1
             in
-            case inline max (buffer ++ prefix ++ " ") probColumn entry of
-                Just ( fitBuffer, fitColumn ) ->
-                    spreadWrap False max fitBuffer fitColumn level wrapper nextEntries
+            case fit max (buffer ++ prefix ++ " ") probColumn (level + 1) entry of
+                Just ( fitBuffer, _ ) ->
+                    let
+                        ( indentBuffer, indentColumn ) =
+                            indent level fitBuffer
+                    in
+                    spreadWrap False max indentBuffer indentColumn level wrapper nextEntries
 
-                Nothing ->
-                    case spread max (buffer ++ prefix ++ " ") (level + 1) entry of
-                        Just ( fitBuffer, _ ) ->
-                            let
-                                ( indentBuffer, indentColumn ) =
-                                    indent level fitBuffer
-                            in
-                            spreadWrap False max indentBuffer indentColumn level wrapper nextEntries
-
-                        nothing ->
-                            nothing
+                nothing ->
+                    nothing
 
         [] ->
             let
