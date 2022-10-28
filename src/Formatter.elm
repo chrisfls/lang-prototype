@@ -11,6 +11,7 @@ type alias Wrapper =
     { start : String
     , separator : String
     , end : String
+    , span : Bool
     }
 
 

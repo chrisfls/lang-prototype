@@ -7,7 +7,12 @@ import Test exposing (..)
 
 brackets : List Entries -> Entries
 brackets =
-    wrap { start = "[", separator = ",", end = "]" }
+    wrap { start = "[", separator = ",", end = "]", span = False }
+
+parens : List Entries -> Entries
+parens =
+    wrap { start = "(", separator = ",", end = ")", span = True }
+
 
 
 suite : Test
