@@ -39,13 +39,17 @@ format max entries =
             Nothing
 
 
+
+-- TODO: increase max ident by 20 steps each time indentation blows up
+
+
 fit : Int -> String -> Int -> Int -> Entries -> Maybe ( String, Int )
 fit max buffer column level entry =
     case entry of
         Text _ ->
             case inline max buffer column entry of
                 Nothing ->
-                    spread max buffer column (level + 1) entry
+                    spread max buffer column level entry
 
                 just ->
                     just
@@ -98,7 +102,7 @@ fit max buffer column level entry =
         Wrap wrapper entries ->
             case inlineWrap True max buffer level wrapper entries of
                 Nothing ->
-                    spreadWrap True max buffer (level + 1) wrapper entries
+                    spreadWrap True max buffer level wrapper entries
 
                 just ->
                     just
@@ -257,7 +261,7 @@ spreadWrap first max buffer level wrapper entries =
             in
             case inline max (indentBuffer ++ prefix ++ " ") probColumn entry of
                 Just ( nextBuffer, nextColumn ) ->
-                    inlineWrap False max nextBuffer nextColumn wrapper nextEntries
+                    spreadWrap False max nextBuffer nextColumn wrapper nextEntries
 
                 Nothing ->
                     case spread max (indentBuffer ++ prefix ++ " ") probColumn level entry of
@@ -275,15 +279,8 @@ spreadWrap first max buffer level wrapper entries =
 
                     else
                         wrapper.end
-
-                nextColumn =
-                    indentColumn + String.length suffix
             in
-            if nextColumn < max then
-                Just ( indentBuffer ++ suffix, nextColumn )
-
-            else
-                Nothing
+            Just ( indentBuffer ++ suffix, indentColumn + String.length suffix )
 
 
 indent : Int -> String -> ( String, Int )
