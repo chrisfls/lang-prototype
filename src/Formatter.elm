@@ -31,7 +31,7 @@ wrap =
 
 format : Int -> Entries -> Maybe String
 format max entries =
-    case formatHelp max "" 0 0 entries of
+    case fit max "" 0 0 entries of
         Just ( string, _ ) ->
             Just string
 
@@ -39,8 +39,71 @@ format max entries =
             Nothing
 
 
-formatHelp : Int -> String -> Int -> Int -> Entries -> Maybe ( String, Int )
-formatHelp max buffer column indent entry =
+fit : Int -> String -> Int -> Int -> Entries -> Maybe ( String, Int )
+fit max buffer column level entry =
+    case entry of
+        Text _ ->
+            case inline max buffer column entry of
+                Nothing ->
+                    spread max buffer column (level + 1) entry
+
+                just ->
+                    just
+
+        Span entries ->
+            case entries of
+                fst :: fstEntries ->
+                    -- try to inline first element
+                    case inline max buffer column fst of
+                        (Just ( fstBuffer, fstColumn )) as fstJust ->
+                            case fstEntries of
+                                snd :: sndEntries ->
+                                    -- try to inline second element
+                                    case inline max fstBuffer fstColumn snd of
+                                        Just ( sndBuffer, sndColumn ) ->
+                                            -- try to inline the rest after the second element
+                                            case inlineSpan max sndBuffer sndColumn sndEntries of
+                                                Nothing ->
+                                                    spreadSpan max sndBuffer sndColumn (level + 1) sndEntries
+
+                                                just ->
+                                                    just
+
+                                        Nothing ->
+                                            -- no space to inline the second element, try to spread the tail of the first element
+                                            spreadSpan max fstBuffer fstColumn (level + 1) fstEntries
+
+                                [] ->
+                                    -- there's no tail after the first element
+                                    fstJust
+
+                        Nothing ->
+                            -- no space to inline the first element, try to spread everything
+                            spreadSpan max buffer column (level + 1) entries
+
+                [] ->
+                    case inline max buffer column entry of
+                        Nothing ->
+                            spreadSpan max buffer column (level + 1) entries
+
+                        just ->
+                            just
+
+        Wrap wrapper entries ->
+            case inlineWrap True max buffer level wrapper entries of
+                Nothing ->
+                    spreadWrap True max buffer (level + 1) wrapper entries
+
+                just ->
+                    just
+
+
+
+-- inline
+
+
+inline : Int -> String -> Int -> Entries -> Maybe ( String, Int )
+inline max buffer column entry =
     case entry of
         Text string ->
             let
@@ -53,145 +116,27 @@ formatHelp max buffer column indent entry =
             else
                 Nothing
 
-        Span xs ->
-            case xs of
-                fst :: rest1 ->
-                    case formatInlineRecur True max buffer column indent [ fst ] of
-                        Just ( nextBuffer1, nextColumn1 ) ->
-                            case rest1 of
-                                snd :: rest2 ->
-                                    case formatInlineRecur False max nextBuffer1 nextColumn1 indent [ snd ] of
-                                        Just ( nextBuffer2, nextColumn2 ) ->
-                                            formatRecur max nextBuffer2 nextColumn2 (indent + 1) rest2
+        Span entries ->
+            inlineSpan max buffer column entries
 
-                                        Nothing ->
-                                            formatRecur max nextBuffer1 nextColumn1 (indent + 1) rest1
-
-                                [] ->
-                                    Just ( nextBuffer1, nextColumn1 )
-
-                        Nothing ->
-                            formatRecur max buffer column (indent + 1) xs
-
-                [] ->
-                    Just ( buffer, column )
-
-        Wrap wrapper xs ->
-            case formatWrapInlineRecur True max buffer column indent wrapper xs of
-                Just ok ->
-                    Just ok
-
-                Nothing ->
-                    formatWrapRecur True max buffer (indent + 1) wrapper xs
+        Wrap wrapper entries ->
+            inlineWrap True max buffer column wrapper entries
 
 
-
--- inline
-
-
-formatInlineRecur : Bool -> Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
-formatInlineRecur first max buffer column indent entries =
-    case ( first, entries ) of
-        ( True, entry :: nextEntries ) ->
-            case formatHelp max buffer column indent entry of
-                Just ( nextBuffer, nextColumn ) ->
-                    formatInlineRecur False max nextBuffer nextColumn indent nextEntries
-
-                nothing ->
-                    nothing
-
-        ( False, entry :: nextEntries ) ->
-            if column + 1 < max then
-                case formatHelp max (buffer ++ " ") (column + 1) indent entry of
-                    Just ( nextBuffer, nextColumn2 ) ->
-                        formatInlineRecur False max nextBuffer nextColumn2 indent nextEntries
-
-                    nothing ->
-                        nothing
-
-            else
-                Nothing
-
-        ( _, [] ) ->
-            Just ( buffer, column )
-
-
-formatWrapInlineRecur : Bool -> Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
-formatWrapInlineRecur first max buffer column indent wrapper entries =
-    case ( first, entries ) of
-        ( True, entry :: nextEntries ) ->
-            let
-                nextColumn1 =
-                    column + String.length wrapper.start
-            in
-            if nextColumn1 < max then
-                case formatHelp max (buffer ++ wrapper.start) nextColumn1 indent entry of
-                    Just ( nextBuffer, nextColumn2 ) ->
-                        formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrapper nextEntries
-
-                    nothing ->
-                        nothing
-
-            else
-                Nothing
-
-        ( False, entry :: nextEntries ) ->
-            let
-                nextColumn1 =
-                    column + String.length wrapper.separator + 1
-            in
-            if nextColumn1 < max then
-                case formatHelp max (buffer ++ wrapper.separator ++ " ") nextColumn1 indent entry of
-                    Just ( nextBuffer, nextColumn2 ) ->
-                        formatWrapInlineRecur False max nextBuffer nextColumn2 indent wrapper nextEntries
-
-                    nothing ->
-                        nothing
-
-            else
-                Nothing
-
-        ( True, [] ) ->
-            let
-                nextColumn =
-                    column + String.length wrapper.start + String.length wrapper.end
-            in
-            if nextColumn < max then
-                Just ( buffer ++ wrapper.start ++ wrapper.end, nextColumn )
-
-            else
-                Nothing
-
-        ( False, [] ) ->
-            let
-                nextColumn =
-                    column + String.length wrapper.end
-            in
-            if nextColumn < max then
-                Just ( buffer ++ wrapper.end, nextColumn )
-
-            else
-                Nothing
-
-
-
--- spread
-
-
-formatRecur : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
-formatRecur max buffer column indent entries =
+inlineSpan : Int -> String -> Int -> List Entries -> Maybe ( String, Int )
+inlineSpan max buffer column entries =
     case entries of
         entry :: nextEntries ->
-            let
-                nextBuffer1 =
-                    buffer ++ newline indent
+            case inline max buffer column entry of
+                Just ( nextBuffer, nextColumn ) ->
+                    if List.isEmpty nextEntries then
+                        Just ( nextBuffer, nextColumn )
 
-                nextColumn1 =
-                    2 * indent
-            in
-            case formatHelp max nextBuffer1 nextColumn1 indent entry of
-                Just ( nextBuffer2, nextColumn2 ) ->
-                    formatRecur max nextBuffer2 nextColumn2 indent nextEntries
+                    else if nextColumn + 1 < max then
+                        inlineSpan max (nextBuffer ++ " ") (nextColumn + 1) nextEntries
+
+                    else
+                        Nothing
 
                 nothing ->
                     nothing
@@ -200,8 +145,8 @@ formatRecur max buffer column indent entries =
             Just ( buffer, column )
 
 
-formatWrapRecur : Bool -> Int -> String -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
-formatWrapRecur first max buffer indent wrapper entries =
+inlineWrap : Bool -> Int -> String -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
+inlineWrap first max buffer column wrapper entries =
     case entries of
         entry :: nextEntries ->
             let
@@ -212,31 +157,137 @@ formatWrapRecur first max buffer indent wrapper entries =
                     else
                         wrapper.separator
 
-                nextBuffer1 =
-                    buffer ++ newline indent ++ prefix ++ " "
-
-                nextColumn1 =
-                    (2 * indent) + String.length prefix + 1
+                probColumn =
+                    column + String.length prefix + 1
             in
-            case formatHelp max nextBuffer1 nextColumn1 indent entry of
-                Just ( nextBuffer2, _ ) ->
-                    formatWrapRecur False max nextBuffer2 indent wrapper nextEntries
+            if probColumn < max then
+                case inline max (buffer ++ prefix ++ " ") probColumn entry of
+                    Just ( nextBuffer, nextColumn ) ->
+                        inlineWrap False max nextBuffer nextColumn wrapper nextEntries
 
-                nothing ->
-                    nothing
+                    nothing ->
+                        nothing
+
+            else
+                Nothing
 
         [] ->
             let
+                string =
+                    if first then
+                        wrapper.start ++ wrapper.end
+
+                    else
+                        " " ++ wrapper.end
+
                 nextColumn =
-                    (2 * indent) + String.length wrapper.end
+                    column + String.length string
             in
             if nextColumn < max then
-                Just ( buffer ++ newline indent ++ wrapper.end, nextColumn )
+                Just ( buffer ++ string, nextColumn )
 
             else
                 Nothing
 
 
-newline : Int -> String
-newline indent =
-    "\n" ++ String.repeat indent "  "
+
+-- spread
+
+
+spread : Int -> String -> Int -> Int -> Entries -> Maybe ( String, Int )
+spread max buffer column level entry =
+    case entry of
+        Text string ->
+            let
+                ( indentBuffer, indentColumn ) =
+                    indent level buffer
+            in
+            Just ( indentBuffer ++ string, indentColumn + String.length string )
+
+        Span entries ->
+            spreadSpan max buffer column level entries
+
+        Wrap wrapper entries ->
+            spreadWrap True max buffer level wrapper entries
+
+
+spreadSpan : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
+spreadSpan max buffer column level entries =
+    case entries of
+        entry :: nextEntries ->
+            let
+                ( indentBuffer, indentColumn ) =
+                    indent level buffer
+            in
+            case fit max indentBuffer indentColumn level entry of
+                Just ( nextBuffer, nextColumn ) ->
+                    spreadSpan max nextBuffer nextColumn level nextEntries
+
+                nothing ->
+                    nothing
+
+        [] ->
+            Just ( buffer, column )
+
+
+spreadWrap : Bool -> Int -> String -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
+spreadWrap first max buffer level wrapper entries =
+    let
+        ( indentBuffer, indentColumn ) =
+            indent level buffer
+    in
+    case entries of
+        entry :: nextEntries ->
+            let
+                prefix =
+                    if first then
+                        wrapper.start
+
+                    else
+                        wrapper.separator
+
+                probColumn =
+                    indentColumn + String.length prefix + 1
+            in
+            case inline max (indentBuffer ++ prefix ++ " ") probColumn entry of
+                Just ( nextBuffer, nextColumn ) ->
+                    inlineWrap False max nextBuffer nextColumn wrapper nextEntries
+
+                Nothing ->
+                    case spread max (indentBuffer ++ prefix ++ " ") probColumn level entry of
+                        Just ( nextBuffer, _ ) ->
+                            spreadWrap False max nextBuffer level wrapper nextEntries
+
+                        nothing ->
+                            nothing
+
+        [] ->
+            let
+                suffix =
+                    if first then
+                        wrapper.start ++ wrapper.end
+
+                    else
+                        wrapper.end
+
+                nextColumn =
+                    indentColumn + String.length suffix
+            in
+            if nextColumn < max then
+                Just ( indentBuffer ++ suffix, nextColumn )
+
+            else
+                Nothing
+
+
+indent : Int -> String -> ( String, Int )
+indent level buffer =
+    let
+        padding =
+            String.repeat level "  "
+    in
+    if buffer == "" then
+        ( padding, String.length padding )
+
+    else
+        ( buffer ++ "\n" ++ padding, String.length padding )
