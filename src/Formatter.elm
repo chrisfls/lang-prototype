@@ -3,15 +3,21 @@ module Formatter exposing (Entries, format, span, text, wrap)
 
 type Entries
     = Text String
-    | Span (List Entries)
-    | Wrap Wrapper (List Entries)
+    | Span (Maybe Wrapper) (List Entries)
 
 
 type alias Wrapper =
     { start : String
-    , separator : String
+    , separator : Maybe String
     , end : String
-    , span : Bool
+    }
+
+
+type alias Context =
+    { buffer : String
+    , column : Int
+    , dirty : Bool
+    , max : Int
     }
 
 
@@ -22,282 +28,260 @@ text =
 
 span : List Entries -> Entries
 span =
-    Span
+    Span Nothing
 
 
 wrap : Wrapper -> List Entries -> Entries
 wrap =
-    Wrap
+    Just >> Span
 
 
-format : Int -> Entries -> Maybe String
+format : Int -> Entries -> String
 format max entries =
-    case fit max "" 0 0 entries of
-        Just ( string, _ ) ->
-            Just string
-
-        _ ->
-            Nothing
-
-
-fit : Int -> String -> Int -> Int -> Entries -> Maybe ( String, Int )
-fit max buffer column level entry =
-    case entry of
-        Text _ ->
-            case inline max buffer column entry of
-                Nothing ->
-                    spread max buffer level entry
-
-                just ->
-                    just
-
-        Span entries ->
-            fitSpan max buffer column level entries
-
-        Wrap wrapper entries ->
-            fitWrap max buffer column level wrapper entries
-
-
-fitSpan : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
-fitSpan max buffer column level entries =
-    fitSpanHelp 1 max buffer column level entries
-
-
-
--- TODO: check if code from wrap and span are similar
-
-
-fitSpanHelp : Int -> Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
-fitSpanHelp till max buffer column level entries =
-    if till > 0 then
-        case entries of
-            entry :: nextEntries ->
-                case inline max buffer column entry of
-                    (Just ( entryBuffer, entryColumn )) as just ->
-                        if List.isEmpty nextEntries then
-                            just
-
-                        else if entryColumn + 1 < max then
-                            fitSpanHelp (till - 1) max (entryBuffer ++ " ") (entryColumn + 1) level nextEntries
-
-                        else
-                            spreadSpan max buffer column level entries
-
-                    Nothing ->
-                        spreadSpan max buffer column level entries
-
-            [] ->
-                Just ( buffer, column )
-
-    else
-        case inlineSpan max buffer column entries of
-            Nothing ->
-                spreadSpan max buffer column (level + 1) entries
-
-            just ->
-                just
-
-
-
--- TODO: check if wrap has span: true, if it has, use fitWrapHelp
-
-
-fitWrap : Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
-fitWrap max buffer column level wrapper entries =
-    case inlineWrap True max buffer level wrapper entries of
-        Nothing ->
-            spreadWrap True max buffer column level wrapper entries
-
-        just ->
-            just
+    (fit 0
+        entries
+        { buffer = ""
+        , column = 0
+        , dirty = False
+        , max = max
+        }
+    ).buffer
 
 
 
 -- inline
 
 
-inline : Int -> String -> Int -> Entries -> Maybe ( String, Int )
-inline max buffer column entry =
+inline : Entries -> Context -> Maybe Context
+inline entry context =
     case entry of
         Text string ->
-            let
-                length =
-                    String.length string
-            in
-            if length + column < max then
-                Just ( buffer ++ string, column + length )
+            write string context
 
-            else
-                Nothing
+        Span Nothing (this :: next) ->
+            inlineList none space none this next context
 
-        Span entries ->
-            inlineSpan max buffer column entries
+        Span Nothing [] ->
+            Just context
 
-        Wrap wrapper entries ->
-            inlineWrap True max buffer column wrapper entries
+        Span (Just wrapper) (this :: next) ->
+            inlineList (write wrapper.start >> andMap space)
+                (writeMaybe wrapper.separator >> andMap space)
+                (space >> andMap (write wrapper.end))
+                this
+                next
+                context
+
+        Span (Just wrapper) [] ->
+            write wrapper.start context |> andMap (write wrapper.end)
 
 
-inlineSpan : Int -> String -> Int -> List Entries -> Maybe ( String, Int )
-inlineSpan max buffer column entries =
+inlineList :
+    (Context -> Maybe Context)
+    -> (Context -> Maybe Context)
+    -> (Context -> Maybe Context)
+    -> Entries
+    -> List Entries
+    -> Context
+    -> Maybe Context
+inlineList prefix separator suffix entry entries context =
+    let
+        context_ =
+            prefix context
+                |> andMap (inline entry)
+    in
     case entries of
-        entry :: nextEntries ->
-            case inline max buffer column entry of
-                Just ( nextBuffer, nextColumn ) ->
-                    if List.isEmpty nextEntries then
-                        Just ( nextBuffer, nextColumn )
-
-                    else if nextColumn + 1 < max then
-                        inlineSpan max (nextBuffer ++ " ") (nextColumn + 1) nextEntries
-
-                    else
-                        Nothing
-
-                nothing ->
-                    nothing
+        next :: rest ->
+            andMap (inlineList separator separator suffix next rest) context_
 
         [] ->
-            Just ( buffer, column )
+            andMap suffix context_
 
 
-inlineWrap : Bool -> Int -> String -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
-inlineWrap first max buffer column wrapper entries =
-    case entries of
-        entry :: nextEntries ->
-            let
-                prefix =
-                    if first then
-                        wrapper.start
+andMap : (a -> Maybe a) -> Maybe a -> Maybe a
+andMap fn maybe =
+    case maybe of
+        Just context ->
+            fn context
 
-                    else
-                        wrapper.separator
+        nothing ->
+            nothing
 
-                probColumn =
-                    column + String.length prefix + 1
-            in
-            if probColumn < max then
-                case inline max (buffer ++ prefix ++ " ") probColumn entry of
-                    Just ( nextBuffer, nextColumn ) ->
-                        inlineWrap False max nextBuffer nextColumn wrapper nextEntries
 
-                    nothing ->
-                        nothing
+none : Context -> Maybe Context
+none context =
+    Just context
 
-            else
-                Nothing
 
-        [] ->
-            let
-                string =
-                    if first then
-                        wrapper.start ++ wrapper.end
+write : String -> Context -> Maybe Context
+write string context =
+    let
+        column_ =
+            context.column + String.length string
+    in
+    if not context.dirty || column_ <= context.max then
+        Just
+            { buffer = context.buffer ++ string
+            , column = column_
+            , dirty = True
+            , max = context.max
+            }
 
-                    else
-                        " " ++ wrapper.end
+    else
+        Nothing
 
-                nextColumn =
-                    column + String.length string
-            in
-            if nextColumn < max then
-                Just ( buffer ++ string, nextColumn )
 
-            else
-                Nothing
+writeMaybe : Maybe String -> Context -> Maybe Context
+writeMaybe maybe context =
+    case maybe of
+        Just string ->
+            write string context
+
+        Nothing ->
+            Just context
+
+
+space : Context -> Maybe Context
+space =
+    write " "
+
+
+
+-- fit
+
+
+fit : Int -> Entries -> Context -> Context
+fit depth entry context =
+    case inline entry context of
+        Just context_ ->
+            context_
+
+        Nothing ->
+            spread depth entry context
 
 
 
 -- spread
 
 
-spread : Int -> String -> Int -> Entries -> Maybe ( String, Int )
-spread max buffer level entry =
-    let
-        ( indentBuffer, indentColumn ) =
-            indent level buffer
-    in
+spread : Int -> Entries -> Context -> Context
+spread depth entry context =
     case entry of
         Text string ->
-            Just ( indentBuffer ++ string, indentColumn + String.length string )
+            spreadWrite string context
 
-        Span entries ->
-            spreadSpan max indentBuffer indentColumn level entries
+        Span Nothing (this :: next) ->
+            spreadList 2 identity identity identity depth this next context
 
-        Wrap wrapper entries ->
-            spreadWrap True max indentBuffer indentColumn level wrapper entries
+        Span Nothing [] ->
+            context
 
+        Span (Just wrapper) (this :: next) ->
+            case wrapper.separator of
+                Just separator ->
+                    spreadList 0
+                        (spreadWrite wrapper.start >> spreadSpace)
+                        (spreadWrite separator >> spreadSpace)
+                        (spreadWrite wrapper.end)
+                        depth
+                        this
+                        next
+                        context
 
-spreadSpan : Int -> String -> Int -> Int -> List Entries -> Maybe ( String, Int )
-spreadSpan max buffer column level entries =
-    case entries of
-        entry :: nextEntries ->
-            case fit max buffer column (level + 1) entry of
-                (Just ( fitBuffer, _ )) as just ->
-                    if List.isEmpty nextEntries then
-                        just
+                Nothing ->
+                    case next of
+                        that :: next_ ->
 
-                    else
-                        let
-                            ( indentBuffer, indentColumn ) =
-                                indent level fitBuffer
-                        in
-                        spreadSpan max indentBuffer indentColumn level nextEntries
+                        [] ->
+                            spreadList 2
+                                (spreadWrite wrapper.start)
+                                spreadSpace
+                                (spreadWrite wrapper.end)
+                                depth
+                                this
+                                next
+                                context
 
-                nothing ->
-                    nothing
-
-        [] ->
-            Just ( buffer, column )
-
-
-
--- TODO: copy paste from wrap into span
-
-
-spreadWrap : Bool -> Int -> String -> Int -> Int -> Wrapper -> List Entries -> Maybe ( String, Int )
-spreadWrap first max buffer column level wrapper entries =
-    case entries of
-        entry :: nextEntries ->
-            let
-                prefix =
-                    if first then
-                        wrapper.start
-
-                    else
-                        wrapper.separator
-
-                probColumn =
-                    column + String.length prefix + 1
-            in
-            case fit max (buffer ++ prefix ++ " ") probColumn (level + 1) entry of
-                Just ( fitBuffer, _ ) ->
-                    let
-                        ( indentBuffer, indentColumn ) =
-                            indent level fitBuffer
-                    in
-                    spreadWrap False max indentBuffer indentColumn level wrapper nextEntries
-
-                nothing ->
-                    nothing
-
-        [] ->
-            let
-                suffix =
-                    if first then
-                        wrapper.start ++ wrapper.end
-
-                    else
-                        wrapper.end
-            in
-            Just ( buffer ++ suffix, column + String.length suffix )
+        Span (Just wrapper) [] ->
+            spreadWrite wrapper.start context |> spreadWrite wrapper.end
 
 
-indent : Int -> String -> ( String, Int )
-indent level buffer =
-    let
-        padding =
-            String.repeat level "  "
-    in
-    if buffer == "" then
-        ( padding, String.length padding )
+spreadList :
+    Int
+    -> (Context -> Context)
+    -> (Context -> Context)
+    -> (Context -> Context)
+    -> Int
+    -> Entries
+    -> List Entries
+    -> Context
+    -> Context
+spreadList count prefix separator suffix depth entry entries context =
+    if count > 1 then
+        let
+            inlining =
+                prefix context
+                    |> inline entry
+        in
+        case inlining of
+            Just inlined ->
+                case entries of
+                    next :: rest ->
+                        spreadList (count - 1) separator separator suffix depth next rest inlined
+
+                    [] ->
+                        case toMaybe (suffix inlined) of
+                            Just context_ ->
+                                context_
+
+                            Nothing ->
+                                indent depth inlined |> suffix
+
+            Nothing ->
+                spreadList 0 prefix separator suffix (depth + 1) entry entries context
 
     else
-        ( buffer ++ "\n" ++ padding, String.length padding )
+        let
+            context_ =
+                prefix context
+                    |> spreadSpace
+                    |> fit depth entry
+        in
+        case entries of
+            next :: rest ->
+                indent depth context_ |> spreadList 0 separator separator suffix depth next rest
+
+            [] ->
+                indent depth context_ |> suffix
+
+
+spreadWrite : String -> Context -> Context
+spreadWrite string context =
+    { buffer = context.buffer ++ string
+    , column = context.column + String.length string
+    , dirty = context.dirty
+    , max = context.max
+    }
+
+
+spreadSpace : Context -> Context
+spreadSpace =
+    spreadWrite " "
+
+
+indent : Int -> Context -> Context
+indent depth context =
+    { buffer = context.buffer ++ "\n" ++ String.repeat depth "  "
+    , column = 2 * depth
+    , dirty = False
+    , max = context.max
+    }
+
+
+toMaybe : Context -> Maybe Context
+toMaybe context =
+    if context.column > context.max then
+        Nothing
+
+    else
+        Just context
