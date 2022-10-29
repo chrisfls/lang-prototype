@@ -7,27 +7,35 @@ import Test exposing (..)
 
 brackets : List Entries -> Entries
 brackets =
-    wrap { start = "[", separator = ",", end = "]", span = False }
+    wrap { start = "[", separator = Just ",", end = "]" }
 
+apply : List Entries -> Entries
+apply =
+    wrap { start = "(", separator = Nothing, end = ")" }
 
 suite : Test
 suite =
     describe "Formatter"
         [ test "text" <|
             \_ ->
-                expectFormat [ "text" ] (text "text")
+                expectFormat [ "text" ] <|
+                    text "text"
         , test "empty span" <|
             \_ ->
-                expectFormat [ "" ] (span [])
+                expectFormat [ "" ] <|
+                    span []
         , test "1-element span" <|
             \_ ->
-                expectFormat [ "a" ] (span [ text "a" ])
+                expectFormat [ "a" ] <|
+                    span [ text "a" ]
         , test "2-element span" <|
             \_ ->
-                expectFormat [ "a b" ] (span [ text "a", text "b" ])
+                expectFormat [ "a b" ] <|
+                    span [ text "a", text "b" ]
         , test "3-element span" <|
             \_ ->
-                expectFormat [ "a b c" ] (span [ text "a", text "b", text "c" ])
+                expectFormat [ "a b c" ] <|
+                    span [ text "a", text "b", text "c" ]
         , test "1-depth span" <|
             \_ ->
                 expectFormat
@@ -36,7 +44,14 @@ suite =
                     , "  c"
                     , "  d"
                     ]
-                    (span [ text "Lor.em", text "a", text "b", text "c", text "d" ])
+                <|
+                    span
+                        [ text "Lor.em"
+                        , text "a"
+                        , text "b"
+                        , text "c"
+                        , text "d"
+                        ]
         , test "2-depth span" <|
             \_ ->
                 expectFormat
@@ -45,9 +60,23 @@ suite =
                     , "  yuck c"
                     , "    d"
                     , "    e"
-                    , "  f"
+                    , "    f"
+                    , "  g"
                     ]
-                    (span [ text "Lor.em", text "a", text "b", span [ text "yuck", text "c", text "d", text "e" ], text "f" ])
+                <|
+                    span
+                        [ text "Lor.em"
+                        , text "a"
+                        , text "b"
+                        , span
+                            [ text "yuck"
+                            , text "c"
+                            , text "d"
+                            , text "e"
+                            , text "f"
+                            ]
+                        , text "g"
+                        ]
         , test "3-depth span" <|
             \_ ->
                 expectFormat
@@ -55,22 +84,52 @@ suite =
                     , "  yuck b"
                     , "    puck c"
                     , "      d"
-                    , "    e"
-                    , "  f"
+                    , "      e"
+                    , "      f"
+                    , "    g"
+                    , "  h"
                     ]
-                    (span [ text "Lor.em", text "a", span [ text "yuck", text "b", span [ text "puck", text "c", text "d" ], text "e" ], text "f" ])
+                <|
+                    span
+                        [ text "Lor.em"
+                        , text "a"
+                        , span
+                            [ text "yuck"
+                            , text "b"
+                            , span
+                                [ text "puck"
+                                , text "c"
+                                , text "d"
+                                , text "e"
+                                , text "f"
+                                ]
+                            , text "g"
+                            ]
+                        , text "h"
+                        ]
         , test "empty wrap" <|
             \_ ->
-                expectFormat [ "[]" ] (brackets [])
+                expectFormat [ "[]" ] <|
+                    brackets []
         , test "1-element wrap" <|
             \_ ->
-                expectFormat [ "[ a ]" ] (brackets [ text "a" ])
+                expectFormat [ "[ a ]" ] <|
+                    brackets [ text "a" ]
         , test "2-element wrap" <|
             \_ ->
-                expectFormat [ "[ a, b ]" ] (brackets [ text "a", text "b" ])
+                expectFormat [ "[ a, b ]" ] <|
+                    brackets
+                        [ text "a"
+                        , text "b"
+                        ]
         , test "32-element wrap" <|
             \_ ->
-                expectFormat [ "[ a, b, c ]" ] (brackets [ text "a", text "b", text "c" ])
+                expectFormat [ "[ a, b, c ]" ] <|
+                    brackets
+                        [ text "a"
+                        , text "b"
+                        , text "c"
+                        ]
         , test "1-depth wrap" <|
             \_ ->
                 expectFormat
@@ -80,7 +139,13 @@ suite =
                     , ", d"
                     , "]"
                     ]
-                    (brackets [ text "a", text "b", text "c", text "d" ])
+                <|
+                    brackets
+                        [ text "a"
+                        , text "b"
+                        , text "c"
+                        , text "d"
+                        ]
         , test "2-depth wrap" <|
             \_ ->
                 expectFormat
@@ -96,7 +161,11 @@ suite =
                     ]
                     (brackets <|
                         [ text "a"
-                        , brackets [ text "b", text "c", text "d" ]
+                        , brackets
+                            [ text "b"
+                            , text "c"
+                            , text "d"
+                            ]
                         , text "e"
                         , brackets [ text "f" ]
                         , brackets []
@@ -115,7 +184,11 @@ suite =
                     ]
                     (brackets <|
                         [ text "a"
-                        , brackets [ text "b", brackets [ text "c" ], text "d" ]
+                        , brackets
+                            [ text "b"
+                            , brackets [ text "c" ]
+                            , text "d"
+                            ]
                         , text "e"
                         ]
                     )
@@ -124,4 +197,4 @@ suite =
 
 expectFormat : List String -> Entries -> Expect.Expectation
 expectFormat expect entries =
-    Expect.equal expect (String.split "\n" <| Maybe.withDefault "NO SPACE" <| format 12 entries)
+    Expect.equal expect (String.split "\n" <| format 12 entries)

@@ -160,6 +160,37 @@ fit depth entry context =
             spread depth entry context
 
 
+fitList :
+    Int
+    -> (Context -> Context)
+    -> (Context -> Context)
+    -> (Context -> Context)
+    -> List Entries
+    -> Context
+    -> ( Context, List Entries )
+fitList count prefix separator suffix entries context =
+    if count > 0 then
+        case entries of
+            entry :: rest ->
+                let
+                    inlining =
+                        prefix context
+                            |> inline entry
+                in
+                case inlining of
+                    Just inlined ->
+                        fitList (count - 1) separator separator suffix rest inlined
+
+                    Nothing ->
+                        ( context, entries )
+
+            [] ->
+                ( context, entries )
+
+    else
+        ( context, entries )
+
+
 
 -- spread
 
@@ -170,89 +201,79 @@ spread depth entry context =
         Text string ->
             spreadWrite string context
 
-        Span Nothing (this :: next) ->
-            spreadList 2 identity identity identity depth this next context
-
         Span Nothing [] ->
             context
+
+        Span Nothing entries ->
+            let
+                ( context_, rest ) =
+                    fitList 2 identity spreadSpace identity entries context
+            in
+            case rest of
+                this :: next ->
+                    let
+                        depth_ =
+                            depth + 1
+                    in
+                    indent depth_ context_ |> spreadList identity identity identity depth_ depth_ this next
+
+                [] ->
+                    context_
 
         Span (Just wrapper) (this :: next) ->
             case wrapper.separator of
                 Just separator ->
-                    spreadList 0
-                        (spreadWrite wrapper.start >> spreadSpace)
+                    spreadList (spreadWrite wrapper.start >> spreadSpace)
                         (spreadWrite separator >> spreadSpace)
-                        (spreadWrite wrapper.end)
+                        (indent depth >> spreadWrite wrapper.end)
                         depth
+                        (depth + 1)
                         this
                         next
                         context
 
                 Nothing ->
-                    case next of
-                        that :: next_ ->
-
-                        [] ->
-                            spreadList 2
-                                (spreadWrite wrapper.start)
-                                spreadSpace
-                                (spreadWrite wrapper.end)
-                                depth
-                                this
-                                next
-                                context
+                    -- case next of
+                    --     that :: next_ ->
+                    --         Debug.todo "b"
+                    --     [] ->
+                    --         spread depth this context
+                    -- spreadList
+                    --     (spreadWrite wrapper.start)
+                    --     spreadSpace
+                    --     (spreadWrite wrapper.end)
+                    --     depth
+                    --     this
+                    --     next
+                    --     context
+                    Debug.todo "b"
 
         Span (Just wrapper) [] ->
             spreadWrite wrapper.start context |> spreadWrite wrapper.end
 
 
 spreadList :
-    Int
+    (Context -> Context)
     -> (Context -> Context)
     -> (Context -> Context)
-    -> (Context -> Context)
+    -> Int
     -> Int
     -> Entries
     -> List Entries
     -> Context
     -> Context
-spreadList count prefix separator suffix depth entry entries context =
-    if count > 1 then
-        let
-            inlining =
-                prefix context
-                    |> inline entry
-        in
-        case inlining of
-            Just inlined ->
-                case entries of
-                    next :: rest ->
-                        spreadList (count - 1) separator separator suffix depth next rest inlined
+spreadList prefix separator suffix depth1 depth2 entry entries context =
+    let
+        context_ =
+            prefix context
+                |> fit depth2 entry
+    in
+    case entries of
+        next :: rest ->
+            indent depth1 context_ |> spreadList separator separator suffix depth1 depth2 next rest
 
-                    [] ->
-                        case toMaybe (suffix inlined) of
-                            Just context_ ->
-                                context_
-
-                            Nothing ->
-                                indent depth inlined |> suffix
-
-            Nothing ->
-                spreadList 0 prefix separator suffix (depth + 1) entry entries context
-
-    else
-        let
-            context_ =
-                prefix context
-                    |> spreadSpace
-                    |> fit depth entry
-        in
-        case entries of
-            next :: rest ->
-                indent depth context_ |> spreadList 0 separator separator suffix depth next rest
-
-            [] ->
-                indent depth context_ |> suffix
+        [] ->
+            suffix context_
 
 
 spreadWrite : String -> Context -> Context
