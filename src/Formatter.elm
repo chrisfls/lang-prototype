@@ -316,12 +316,3 @@ indent depth context =
     , dirty = False
     , max = context.max
     }
-
-
-toMaybe : Context -> Maybe Context
-toMaybe context =
-    if context.column > context.max then
-        Nothing
-
-    else
-        Just context

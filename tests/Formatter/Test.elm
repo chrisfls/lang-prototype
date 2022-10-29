@@ -287,16 +287,17 @@ suite =
                         , text "e"
                         ]
                     )
-        , test "word wrap blow up" <|
+        , test "code wrap blow up 1" <|
             \_ ->
-                expectFormat
+                expectFormatWith 1
                     [ "Level0"
                     , "  [ Level1"
                     , "  , (Level2"
-                    , "      [ Level3"
-                    , "          [ Level4"
-                    , "          , (Level5"
-                    , "              [ Level6"
+                    , "      [ Level 3"
+                    , "      , Level4"
+                    , "          [ Level5"
+                    , "          , (Level6"
+                    , "              [ Level7"
                     , "              ]"
                     , "            )"
                     , "          ]"
@@ -312,15 +313,60 @@ suite =
                             , apply
                                 [ text "Level2"
                                 , brackets
-                                    [ span
-                                        [ text "Level3"
+                                    [ text "Level 3"
+                                    , span
+                                        [ text "Level4"
                                         , brackets
-                                            [ text "Level4"
+                                            [ text "Level5"
                                             , apply
-                                                [ text "Level5"
+                                                [ text "Level6"
                                                 , brackets
                                                     [ span
-                                                        [ text "Level6"
+                                                        [ text "Level7"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+        , test "code wrap blow up 2" <|
+            \_ ->
+                expectFormatWith 26
+                    [ "Level0"
+                    , "  [ Level1"
+                    , "  , (Level2"
+                    , "      [ Level 3"
+                    , "      , Level4"
+                    , "          [ Level5"
+                    , "          , (Level6"
+                    , "              [ Level7 ]"
+                    , "            )"
+                    , "          ]"
+                    , "      ]"
+                    , "    )"
+                    , "  ]"
+                    ]
+                <|
+                    span
+                        [ text "Level0"
+                        , brackets
+                            [ text "Level1"
+                            , apply
+                                [ text "Level2"
+                                , brackets
+                                    [ text "Level 3"
+                                    , span
+                                        [ text "Level4"
+                                        , brackets
+                                            [ text "Level5"
+                                            , apply
+                                                [ text "Level6"
+                                                , brackets
+                                                    [ span
+                                                        [ text "Level7"
                                                         ]
                                                     ]
                                                 ]
