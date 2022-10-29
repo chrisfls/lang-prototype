@@ -65,12 +65,22 @@ inline entry context =
             Just context
 
         Span (Just wrapper) (this :: next) ->
-            inlineList (write wrapper.start >> andMap space)
-                (writeMaybe wrapper.separator >> andMap space)
-                (space >> andMap (write wrapper.end))
-                this
-                next
-                context
+            case wrapper.separator of
+                Just separator ->
+                    inlineList (write wrapper.start >> andMap space)
+                        (write separator >> andMap space)
+                        (space >> andMap (write wrapper.end))
+                        this
+                        next
+                        context
+
+                Nothing ->
+                    inlineList (write wrapper.start)
+                        (writeMaybe wrapper.separator >> andMap space)
+                        (write wrapper.end)
+                        this
+                        next
+                        context
 
         Span (Just wrapper) [] ->
             write wrapper.start context |> andMap (write wrapper.end)
@@ -215,41 +225,51 @@ spread depth entry context =
                         depth_ =
                             depth + 1
                     in
-                    indent depth_ context_ |> spreadList identity identity identity depth_ depth_ this next
+                    indent depth_ context_ |> spreadList identity (indent depth_) identity depth_ this next
 
                 [] ->
                     context_
 
-        Span (Just wrapper) (this :: next) ->
+        Span (Just wrapper) entries ->
             case wrapper.separator of
                 Just separator ->
-                    spreadList (spreadWrite wrapper.start >> spreadSpace)
-                        (spreadWrite separator >> spreadSpace)
-                        (indent depth >> spreadWrite wrapper.end)
-                        depth
-                        (depth + 1)
-                        this
-                        next
-                        context
+                    case entries of
+                        this :: next ->
+                            spreadList (spreadWrite wrapper.start >> spreadSpace)
+                                (indent depth >> spreadWrite separator >> spreadSpace)
+                                (indent depth >> spreadWrite wrapper.end)
+                                (depth + 1)
+                                this
+                                next
+                                context
+
+                        [] ->
+                            spreadWrite wrapper.start context |> spreadWrite wrapper.end
 
                 Nothing ->
-                    -- case next of
-                    --     that :: next_ ->
-                    --         Debug.todo "b"
-                    --     [] ->
-                    --         spread depth this context
-                    -- spreadList
-                    --     (spreadWrite wrapper.start)
-                    --     spreadSpace
-                    --     (spreadWrite wrapper.end)
-                    --     depth
-                    --     this
-                    --     next
-                    --     context
-                    Debug.todo "b"
+                    let
+                        ( context_, rest ) =
+                            fitList 2 (spreadWrite wrapper.start) spreadSpace identity entries context
+                    in
+                    case rest of
+                        this :: next ->
+                            let
+                                depth_ =
+                                    depth + 1
 
-        Span (Just wrapper) [] ->
-            spreadWrite wrapper.start context |> spreadWrite wrapper.end
+                                separator =
+                                    indent depth_
+                            in
+                            spreadList separator
+                                separator
+                                (indent depth >> spreadWrite wrapper.end)
+                                depth_
+                                this
+                                next
+                                context_
+
+                        [] ->
+                            context_
 
 
 spreadList :
@@ -257,12 +277,11 @@ spreadList :
     -> (Context -> Context)
     -> (Context -> Context)
     -> Int
-    -> Int
     -> Entries
     -> List Entries
     -> Context
     -> Context
-spreadList prefix separator suffix depth1 depth2 entry entries context =
+spreadList prefix separator suffix depth2 entry entries context =
     let
         context_ =
             prefix context
@@ -270,7 +289,7 @@ spreadList prefix separator suffix depth1 depth2 entry entries context =
     in
     case entries of
         next :: rest ->
-            indent depth1 context_ |> spreadList separator separator suffix depth1 depth2 next rest
+            spreadList separator separator suffix depth2 next rest context_
 
         [] ->
             suffix context_
