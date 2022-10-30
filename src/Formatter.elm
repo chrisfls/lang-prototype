@@ -36,14 +36,14 @@ wrap =
     Just >> Span
 
 
-format : Int -> Entries -> String
-format max entries =
-    (fit 0
+format : Int -> Int -> Entries -> String
+format width depth entries =
+    (fit depth
         entries
         { buffer = ""
         , column = 0
         , dirty = False
-        , max = max
+        , max = width
         }
     ).buffer
 

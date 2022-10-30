@@ -386,4 +386,4 @@ expectFormat =
 
 expectFormatWith : Int -> List String -> Entries -> Expect.Expectation
 expectFormatWith column expect entries =
-    Expect.equal expect (String.split "\n" <| format column entries)
+    Expect.equal expect (String.split "\n" <| format column 0 entries)
