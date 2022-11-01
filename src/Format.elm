@@ -1,4 +1,4 @@
-module Format2 exposing (..)
+module Format exposing (..)
 
 
 type Text
