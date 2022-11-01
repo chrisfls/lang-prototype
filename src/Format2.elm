@@ -116,15 +116,15 @@ inline entry context =
         Span (Just wrapper) (Just separator) (this :: next) ->
             inlineList (write wrapper.start >> andMap space)
                 (write separator >> andMap space)
-                (write wrapper.end >> andMap space)
+                (space >> andMap (write wrapper.end))
                 this
                 next
                 context
 
         Span (Just wrapper) Nothing (this :: next) ->
-            inlineList (write wrapper.start >> andMap space)
+            inlineList (write wrapper.start)
                 space
-                (write wrapper.end >> andMap space)
+                (write wrapper.end)
                 this
                 next
                 context
