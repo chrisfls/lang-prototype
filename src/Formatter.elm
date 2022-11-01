@@ -1,6 +1,11 @@
 module Formatter exposing (Entries, format, span, text, wrap)
 
 
+-- TODO: refactor this to:
+--  + indentless span
+--  + span with acceptable inlines
+--       have "" config and depth increments
+
 type Entries
     = Text String
     | Span (Maybe Wrapper) (List Entries)
