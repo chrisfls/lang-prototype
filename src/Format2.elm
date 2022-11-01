@@ -4,7 +4,7 @@ module Format2 exposing (..)
 type Text
     = Text String
     | Span (Maybe Wrap) (Maybe String) (List Text)
-    | Rows (List Text)
+    | Rows Bool (List Text)
 
 
 type alias Wrap =
@@ -23,7 +23,7 @@ span { wrap, separator } =
     Span wrap separator
 
 
-rows : List Text -> Text
+rows : Bool -> List Text -> Text
 rows =
     Rows
 
@@ -35,6 +35,7 @@ format width entries =
         { buffer = ""
         , column = 0
         , dirty = False
+        , strict = False
         , max = width
         }
     ).buffer
@@ -48,6 +49,7 @@ type alias Context =
     { buffer : String
     , column : Int
     , dirty : Bool
+    , strict : Bool
     , max : Int
     }
 
@@ -140,7 +142,7 @@ inline entry context =
         Span Nothing Nothing (this :: next) ->
             inlineList none space none this next context
 
-        Rows _ ->
+        Rows _ _ ->
             Nothing
 
 
@@ -187,11 +189,12 @@ write string context =
         column_ =
             context.column + String.length string
     in
-    if not context.dirty || column_ <= context.max then
+    if not context.strict || column_ <= context.max then
         Just
             { buffer = context.buffer ++ string
             , column = column_
             , dirty = True
+            , strict = True
             , max = context.max
             }
 
@@ -289,11 +292,14 @@ spread depth entry context =
                 [] ->
                     context_
 
-        Rows [] ->
+        Rows _ [] ->
             context
 
-        Rows (this :: next) ->
-            spreadList identity identity identity depth this next context
+        Rows True (this :: next) ->
+            spreadList (indent depth) (indent depth) identity (depth + 1) this next context
+
+        Rows False (this :: next) ->
+            spreadList (indent depth) (indent depth) identity depth this next context
 
 
 spreadList :
@@ -323,7 +329,8 @@ spreadWrite : String -> Context -> Context
 spreadWrite string context =
     { buffer = context.buffer ++ string
     , column = context.column + String.length string
-    , dirty = context.dirty
+    , dirty = True
+    , strict = context.strict
     , max = context.max
     }
 
@@ -335,8 +342,14 @@ spreadSpace =
 
 indent : Int -> Context -> Context
 indent depth context =
-    { buffer = context.buffer ++ "\n" ++ String.repeat depth "  "
+    { buffer =
+        if context.dirty then
+            context.buffer ++ "\n" ++ String.repeat depth "  "
+
+        else
+            context.buffer ++ String.repeat (max 0 ((depth * 2) - context.column)) " "
     , column = 2 * depth
     , dirty = False
+    , strict = False
     , max = context.max
     }

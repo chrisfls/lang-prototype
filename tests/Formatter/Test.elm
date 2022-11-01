@@ -1,18 +1,23 @@
 module Formatter.Test exposing (suite)
 
 import Expect
-import Formatter exposing (..)
+import Format2 exposing (..)
 import Test exposing (..)
 
 
-brackets : List Entries -> Entries
+brackets : List Text -> Text
 brackets =
-    wrap { start = "[", separator = Just ",", end = "]" }
+    span { wrap = Just { start = "[", end = "]" }, separator = Just "," }
 
 
-apply : List Entries -> Entries
+apply : List Text -> Text
 apply =
-    wrap { start = "(", separator = Nothing, end = ")" }
+    span { wrap = Just { start = "(", end = ")" }, separator = Nothing }
+
+
+args : List Text -> Text
+args =
+    span { wrap = Nothing, separator = Nothing }
 
 
 suite : Test
@@ -25,19 +30,19 @@ suite =
         , test "empty span" <|
             \_ ->
                 expectFormat [ "" ] <|
-                    span []
+                    args []
         , test "1-element span" <|
             \_ ->
                 expectFormat [ "a" ] <|
-                    span [ text "a" ]
+                    args [ text "a" ]
         , test "2-element span" <|
             \_ ->
                 expectFormat [ "a b" ] <|
-                    span [ text "a", text "b" ]
+                    args [ text "a", text "b" ]
         , test "3-element span" <|
             \_ ->
                 expectFormat [ "a b c" ] <|
-                    span [ text "a", text "b", text "c" ]
+                    args [ text "a", text "b", text "c" ]
         , test "1-depth span" <|
             \_ ->
                 expectFormat
@@ -47,7 +52,7 @@ suite =
                     , "  d"
                     ]
                 <|
-                    span
+                    args
                         [ text "Lor.em"
                         , text "a"
                         , text "b"
@@ -66,11 +71,11 @@ suite =
                     , "  g"
                     ]
                 <|
-                    span
+                    args
                         [ text "Lor.em"
                         , text "a"
                         , text "b"
-                        , span
+                        , args
                             [ text "yuck"
                             , text "c"
                             , text "d"
@@ -92,13 +97,13 @@ suite =
                     , "  h"
                     ]
                 <|
-                    span
+                    args
                         [ text "Lor.em"
                         , text "a"
-                        , span
+                        , args
                             [ text "yuck"
                             , text "b"
-                            , span
+                            , args
                                 [ text "puck"
                                 , text "c"
                                 , text "d"
@@ -306,7 +311,7 @@ suite =
                     , "  ]"
                     ]
                 <|
-                    span
+                    args
                         [ text "Level0"
                         , brackets
                             [ text "Level1"
@@ -314,14 +319,14 @@ suite =
                                 [ text "Level2"
                                 , brackets
                                     [ text "Level 3"
-                                    , span
+                                    , args
                                         [ text "Level4"
                                         , brackets
                                             [ text "Level5"
                                             , apply
                                                 [ text "Level6"
                                                 , brackets
-                                                    [ span
+                                                    [ args
                                                         [ text "Level7"
                                                         ]
                                                     ]
@@ -350,7 +355,7 @@ suite =
                     , "  ]"
                     ]
                 <|
-                    span
+                    args
                         [ text "Level0"
                         , brackets
                             [ text "Level1"
@@ -358,14 +363,14 @@ suite =
                                 [ text "Level2"
                                 , brackets
                                     [ text "Level 3"
-                                    , span
+                                    , args
                                         [ text "Level4"
                                         , brackets
                                             [ text "Level5"
                                             , apply
                                                 [ text "Level6"
                                                 , brackets
-                                                    [ span
+                                                    [ args
                                                         [ text "Level7"
                                                         ]
                                                     ]
@@ -376,14 +381,124 @@ suite =
                                 ]
                             ]
                         ]
+        , test "1-depth rows" <|
+            \_ ->
+                expectFormatWith 1
+                    [ "a"
+                    , "b"
+                    , "c"
+                    , "d"
+                    , "e"
+                    ]
+                <|
+                    rows False
+                        [ text "a"
+                        , text "b"
+                        , text "c"
+                        , text "d"
+                        , text "e"
+                        ]
+        , test "2-depth rows" <|
+            \_ ->
+                expectFormatWith 1
+                    [ "a"
+                    , "b"
+                    , "c"
+                    , "d"
+                    , "e"
+                    ]
+                <|
+                    rows False
+                        [ text "a"
+                        , rows False
+                            [ text "b"
+                            , text "c"
+                            , text "d"
+                            ]
+                        , text "e"
+                        ]
+        , test "3-depth rows" <|
+            \_ ->
+                expectFormatWith 1
+                    [ "a"
+                    , "b"
+                    , "c"
+                    , "d"
+                    , "e"
+                    ]
+                <|
+                    rows False
+                        [ text "a"
+                        , rows False
+                            [ text "b"
+                            , rows False [ text "c" ]
+                            , text "d"
+                            ]
+                        , text "e"
+                        ]
+        , test "1-depth indent rows" <|
+            \_ ->
+                expectFormatWith 1
+                    [ "a"
+                    , "b"
+                    , "c"
+                    , "d"
+                    , "e"
+                    ]
+                <|
+                    rows True
+                        [ text "a"
+                        , text "b"
+                        , text "c"
+                        , text "d"
+                        , text "e"
+                        ]
+        , test "2-depth indent rows" <|
+            \_ ->
+                expectFormatWith 1
+                    [ "a"
+                    , "  b"
+                    , "  c"
+                    , "  d"
+                    , "e"
+                    ]
+                <|
+                    rows True
+                        [ text "a"
+                        , rows True
+                            [ text "b"
+                            , text "c"
+                            , text "d"
+                            ]
+                        , text "e"
+                        ]
+        , test "3-depth indent rows" <|
+            \_ ->
+                expectFormatWith 1
+                    [ "a"
+                    , "  b"
+                    , "    c"
+                    , "  d"
+                    , "e"
+                    ]
+                <|
+                    rows True
+                        [ text "a"
+                        , rows True
+                            [ text "b"
+                            , rows True [ text "c" ]
+                            , text "d"
+                            ]
+                        , text "e"
+                        ]
         ]
 
 
-expectFormat : List String -> Entries -> Expect.Expectation
+expectFormat : List String -> Text -> Expect.Expectation
 expectFormat =
     expectFormatWith 12
 
 
-expectFormatWith : Int -> List String -> Entries -> Expect.Expectation
+expectFormatWith : Int -> List String -> Text -> Expect.Expectation
 expectFormatWith column expect entries =
-    Expect.equal expect (String.split "\n" <| format column 0 entries)
+    Expect.equal expect (String.split "\n" <| format column entries)
