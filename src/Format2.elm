@@ -1,16 +1,22 @@
-module Format2 exposing (BreakMode, Content, breakpoint, continue, force, format, optional, span, text, toString, write)
+module Format2 exposing (BreakMode, Content, breakpoint, container, force, format, optional, span, text, toString, write)
+
+import IR.Parser exposing (a)
 
 
 type Content
-    = Span (List Content)
-    | BreakPoint BreakMode Int
+    = Span Int (List Content)
+    | BreakPoint BreakMode
     | Text String
 
 
 type BreakMode
     = Force
-    | Optional
-    | Continue
+    | Optional Separator
+    | Container Separator
+
+
+type alias Separator =
+    Maybe String
 
 
 text : String -> Content
@@ -18,12 +24,12 @@ text =
     Text
 
 
-span : List Content -> Content
+span : Int -> List Content -> Content
 span =
     Span
 
 
-breakpoint : BreakMode -> Int -> Content
+breakpoint : BreakMode -> Content
 breakpoint =
     BreakPoint
 
@@ -33,14 +39,14 @@ force =
     Force
 
 
-optional : BreakMode
+optional : Maybe String -> BreakMode
 optional =
     Optional
 
 
-continue : BreakMode
-continue =
-    Continue
+container : Maybe String -> BreakMode
+container =
+    Container
 
 
 format : Int -> Content -> String
@@ -51,6 +57,7 @@ format width content =
         , width = width
         }
     ).buffer
+        |> String.trimRight
 
 
 toString : Content -> String
@@ -72,47 +79,66 @@ type alias Context =
 item : Content -> Context -> Context
 item content context =
     case content of
-        Span entries ->
-            list 0 False entries context
+        Span indent entries ->
+            list 0 indent (hasEnoughSpace entries context) entries context
 
-        BreakPoint _ _ ->
+        BreakPoint _ ->
             context
 
         Text string ->
             write string context
 
 
-list : Int -> Bool -> List Content -> Context -> Context
-list indent broken xs context =
+list : Int -> Int -> Bool -> List Content -> Context -> Context
+list indent offset whole entries context =
+    if whole then
+        listHelp indent whole entries context
+
+    else
+        listHelp (indent + offset) whole entries context
+
+
+listHelp : Int -> Bool -> List Content -> Context -> Context
+listHelp indent whole xs context =
     case xs of
         head :: tail ->
             case head of
-                BreakPoint Optional offset ->
-                    if hasEnoughSpace context tail then
-                        list indent broken tail context
+                BreakPoint (Optional fallback) ->
+                    if whole then
+                        writeMaybe fallback context
+                            |> listHelp indent whole tail
 
                     else
-                        break (indent + offset) tail context
+                        case tail of
+                            next :: _ ->
+                                if hasEnoughSpace [ next ] context then
+                                    writeMaybe fallback context
+                                        |> listHelp indent whole tail
 
-                BreakPoint Force offset ->
-                    break (indent + offset) tail context
+                                else
+                                    break indent tail context
 
-                BreakPoint Continue offset ->
-                    if broken then
-                        break (indent + offset) tail context
+                            _ ->
+                                break indent tail context
 
-                    else if hasEnoughSpace context tail then
-                        list indent broken tail context
+                BreakPoint Force ->
+                    break indent tail context
+
+                BreakPoint (Container fallback) ->
+                    if whole then
+                        writeMaybe fallback context
+                            |> listHelp indent whole tail
 
                     else
-                        break (indent + offset) tail context
+                        break indent tail context
 
-                Span xs_ ->
-                    list indent False xs_ context
-                        |> list indent broken tail
+                Span offset entries ->
+                    list indent offset (hasEnoughSpace entries context) entries context
+                        |> listHelp indent whole tail
 
                 Text string ->
                     write string context
+                        |> listHelp indent whole tail
 
         [] ->
             context
@@ -121,34 +147,50 @@ list indent broken xs context =
 break : Int -> List Content -> Context -> Context
 break indent xs context =
     linebreak indent context
-        |> list indent True xs
+        |> listHelp indent False xs
 
 
-hasEnoughSpace : Context -> List Content -> Bool
-hasEnoughSpace context xs =
-    hasEnoughSpaceHelp context.width context.column xs
+hasEnoughSpace : List Content -> Context -> Bool
+hasEnoughSpace xs context =
+    case hasEnoughSpaceHelp context.width context.column xs of
+        Just column ->
+            column < context.width
+
+        Nothing ->
+            False
 
 
-hasEnoughSpaceHelp : Int -> Int -> List Content -> Bool
+hasEnoughSpaceHelp : Int -> Int -> List Content -> Maybe Int
 hasEnoughSpaceHelp width column xs =
     case xs of
         [] ->
-            True
+            Just column
 
         this :: rest ->
             case this of
-                BreakPoint Force _ ->
-                    True
+                BreakPoint Force ->
+                    Nothing
 
-                BreakPoint _ _ ->
+                BreakPoint (Optional (Just offset)) ->
+                    hasEnoughSpaceHelp width (column + String.length offset) rest
+
+                BreakPoint (Container (Just offset)) ->
+                    hasEnoughSpaceHelp width (column + String.length offset) rest
+
+                BreakPoint _ ->
                     hasEnoughSpaceHelp width column rest
 
-                Span content ->
-                    if hasEnoughSpaceHelp width column content then
-                        hasEnoughSpaceHelp width column rest
+                Span _ content ->
+                    case hasEnoughSpaceHelp width column content of
+                        Just column_ ->
+                            if column_ <= width then
+                                hasEnoughSpaceHelp width column_ rest
 
-                    else
-                        False
+                            else
+                                Nothing
+
+                        nothing ->
+                            nothing
 
                 Text string ->
                     let
@@ -159,7 +201,7 @@ hasEnoughSpaceHelp width column xs =
                         hasEnoughSpaceHelp width column_ rest
 
                     else
-                        False
+                        Nothing
 
 
 write : String -> Context -> Context
@@ -170,9 +212,20 @@ write string context =
     }
 
 
+writeMaybe : Maybe String -> Context -> Context
+writeMaybe maybe context =
+    case maybe of
+        Just string ->
+            write string context
+
+        Nothing ->
+            context
+
+
 linebreak : Int -> Context -> Context
 linebreak column context =
-    { buffer = context.buffer ++ "\n" ++ String.repeat column " "
+    { buffer =
+        String.trimRight context.buffer ++ "\n" ++ String.repeat column " "
     , column = column
     , width = context.width
     }
