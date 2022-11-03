@@ -1,7 +1,5 @@
 module Format2 exposing (BreakMode, Content, breakpoint, container, force, format, optional, span, text, toString, write)
 
-import IR.Parser exposing (a)
-
 
 type Content
     = Span Int (List Content)

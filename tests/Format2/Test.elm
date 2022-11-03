@@ -1,13 +1,13 @@
 module Format2.Test exposing (suite)
 
 import Expect
-import Format2 as Format exposing (Content)
+import PrettyPrint as PP exposing (Element)
 import Test exposing (..)
 
 
 suite : Test
 suite =
-    describe "Format"
+    describe "PrettyPrint"
         [ primitives
         , extensions
         ]
@@ -18,117 +18,123 @@ primitives =
     describe "primitives"
         [ test "text" <|
             \_ ->
-                Format.text "a"
-                    |> expectFormat "a"
+                PP.text "a"
+                    |> expectPP "a"
         , test "empty span" <|
             \_ ->
-                Format.span 0 []
-                    |> expectFormat ""
+                PP.span []
+                    |> expectPP ""
         , test "1-elem span" <|
             \_ ->
-                Format.span 0 [ Format.text "a" ]
-                    |> expectFormat "a"
+                PP.span [ PP.text "a" ]
+                    |> expectPP "a"
         , test "2-elem span" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.text "b" ]
-                    |> expectFormat "ab"
+                PP.span [ PP.text "a", PP.text "b" ]
+                    |> expectPP "ab"
         , test "3-elem span" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.text "b", Format.text "c" ]
-                    |> expectFormat "abc"
+                PP.span [ PP.text "a", PP.text "b", PP.text "c" ]
+                    |> expectPP "abc"
         , test "1-depth span" <|
             \_ ->
-                Format.span 0 [ Format.text "a" ]
-                    |> expectFormat "a"
+                PP.span [ PP.text "a" ]
+                    |> expectPP "a"
         , test "2-depth span" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.span 0 [ Format.text "b" ] ]
-                    |> expectFormat "ab"
+                PP.span [ PP.text "a", PP.span [ PP.text "b" ] ]
+                    |> expectPP "ab"
         , test "3-depth span" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.span 0 [ Format.text "b", Format.span 0 [ Format.text "c" ] ] ]
-                    |> expectFormat "abc"
+                PP.span [ PP.text "a", PP.span [ PP.text "b", PP.span [ PP.text "c" ] ] ]
+                    |> expectPP "abc"
         , test "1-depth span indent" <|
             \_ ->
-                Format.span 2
-                    [ Format.breakpoint Format.force
-                    , Format.text "a"
+                PP.span
+                    [ PP.break PP.always
+                    , PP.text "a"
                     ]
-                    |> expectFormat "\n  a"
+                    |> PP.indent 2
+                    |> expectPP "\n  a"
         , test "2-depth span indent" <|
             \_ ->
-                Format.span 2
-                    [ Format.breakpoint Format.force
-                    , Format.text "a"
-                    , Format.span 2
-                        [ Format.breakpoint Format.force
-                        , Format.text "b"
-                        , Format.breakpoint Format.force
-                        , Format.text "c"
+                PP.span
+                    [ PP.break PP.always
+                    , PP.text "a"
+                    , PP.span
+                        [ PP.break PP.always
+                        , PP.text "b"
+                        , PP.break PP.always
+                        , PP.text "c"
                         ]
-                    , Format.breakpoint Format.force
-                    , Format.text "d"
+                        |> PP.indent 2
+                    , PP.break PP.always
+                    , PP.text "d"
                     ]
-                    |> expectFormat "\n  a\n    b\n    c\n  d"
+                    |> PP.indent 2
+                    |> expectPP "\n  a\n    b\n    c\n  d"
         , test "3-depth span indent" <|
             \_ ->
-                Format.span 2
-                    [ Format.breakpoint Format.force
-                    , Format.text "a"
-                    , Format.span 2
-                        [ Format.breakpoint Format.force
-                        , Format.text "b"
-                        , Format.span 2
-                            [ Format.breakpoint Format.force
-                            , Format.text "c"
+                PP.span
+                    [ PP.break PP.always
+                    , PP.text "a"
+                    , PP.span
+                        [ PP.break PP.always
+                        , PP.text "b"
+                        , PP.span
+                            [ PP.break PP.always
+                            , PP.text "c"
                             ]
-                        , Format.breakpoint Format.force
-                        , Format.text "d"
+                            |> PP.indent 2
+                        , PP.break PP.always
+                        , PP.text "d"
                         ]
-                    , Format.breakpoint Format.force
-                    , Format.text "e"
+                        |> PP.indent 2
+                    , PP.break PP.always
+                    , PP.text "e"
                     ]
-                    |> expectFormat "\n  a\n    b\n      c\n    d\n  e"
-        , test "forced breakpoint" <|
+                    |> PP.indent 2
+                    |> expectPP "\n  a\n    b\n      c\n    d\n  e"
+        , test "forced break" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.breakpoint Format.force, Format.text "b" ]
-                    |> expectFormat "a\nb"
-        , test "forced breakpoint indent" <|
+                PP.span [ PP.text "a", PP.break PP.always, PP.text "b" ]
+                    |> expectPP "a\nb"
+        , test "forced break indent" <|
             \_ ->
-                Format.span 2 [ Format.text "a", Format.breakpoint Format.force, Format.text "b" ]
-                    |> expectFormat "a\n  b"
-        , test "useless optional breakpoint" <|
+                PP.indent 2 (PP.span [ PP.text "a", PP.break PP.always, PP.text "b" ])
+                    |> expectPP "a\n  b"
+        , test "useless optional break" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.breakpoint (Format.optional Nothing), Format.text "b" ]
-                    |> expectFormat "ab"
-        , test "useless continuation breakpoint" <|
+                PP.span [ PP.text "a", PP.break (PP.onNeed PP.orNoop), PP.text "b" ]
+                    |> expectPP "ab"
+        , test "useless continuation break" <|
             \_ ->
-                Format.span 0 [ Format.text "a", Format.breakpoint (Format.container Nothing), Format.text "b" ]
-                    |> expectFormat "ab"
-        , test "useful optional breakpoint" <|
+                PP.span [ PP.text "a", PP.break (PP.onSpan PP.orNoop), PP.text "b" ]
+                    |> expectPP "ab"
+        , test "useful optional break" <|
             \_ ->
-                Format.span 0
-                    [ Format.text "1abcdef"
-                    , Format.breakpoint (Format.optional Nothing)
-                    , Format.text "2abcdef"
-                    , Format.breakpoint (Format.optional Nothing)
-                    , Format.text "3abcdef"
-                    , Format.breakpoint (Format.optional Nothing)
-                    , Format.text "4abcdef"
+                PP.span
+                    [ PP.text "1abcdef"
+                    , PP.break (PP.onNeed PP.orNoop)
+                    , PP.text "2abcdef"
+                    , PP.break (PP.onNeed PP.orNoop)
+                    , PP.text "3abcdef"
+                    , PP.break (PP.onNeed PP.orNoop)
+                    , PP.text "4abcdef"
                     ]
-                    |> expectFormat "1abcdef\n2abcdef\n3abcdef\n4abcdef"
-        , test "useful continuation breakpoint" <|
+                    |> expectPP "1abcdef\n2abcdef\n3abcdef\n4abcdef"
+        , test "useful span break" <|
             \_ ->
-                Format.span 0
-                    [ Format.text "1abc"
-                    , Format.breakpoint Format.force
-                    , Format.text "2abc"
-                    , Format.breakpoint (Format.container Nothing)
-                    , Format.text "3abc"
-                    , Format.breakpoint (Format.container Nothing)
-                    , Format.text "4abc"
+                PP.span
+                    [ PP.text "1abc"
+                    , PP.break PP.always
+                    , PP.text "2abc"
+                    , PP.break (PP.onSpan PP.orNoop)
+                    , PP.text "3abc"
+                    , PP.break (PP.onSpan PP.orNoop)
+                    , PP.text "4abc"
                     ]
-                    |> expectFormat "1abc\n2abc\n3abc\n4abc"
+                    |> expectPP "1abc\n2abc\n3abc\n4abc"
         ]
 
 
@@ -137,202 +143,202 @@ extensions =
     describe "extensions"
         [ test "1-element args" <|
             \_ ->
-                args [ Format.text "a" ]
-                    |> expectFormat "a"
+                args [ PP.text "a" ]
+                    |> expectPP "a"
         , test "2-element args" <|
             \_ ->
-                args [ Format.text "a", Format.text "b" ]
-                    |> expectFormat "a b"
+                args [ PP.text "a", PP.text "b" ]
+                    |> expectPP "a b"
         , test "3-element args" <|
             \_ ->
-                args [ Format.text "a", Format.text "b", Format.text "c" ]
-                    |> expectFormat "a b c"
+                args [ PP.text "a", PP.text "b", PP.text "c" ]
+                    |> expectPP "a b c"
         , test "1-depth args" <|
             \_ ->
                 args
-                    [ Format.text "Lorem.ip"
-                    , Format.text "a"
-                    , Format.text "b"
-                    , Format.text "c"
+                    [ PP.text "Lorem.ip"
+                    , PP.text "a"
+                    , PP.text "b"
+                    , PP.text "c"
                     ]
-                    |> expectFormat
+                    |> expectPP
                         "Lorem.ip a\n  b\n  c"
         , test "2-depth args" <|
             \_ ->
                 args
-                    [ Format.text "Lor.em"
-                    , Format.text "a"
-                    , Format.text "b"
+                    [ PP.text "Lor.em"
+                    , PP.text "a"
+                    , PP.text "b"
                     , args
-                        [ Format.text "yuck"
-                        , Format.text "c"
-                        , Format.text "d"
-                        , Format.text "e"
-                        , Format.text "f"
+                        [ PP.text "yuck"
+                        , PP.text "c"
+                        , PP.text "d"
+                        , PP.text "e"
+                        , PP.text "f"
                         ]
-                    , Format.text "g"
+                    , PP.text "g"
                     ]
-                    |> expectFormat "Lor.em a\n  b\n  yuck c\n    d\n    e\n    f\n  g"
+                    |> expectPP "Lor.em a\n  b\n  yuck c\n    d\n    e\n    f\n  g"
         , test "3-depth args" <|
             \_ ->
                 args
-                    [ Format.text "Lor.em"
-                    , Format.text "a"
+                    [ PP.text "Lor.em"
+                    , PP.text "a"
                     , args
-                        [ Format.text "yuck"
-                        , Format.text "b"
+                        [ PP.text "yuck"
+                        , PP.text "b"
                         , args
-                            [ Format.text "puck"
-                            , Format.text "c"
-                            , Format.text "d"
-                            , Format.text "e"
-                            , Format.text "f"
+                            [ PP.text "puck"
+                            , PP.text "c"
+                            , PP.text "d"
+                            , PP.text "e"
+                            , PP.text "f"
                             ]
-                        , Format.text "g"
+                        , PP.text "g"
                         ]
-                    , Format.text "h"
+                    , PP.text "h"
                     ]
-                    |> expectFormat
+                    |> expectPP
                         "Lor.em a\n  yuck b\n    puck c\n      d\n      e\n      f\n    g\n  h"
         , test "empty apply" <|
             \_ ->
                 apply []
-                    |> expectFormat "()"
+                    |> expectPP "()"
         , test "1-element apply" <|
             \_ ->
-                apply [ Format.text "a" ]
-                    |> expectFormat "(a)"
+                apply [ PP.text "a" ]
+                    |> expectPP "(a)"
         , test "2-element apply" <|
             \_ ->
-                apply [ Format.text "a", Format.text "b" ]
-                    |> expectFormat "(a b)"
+                apply [ PP.text "a", PP.text "b" ]
+                    |> expectPP "(a b)"
         , test "3-element apply" <|
             \_ ->
-                apply [ Format.text "a", Format.text "b", Format.text "c" ]
-                    |> expectFormat "(a b c)"
+                apply [ PP.text "a", PP.text "b", PP.text "c" ]
+                    |> expectPP "(a b c)"
         , test "1-depth apply" <|
             \_ ->
                 apply
-                    [ Format.text "Lor.em"
-                    , Format.text "a"
-                    , Format.text "b"
-                    , Format.text "c"
-                    , Format.text "d"
+                    [ PP.text "Lor.em"
+                    , PP.text "a"
+                    , PP.text "b"
+                    , PP.text "c"
+                    , PP.text "d"
                     ]
-                    |> expectFormat "(Lor.em a\n  b\n  c\n  d\n)"
+                    |> expectPP "(Lor.em a\n  b\n  c\n  d\n)"
         , test "2-depth apply" <|
             \_ ->
                 apply
-                    [ Format.text "Lor.em"
-                    , Format.text "a"
-                    , Format.text "b"
+                    [ PP.text "Lor.em"
+                    , PP.text "a"
+                    , PP.text "b"
                     , apply
-                        [ Format.text "yuck"
-                        , Format.text "c"
-                        , Format.text "d"
-                        , Format.text "e"
-                        , Format.text "f"
+                        [ PP.text "yuck"
+                        , PP.text "c"
+                        , PP.text "d"
+                        , PP.text "e"
+                        , PP.text "f"
                         ]
-                    , Format.text "g"
+                    , PP.text "g"
                     ]
-                    |> expectFormat "(Lor.em a\n  b\n  (yuck c\n    d\n    e\n    f\n  )\n  g\n)"
+                    |> expectPP "(Lor.em a\n  b\n  (yuck c\n    d\n    e\n    f\n  )\n  g\n)"
         , test "3-depth apply" <|
             \_ ->
                 apply
-                    [ Format.text "Lor.em"
-                    , Format.text "a"
+                    [ PP.text "Lor.em"
+                    , PP.text "a"
                     , apply
-                        [ Format.text "yuck"
-                        , Format.text "b"
+                        [ PP.text "yuck"
+                        , PP.text "b"
                         , apply
-                            [ Format.text "puck"
-                            , Format.text "c"
-                            , Format.text "d"
-                            , Format.text "e"
-                            , Format.text "f"
+                            [ PP.text "puck"
+                            , PP.text "c"
+                            , PP.text "d"
+                            , PP.text "e"
+                            , PP.text "f"
                             ]
-                        , Format.text "g"
+                        , PP.text "g"
                         ]
-                    , Format.text "h"
+                    , PP.text "h"
                     ]
-                    |> expectFormat "(Lor.em a\n  (yuck b\n    (puck c\n      d\n      e\n      f\n    )\n    g\n  )\n  h\n)"
+                    |> expectPP "(Lor.em a\n  (yuck b\n    (puck c\n      d\n      e\n      f\n    )\n    g\n  )\n  h\n)"
         , test "empty brackets" <|
             \_ ->
                 brackets []
-                    |> expectFormat "[]"
+                    |> expectPP "[]"
         , test "1-element brackets" <|
             \_ ->
-                brackets [ Format.text "a" ]
-                    |> expectFormat "[ a ]"
+                brackets [ PP.text "a" ]
+                    |> expectPP "[ a ]"
         , test "2-element brackets" <|
             \_ ->
                 brackets
-                    [ Format.text "a"
-                    , Format.text "b"
+                    [ PP.text "a"
+                    , PP.text "b"
                     ]
-                    |> expectFormat "[ a, b ]"
+                    |> expectPP "[ a, b ]"
         , test "32-element brackets" <|
             \_ ->
                 brackets
-                    [ Format.text "a"
-                    , Format.text "b"
-                    , Format.text "c"
+                    [ PP.text "a"
+                    , PP.text "b"
+                    , PP.text "c"
                     ]
-                    |> expectFormat "[ a, b, c ]"
+                    |> expectPP "[ a, b, c ]"
         , test "1-depth brackets" <|
             \_ ->
                 brackets
-                    [ Format.text "a"
-                    , Format.text "b"
-                    , Format.text "c"
-                    , Format.text "d"
+                    [ PP.text "a"
+                    , PP.text "b"
+                    , PP.text "c"
+                    , PP.text "d"
                     ]
-                    |> expectFormat "[ a\n, b\n, c\n, d\n]"
+                    |> expectPP "[ a\n, b\n, c\n, d\n]"
         , test "2-depth brackets" <|
             \_ ->
                 brackets
-                    [ Format.text "a"
+                    [ PP.text "a"
                     , brackets
-                        [ Format.text "b"
-                        , Format.text "c"
-                        , Format.text "d"
+                        [ PP.text "b"
+                        , PP.text "c"
+                        , PP.text "d"
                         ]
-                    , Format.text "e"
-                    , brackets [ Format.text "f" ]
+                    , PP.text "e"
+                    , brackets [ PP.text "f" ]
                     , brackets []
                     ]
-                    |> expectFormat "[ a\n, [ b\n  , c\n  , d\n  ]\n, e\n, [ f ]\n, []\n]"
+                    |> expectPP "[ a\n, [ b\n  , c\n  , d\n  ]\n, e\n, [ f ]\n, []\n]"
         , test "3-depth brackets" <|
             \_ ->
                 brackets
-                    [ Format.text "a"
+                    [ PP.text "a"
                     , brackets
-                        [ Format.text "b"
-                        , brackets [ Format.text "c" ]
-                        , Format.text "d"
+                        [ PP.text "b"
+                        , brackets [ PP.text "c" ]
+                        , PP.text "d"
                         ]
-                    , Format.text "e"
+                    , PP.text "e"
                     ]
-                    |> expectFormat "[ a\n, [ b\n  , [ c ]\n  , d\n  ]\n, e\n]"
+                    |> expectPP "[ a\n, [ b\n  , [ c ]\n  , d\n  ]\n, e\n]"
         , test "code wrap blow up 1" <|
             \_ ->
                 args
-                    [ Format.text "Level0"
+                    [ PP.text "Level0"
                     , brackets
-                        [ Format.text "Level1"
+                        [ PP.text "Level1"
                         , apply
-                            [ Format.text "Level2"
+                            [ PP.text "Level2"
                             , brackets
-                                [ Format.text "Level 3"
+                                [ PP.text "Level 3"
                                 , args
-                                    [ Format.text "Level4"
+                                    [ PP.text "Level4"
                                     , brackets
-                                        [ Format.text "Level5"
+                                        [ PP.text "Level5"
                                         , apply
-                                            [ Format.text "Level6"
+                                            [ PP.text "Level6"
                                             , brackets
                                                 [ args
-                                                    [ Format.text "Level7"
+                                                    [ PP.text "Level7"
                                                     ]
                                                 ]
                                             ]
@@ -342,7 +348,7 @@ extensions =
                             ]
                         ]
                     ]
-                    |> expectFormatWith 1
+                    |> expectPrettyPrint 1
                         (String.join "\n"
                             [ "Level0"
                             , "  [ Level1"
@@ -363,22 +369,22 @@ extensions =
         , test "code wrap blow up 2" <|
             \_ ->
                 args
-                    [ Format.text "Level0"
+                    [ PP.text "Level0"
                     , brackets
-                        [ Format.text "Level1"
+                        [ PP.text "Level1"
                         , apply
-                            [ Format.text "Level2"
+                            [ PP.text "Level2"
                             , brackets
-                                [ Format.text "Level 3"
+                                [ PP.text "Level 3"
                                 , args
-                                    [ Format.text "Level4"
+                                    [ PP.text "Level4"
                                     , brackets
-                                        [ Format.text "Level5"
+                                        [ PP.text "Level5"
                                         , apply
-                                            [ Format.text "Level6"
+                                            [ PP.text "Level6"
                                             , brackets
                                                 [ args
-                                                    [ Format.text "Level7"
+                                                    [ PP.text "Level7"
                                                     ]
                                                 ]
                                             ]
@@ -388,7 +394,7 @@ extensions =
                             ]
                         ]
                     ]
-                    |> expectFormatWith 26
+                    |> expectPrettyPrint 26
                         (String.join "\n"
                             [ "Level0"
                             , "  [ Level1"
@@ -408,21 +414,24 @@ extensions =
         ]
 
 
-args : List Content -> Content
+args : List Element -> Element
 args entries =
     case entries of
         fst :: snd :: tail ->
-            Format.span 2 <|
-                argsHelp tail [ Format.span 0 [ fst, containerNewlineOrSpace, snd ] ]
+            argsHelp tail [ PP.span [ fst, containerNewlineOrSpace, snd ] ]
+                |> PP.span
+                |> PP.indent 2
 
         fst :: tail ->
-            Format.span 2 <| argsHelp tail [ fst ]
+            argsHelp tail [ fst ]
+                |> PP.span
+                |> PP.indent 2
 
         [] ->
-            Format.span 0 []
+            PP.span []
 
 
-argsHelp : List Content -> List Content -> List Content
+argsHelp : List Element -> List Element -> List Element
 argsHelp entries acc =
     case entries of
         head :: tail ->
@@ -435,29 +444,32 @@ argsHelp entries acc =
             List.reverse acc
 
 
-apply : List Content -> Content
+apply : List Element -> Element
 apply entries =
     case entries of
         fst :: snd :: tail ->
-            Format.span 0 <|
-                [ Format.span 2 <|
-                    applyHelp tail [ Format.span 0 [ Format.text "(", fst, containerNewlineOrSpace, snd ] ]
+            PP.span <|
+                [ applyHelp tail [ PP.span [ PP.text "(", fst, containerNewlineOrSpace, snd ] ]
+                    |> PP.span
+                    |> PP.indent 2
                 , containerNewlineOrNothing
-                , Format.text ")"
+                , PP.text ")"
                 ]
 
         fst :: tail ->
-            Format.span 0 <|
-                [ Format.span 2 <| applyHelp tail [ fst, Format.text "(" ]
+            PP.span <|
+                [ applyHelp tail [ fst, PP.text "(" ]
+                    |> PP.span
+                    |> PP.indent 2
                 , containerNewlineOrNothing
-                , Format.text ")"
+                , PP.text ")"
                 ]
 
         [] ->
-            Format.text "()"
+            PP.text "()"
 
 
-applyHelp : List Content -> List Content -> List Content
+applyHelp : List Element -> List Element -> List Element
 applyHelp entries acc =
     case entries of
         head :: tail ->
@@ -470,53 +482,54 @@ applyHelp entries acc =
             List.reverse acc
 
 
-brackets : List Content -> Content
+brackets : List Element -> Element
 brackets entries =
     case entries of
         fst :: tail ->
-            Format.span 0 <| bracketsHelp tail [ fst, space, Format.text "[" ]
+            PP.span <| bracketsHelp tail [ fst, PP.whitespace, PP.text "[" ]
 
         [] ->
-            Format.text "[]"
+            PP.text "[]"
 
 
-bracketsHelp : List Content -> List Content -> List Content
+bracketsHelp : List Element -> List Element -> List Element
 bracketsHelp entries acc =
     case entries of
         head :: [] ->
-            List.reverse <| Format.text "]" :: containerNewlineOrSpace :: Format.span 2 [ head ] :: Format.text ", " :: containerNewlineOrNothing :: acc
+            List.reverse <|
+                PP.text "]"
+                    :: containerNewlineOrSpace
+                    :: (PP.indent 2 <| PP.span [ head ])
+                    :: PP.text ", "
+                    :: containerNewlineOrNothing
+                    :: acc
 
         head :: tail ->
             bracketsHelp tail <|
-                Format.span 2 [ head ]
-                    :: Format.text ", "
+                (PP.indent 2 <| PP.span [ head ])
+                    :: PP.text ", "
                     :: containerNewlineOrNothing
                     :: acc
 
         [] ->
-            List.reverse (Format.text "]" :: containerNewlineOrSpace :: acc)
+            List.reverse (PP.text "]" :: containerNewlineOrSpace :: acc)
 
 
-containerNewlineOrSpace : Content
+containerNewlineOrSpace : Element
 containerNewlineOrSpace =
-    Format.breakpoint (Format.container (Just " "))
+    PP.break <| PP.onSpan <| PP.or PP.whitespace
 
 
-containerNewlineOrNothing : Content
+containerNewlineOrNothing : Element
 containerNewlineOrNothing =
-    Format.breakpoint (Format.container Nothing)
+    PP.break <| PP.onSpan <| PP.orNoop
 
 
-expectFormat : String -> Content -> Expect.Expectation
-expectFormat =
-    expectFormatWith 12
+expectPP : String -> Element -> Expect.Expectation
+expectPP =
+    expectPrettyPrint 12
 
 
-expectFormatWith : Int -> String -> Content -> Expect.Expectation
-expectFormatWith width expect content =
-    Expect.equal expect (Format.format width content)
-
-
-space : Content
-space =
-    Format.text " "
+expectPrettyPrint : Int -> String -> Element -> Expect.Expectation
+expectPrettyPrint width expect content =
+    Expect.equal expect (PP.stringify width content)

@@ -205,7 +205,7 @@ type alias State =
 
 
 item : Int -> Bool -> Element -> State -> State
-item offset brokenSpan element state =
+item offset broken element state =
     case element of
         Text string ->
             write string state
@@ -214,52 +214,52 @@ item offset brokenSpan element state =
             state
 
         Group elements ->
-            list offset brokenSpan elements state
+            list offset broken elements state
 
         Span elements ->
             list offset (isListBroken elements state) elements state
 
         Indent diff subElement ->
             if isElementBroken subElement state then
-                item offset brokenSpan subElement state
+                item (offset + diff) broken subElement state
 
             else
-                item (offset + diff) brokenSpan subElement state
+                item offset broken subElement state
 
 
 list : Int -> Bool -> List Element -> State -> State
-list offset brokenSpan elements state =
+list offset broken elements state =
     case elements of
         head :: tail ->
             case head of
                 Break Always ->
-                    breakAndContinue offset brokenSpan tail state
+                    breakAndContinue offset broken tail state
 
                 Break (OnNeed condition) ->
                     if isWholeTillBreak tail state then
-                        embedAndContinue offset brokenSpan condition tail state
+                        embedAndContinue offset broken condition tail state
 
                     else
-                        breakAndContinue offset brokenSpan tail state
+                        breakAndContinue offset broken tail state
 
                 Break (OnSpan condition) ->
-                    if brokenSpan then
+                    if broken then
                         breakAndContinue offset True tail state
 
                     else
-                        embedAndContinue offset brokenSpan condition tail state
+                        embedAndContinue offset broken condition tail state
 
                 _ ->
-                    continue offset brokenSpan head tail state
+                    continue offset broken head tail state
 
         [] ->
             state
 
 
 continue : Int -> Bool -> Element -> List Element -> State -> State
-continue offset brokenSpan head tail state =
-    item offset brokenSpan head state
-        |> list offset brokenSpan tail
+continue offset broken head tail state =
+    item offset broken head state
+        |> list offset broken tail
 
 
 breakAndContinue : Int -> Bool -> List Element -> State -> State
@@ -269,14 +269,14 @@ breakAndContinue offset brokenSpan xs state =
 
 
 embedAndContinue : Int -> Bool -> OrElse -> List Element -> State -> State
-embedAndContinue offset brokenSpan condition xs state =
+embedAndContinue offset broken condition xs state =
     case condition of
         OrElement element ->
-            item offset brokenSpan element state
-                |> list offset brokenSpan xs
+            item offset broken element state
+                |> list offset broken xs
 
         OrNoop ->
-            list offset brokenSpan xs state
+            list offset broken xs state
 
 
 write : String -> State -> State
@@ -321,10 +321,10 @@ isListBroken : List Element -> State -> Bool
 isListBroken elements state =
     case getUnbrokenListColumn state.width state.column elements of
         Just _ ->
-            True
+            False
 
         Nothing ->
-            False
+            True
 
 
 getUnbrokenListColumn : Int -> Int -> List Element -> Maybe Int
@@ -385,10 +385,10 @@ getUnbrokenElementColumn width column element =
 isWholeTillBreak : List Element -> State -> Bool
 isWholeTillBreak elements state =
     case getWholeListColumn state.width state.column elements of
-        Just _ ->
+        Just ( True, _ ) ->
             True
 
-        Nothing ->
+        _ ->
             False
 
 
