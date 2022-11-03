@@ -1,4 +1,4 @@
-module Format2.Test exposing (suite)
+module PrettyPrint.Test exposing (suite)
 
 import Expect
 import PrettyPrint as PP exposing (Element)

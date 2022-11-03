@@ -1,14 +1,14 @@
 ```elm
 
 module Name
-  (@X : Annotation)
-  (@Y : b)
-  (@Z : c)
-exposing (..)
+  (X : Annotation)
+  (Y : b)
+  (Z : c)
+expose (..)
 
-import @X from "xyz"
-import @Y from "xyz"
-import @Z from "xyz"
+import X from "xyz"
+import Y from "xyz"
+import Z from "xyz"
 
 
 # uppercase = without types affect modules
